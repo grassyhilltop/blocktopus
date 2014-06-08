@@ -32,6 +32,8 @@ enum possible_module_types {
 #define BLINK_TIME 			200
 #define STATUS_LED_PORT 	DDB1
 
+#define OUTPUT_PORT 	DDB3 // PB3 as output 
+
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
 
@@ -289,12 +291,12 @@ void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 		if(	midiMsg[0] == 0x09  && 	midiMsg[1] == 0x90){
 			// blink();
 			// Turn on OUTPUT
-			PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
+			PORTB |= _BV(OUTPUT_PORT);	// Switch status LED on					
 		}
 		// Note off
 		else if( midiMsg[1] == 0x80 ){
 			// PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
-			PORTB &= ~_BV(STATUS_LED_PORT); // LED off
+			PORTB &= ~_BV(OUTPUT_PORT); // LED off
 		} 			
 		
 
@@ -383,6 +385,12 @@ void blink()
 }
 
 
+void initOutputPort(){
+
+	DDRB = _BV(OUTPUT_PORT); 	// LED pin = output
+}
+
+
 void initStatusLED()
 {
 	DDRB = _BV(STATUS_LED_PORT); 	// LED pin = output
@@ -441,7 +449,14 @@ int main()
 	uchar midiMsg[8];
 
     initStatusLED();
-	initAnalogInput();
+	
+	// Setup PB3 as ADC unless this is an output
+	if( MODULE_TYPE != OUTPUT){
+		initAnalogInput();	
+	} 
+	else {
+		initOutputPort();
+	}
 	initUSB();
 
 	// Globally enable interrupts
@@ -458,7 +473,7 @@ int main()
 			// js : bug here need to check old data value
 			// e.g. if ( (uADC >> 1) != (nADCOld >> 1) ) // just look at 7 bits
 			// if ( (uADC >> 1) != (nADCOld >> 1) ) {
-			if (uADC != nADCOld) { // if we got a new sensor value
+			if (uADC != nADCOld && MODULE_TYPE != OUTPUT) { // if we got a new sensor value
 				
 				// Status LED on send new message
 				// blink();
