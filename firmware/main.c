@@ -20,11 +20,14 @@
 enum possible_module_types {
 	KNOB,
 	BUTTON,
+	OUTPUT
 };
 
 // Define the current module type
 // #define MODULE_TYPE KNOB
-#define MODULE_TYPE BUTTON
+// #define MODULE_TYPE KNOB
+// #define MODULE_TYPE BUTTON
+#define MODULE_TYPE OUTPUT
 
 #define BLINK_TIME 			200
 #define STATUS_LED_PORT 	DDB1
@@ -275,11 +278,27 @@ void blink();
 /*---------------------------------------------------------------------------*/
 
 // joel: On received of message
-void usbFunctionWriteOut(uchar * data, uchar len)
+void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 {
 	// blink();
 
-	// The lenght of the message should be 8 uchars
+	// The lenght of the message should be 4 for a note on 
+	if (MODULE_TYPE == OUTPUT){
+		
+		// If note on message
+		if(	midiMsg[0] == 0x09  && 	midiMsg[1] == 0x90){
+			// blink();
+			// Turn on OUTPUT
+			PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
+		}
+		// Note off
+		else if( midiMsg[1] == 0x80 ){
+			// PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
+			PORTB &= ~_BV(STATUS_LED_PORT); // LED off
+		} 			
+		
+
+	}	
 	// uchar midiMsg[8];
 
 	//if(data[0] == 11 && data[3] == 99 && data[2] == 1) {...
@@ -440,31 +459,31 @@ int main()
 			// e.g. if ( (uADC >> 1) != (nADCOld >> 1) ) // just look at 7 bits
 			// if ( (uADC >> 1) != (nADCOld >> 1) ) {
 			if (uADC != nADCOld) { // if we got a new sensor value
+				
 				// Status LED on send new message
 				// blink();
 
 				// ------------- SENDING PITCH BEND DATA
+				if (MODULE_TYPE == KNOB) {
 
-				//// MIDI CC msg
-				// midiMsg[0] = 0x0b;			// CN = 0 (high nibble), CID = control change (low nibble)
-				// midiMsg[1] = 0xE3; //1110 pitch wheel -  14 decimal
-				// // Or use this for control change - generic
-				// // 0xb0 Channel voice message "Control change" (1011xxxx) on channel 1 (xxxx0000)
-				// // midiMsg[2] = 71;			// cc
-				// // midiMsg[3] = uADC >> 1;		// 7 bit
+					// MIDI CC msg
+					midiMsg[0] = 0x0b;			// CN = 0 (high nibble), CID = control change (low nibble)
+					midiMsg[1] = 0xE3; //1110 pitch wheel -  14 decimal
+					// Or use this for control change - generic
+					// 0xb0 Channel voice message "Control change" (1011xxxx) on channel 1 (xxxx0000)
+					// midiMsg[2] = 71;			// cc
+					// midiMsg[3] = uADC >> 1;		// 7 bit
 
-				// // Send pitch bend data
-				// midiMsg[2] = 0;			// cc
-				// midiMsg[3] = uADC >> 1;		// 7 bit
-				// usbSetInterrupt(midiMsg, 4);
+					// Send pitch bend data
+					midiMsg[2] = 0;			// cc
+					midiMsg[3] = uADC >> 1;		// 7 bit
+					usbSetInterrupt(midiMsg, 4);
 
-				// -------------------------------
-
+				}
 
 				// ------------- SENDING NOTE ON/OFF 
-
 				if (MODULE_TYPE == BUTTON) {
-					
+
 					// Send a note on message if this was a button down
 					//http://forums.obdev.com/viewtopic.php?f=8&t=1352&start=30
 					// 10010000= 90= 144	Chan 1 Note on	 Note Number (0-127)	 Note Velocity (0-127)
@@ -473,7 +492,6 @@ int main()
 					midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
 					midiMsg[2] =  0x3c ; // Note: 60 middle C
 		 			midiMsg[3] =  0x45 ; // velocity 
-					// usbSetInterrupt(midiMsg, 4);
 
 		 			int newButtonValue = uADC >> 1  ;
 
