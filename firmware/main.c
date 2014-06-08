@@ -25,9 +25,8 @@ enum possible_module_types {
 
 // Define the current module type
 // #define MODULE_TYPE KNOB
-// #define MODULE_TYPE KNOB
-// #define MODULE_TYPE BUTTON
-#define MODULE_TYPE OUTPUT
+#define MODULE_TYPE BUTTON
+// #define MODULE_TYPE OUTPUT
 
 #define BLINK_TIME 			200
 #define STATUS_LED_PORT 	DDB1
@@ -287,13 +286,13 @@ void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 	// The lenght of the message should be 4 for a note on 
 	if (MODULE_TYPE == OUTPUT){
 		
-		// If note on message
+		// If note on message 0x09
 		if(	midiMsg[0] == 0x09  && 	midiMsg[1] == 0x90){
 			// blink();
 			// Turn on OUTPUT
 			PORTB |= _BV(OUTPUT_PORT);	// Switch status LED on					
 		}
-		// Note off
+		// Note off message 0x80
 		else if( midiMsg[1] == 0x80 ){
 			// PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
 			PORTB &= ~_BV(OUTPUT_PORT); // LED off
@@ -301,16 +300,7 @@ void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 		
 
 	}	
-	// uchar midiMsg[8];
-
-	//if(data[0] == 11 && data[3] == 99 && data[2] == 1) {...
-
-	//Channel 1 0x90
-	//Note on channel 1 (0x90), some note value (note), silent velocity (0x00):
-    // noteOn(0x90, note, 0x00); 
-        //Note on channel 1 (0x90), some note value (note), middle velocity (0x45):
-
-	// 10010000= 90= 144	Chan 1 Note on	 Note Number (0-127)	 Note Velocity (0-127)
+	
 }
 
 /* ------------------------------------------------------------------------- */
@@ -506,6 +496,7 @@ int main()
 		 			midiMsg[0] =  0x09 ; // /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
 					midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
 					midiMsg[2] =  0x3c ; // Note: 60 middle C
+					// midiMsg[2] =  67 ; // Note: G3 above middle C
 		 			midiMsg[3] =  0x45 ; // velocity 
 
 		 			int newButtonValue = uADC >> 1  ;
