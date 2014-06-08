@@ -1,8 +1,8 @@
 /*
  * main.c
  *
- *  Created on: Oct 8, 2011
- *      Author: baum
+ *  Created on: June , 2014
+ *      Author: Joel  ( modified from Baum's original code )
  */
 #include "main.h"
 #include <avr/io.h>
@@ -23,15 +23,6 @@
 
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
-
-
-
-//  For button
-#define DEBOUNCE_TIME 			200 // how long to wait for button to debounce
-int nDebounce = 0;				//  timer for debouncing
-static uchar    buttonState;		/*  stores state of button */
-static uchar	debounceTimeIsOver;	/* for switch debouncing */
-static uchar	debounceTimeIsOver;	/* for switch debouncing */
 
 
 // This descriptor is based on http://www.usb.org/developers/devclass_docs/midi10.pdf
@@ -270,7 +261,7 @@ void blink();
 // joel: On received of message
 void usbFunctionWriteOut(uchar * data, uchar len)
 {
-	blink();
+	// blink();
 
 	// The lenght of the message should be 8 uchars
 	// uchar midiMsg[8];
@@ -409,6 +400,11 @@ void initUSB()
     usbDeviceConnect();
 }
 
+static char buttonWasPressed = 0;
+static char buttonState = 0;
+static char lastButtonState = 0;
+static int buttonDelay = 0;
+	
 int main()
 {
 	int nADCOld = -1;
@@ -420,9 +416,6 @@ int main()
 
 	// Globally enable interrupts
 	sei();
-
-	nDebounce = 200;
-	// int debounceCount = 0;
 
 	// Endless loop
 	// joel here is where there is a loop
@@ -439,60 +432,71 @@ int main()
 				// Status LED on send new message
 				// blink();
 
-				// MIDI CC msg
-				midiMsg[0] = 0x0b;			// CN = 0 (high nibble), CID = control change (low nibble)
-				midiMsg[1] = 0xE3; //1110 pitch wheel -  14 decimal
-				// 0xb0 Channel voice message "Control change" (1011xxxx) on channel 1 (xxxx0000)
-				// midiMsg[2] = 71;			// cc
+				// ------------- SENDING PITCH BEND DATA
+
+				//// MIDI CC msg
+				// midiMsg[0] = 0x0b;			// CN = 0 (high nibble), CID = control change (low nibble)
+				// midiMsg[1] = 0xE3; //1110 pitch wheel -  14 decimal
+				// // Or use this for control change - generic
+				// // 0xb0 Channel voice message "Control change" (1011xxxx) on channel 1 (xxxx0000)
+				// // midiMsg[2] = 71;			// cc
+				// // midiMsg[3] = uADC >> 1;		// 7 bit
+
+				// // Send pitch bend data
+				// midiMsg[2] = 0;			// cc
 				// midiMsg[3] = uADC >> 1;		// 7 bit
-				
-				// Send pitch bend data
-				midiMsg[2] = 0;			// cc
-				midiMsg[3] = uADC >> 1;		// 7 bit
+				// usbSetInterrupt(midiMsg, 4);
+
+				// -------------------------------
+
+
+				// ------------- SENDING NOTE ON/OFF 
+
+				// Send a note on message if this was a button down
+				//http://forums.obdev.com/viewtopic.php?f=8&t=1352&start=30
+				// 10010000= 90= 144	Chan 1 Note on	 Note Number (0-127)	 Note Velocity (0-127)
+
+	 			midiMsg[0] =  0x09 ; // /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
+				midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
+				midiMsg[2] =  0x3c ; // Note: 60 middle C
+	 			midiMsg[3] =  0x45 ; // velocity 
 
 				// usbSetInterrupt(midiMsg, 4);
 
-				// Send a note on message if this was a button down
-	 			midiMsg[0] =  0x09 ; // 
-				midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
-				midiMsg[2] =  0x3c ; // Note: 60 middle C
-	 			midiMsg[2] =  0x45 ; // velocity 
-				usbSetInterrupt(midiMsg, 4);
 
-				static int buttonFirstDown = 1;
-				static int buttonWasPressed = 0;
 
-				// if button pressed
-				// if ( ( uADC >> 1 )  == 127  ) {
-				// 	buttonWasPressed = 1;
-				// 	if( buttonFirstDown){
-				// 		buttonFirstDown = 0;
-				// 		PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on
-				// 		debounceCount = 1000;						
-				// 	}
-				// }
+	 			// If a button was pressed - debounce for X time 
+	 			// Don't send any more button presses for X time
+	 			if ( ( uADC >> 1 )  == 127  && buttonWasPressed == 0) { 
+	 				
+	 				buttonWasPressed = 1;
+					
+					PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
 
-				// // if button released
+	 				// Send a note on
+					usbSetInterrupt(midiMsg, 4);
+	 			}
+
 				// if(buttonWasPressed){
-				// 	debounceCount--;
 
-				// 	if(debounceCount <= 0){
-				// 		PORTB &= ~_BV(STATUS_LED_PORT); // LED off						
+				// 	buttonDelay++;
+					
+				// 	//reset the timer
+				// 	if(buttonDelay == 512){
+				// 		buttonDelay = 0;
+				// 		buttonWasPressed = 0;
+	
+				// 		PORTB &= ~_BV(STATUS_LED_PORT); // LED off
+
+				// 		// send note off
+				// 		midiMsg[1] =  0x80;  //1001b (noteon=9) 0000 ch0
+				// 		usbSetInterrupt(midiMsg, 4);
 
 				// 	}
 				// }
-				
-				//http://forums.obdev.com/viewtopic.php?f=8&t=1352&start=30
-            // midiMsg[msgByteCounter++] = 0x09; /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
-            // midiMsg[msgByteCounter++] = 0x90; /** 0x9 = NOTE-ON, 0x0 = Channel 0 */
-            // midiMsg[msgByteCounter++] = 48 + whichDrum; * which note to send 
-            // midiMsg[msgByteCounter++] = velocity; /** and how hard */
-            // midiMsg[msgByteCounter++] = 0; /** padding zeros to get a complete package */
-            // midiMsg[msgByteCounter++] = 0;
-            // midiMsg[msgByteCounter++] = 0;
-            // midiMsg[msgByteCounter++] = 0;
 
-				// 10010000= 90= 144	Chan 1 Note on	 Note Number (0-127)	 Note Velocity (0-127)
+				// -------------------------------
+
 
 				nADCOld = uADC;
 			}
@@ -511,14 +515,29 @@ ISR(TIMER1_OVF_vect)
 		if (!nBlink) PORTB &= ~_BV(STATUS_LED_PORT);	// If timer counter has reached 0, switch status led off.
 	}
 
-	// Joel for swtich
-	if(nDebounce){
-		nDebounce--;
-		// once debounce is over	
-		if (nDebounce <= 0) {
-			PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on	
+	// Joel For button press
+	if(buttonWasPressed){
+
+		buttonDelay++;
+		
+		//reset the timer
+		if(buttonDelay == 512){
+			buttonDelay = 0;
+			buttonWasPressed = 0;
+
+			PORTB &= ~_BV(STATUS_LED_PORT); // LED off
+
+			// send note msg
+			uchar midiMsg[8];
+ 			midiMsg[0] =  0x09 ; // /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
+			midiMsg[1] =  0x80;  // NOTE OFF
+			// midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
+			midiMsg[2] =  0x3c ; // Note: 60 middle C
+ 			midiMsg[3] =  0x45 ; // velocity 
+
+			usbSetInterrupt(midiMsg, 4);
+
 		}
-									
 	}
 
 	// Reset timer 1 counter (Only necessary if timer 1 compare match interrupt instead of
