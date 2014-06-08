@@ -461,7 +461,7 @@ int main()
 
 				static int buttonFirstDown = 1;
 				static int buttonWasPressed = 0;
-				int text = millis();	
+
 				// if button pressed
 				// if ( ( uADC >> 1 )  == 127  ) {
 				// 	buttonWasPressed = 1;
@@ -493,7 +493,6 @@ int main()
             // midiMsg[msgByteCounter++] = 0;
 
 				// 10010000= 90= 144	Chan 1 Note on	 Note Number (0-127)	 Note Velocity (0-127)
-				// Note off 1000
 
 				nADCOld = uADC;
 			}
