@@ -20,9 +20,16 @@
 #define BLINK_TIME 			200
 #define STATUS_LED_PORT 	DDB1
 
-
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
+
+
+// Joel: for button debouncing
+#define DEBOUNCE_TIME 100
+static char buttonState = 0;
+static char lastButtonState = 0;
+static int buttonDelay = 0;
+static char allowButtonEvents = 1;
 
 
 // This descriptor is based on http://www.usb.org/developers/devclass_docs/midi10.pdf
@@ -400,11 +407,6 @@ void initUSB()
     usbDeviceConnect();
 }
 
-static char buttonWasPressed = 0;
-static char buttonState = 0;
-static char lastButtonState = 0;
-static int buttonDelay = 0;
-	
 int main()
 {
 	int nADCOld = -1;
@@ -460,16 +462,19 @@ int main()
 				midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
 				midiMsg[2] =  0x3c ; // Note: 60 middle C
 	 			midiMsg[3] =  0x45 ; // velocity 
-
 				// usbSetInterrupt(midiMsg, 4);
 
+	 			int newButtonValue = uADC >> 1  ;
 
-
+	 			if(newButtonValue > 120){
+	 				buttonState = 1;
+	 			}else if (newButtonValue < 8){
+	 				buttonState = 0;
+	 			}
 	 			// If a button was pressed - debounce for X time 
 	 			// Don't send any more button presses for X time
-	 			if ( ( uADC >> 1 )  == 127  && buttonWasPressed == 0) { 
-	 				
-	 				buttonWasPressed = 1;
+	 			if (  buttonState ==1 && buttonState !=lastButtonState && allowButtonEvents == 1) { 
+	 				buttonDelay = DEBOUNCE_TIME; // Start the debounce timer
 					
 					PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
 
@@ -477,27 +482,28 @@ int main()
 					usbSetInterrupt(midiMsg, 4);
 	 			}
 
-				// if(buttonWasPressed){
+	 			else if ( buttonState == 0 && buttonState !=lastButtonState && allowButtonEvents == 1) {
+	 				buttonDelay = DEBOUNCE_TIME; // Start the debounce timer
 
-				// 	buttonDelay++;
-					
-				// 	//reset the timer
-				// 	if(buttonDelay == 512){
-				// 		buttonDelay = 0;
-				// 		buttonWasPressed = 0;
-	
-				// 		PORTB &= ~_BV(STATUS_LED_PORT); // LED off
+	 				// send note msg
+					uchar midiMsg[8];
+		 			midiMsg[0] =  0x09 ; // /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
+					midiMsg[1] =  0x80;  // NOTE OFF
+					// midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
+					midiMsg[2] =  0x3c ; // Note: 60 middle C
+		 			midiMsg[3] =  0x45 ; // velocity 
 
-				// 		// send note off
-				// 		midiMsg[1] =  0x80;  //1001b (noteon=9) 0000 ch0
-				// 		usbSetInterrupt(midiMsg, 4);
+					PORTB &= ~_BV(STATUS_LED_PORT); // LED off
 
-				// 	}
-				// }
+					// Send note off
+					usbSetInterrupt(midiMsg, 4);
+	 			}
+
+
 
 				// -------------------------------
 
-
+				lastButtonState = buttonState;
 				nADCOld = uADC;
 			}
 		}
@@ -516,27 +522,14 @@ ISR(TIMER1_OVF_vect)
 	}
 
 	// Joel For button press
-	if(buttonWasPressed){
-
-		buttonDelay++;
+	// If there is time on the debounce clock count down , decrement
+	if(buttonDelay){
+		allowButtonEvents = 0;
+		buttonDelay--;
 		
-		//reset the timer
-		if(buttonDelay == 512){
-			buttonDelay = 0;
-			buttonWasPressed = 0;
-
-			PORTB &= ~_BV(STATUS_LED_PORT); // LED off
-
-			// send note msg
-			uchar midiMsg[8];
- 			midiMsg[0] =  0x09 ; // /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
-			midiMsg[1] =  0x80;  // NOTE OFF
-			// midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
-			midiMsg[2] =  0x3c ; // Note: 60 middle C
- 			midiMsg[3] =  0x45 ; // velocity 
-
-			usbSetInterrupt(midiMsg, 4);
-
+		// once the timer gets to zero  -allow events again
+		if(buttonDelay == 0){
+			allowButtonEvents = 1;
 		}
 	}
 
