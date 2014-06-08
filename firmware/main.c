@@ -17,6 +17,15 @@
 #include "usbdrv/usbdrv.h"
 
 
+enum possible_module_types {
+	KNOB,
+	BUTTON,
+};
+
+// Define the current module type
+// #define MODULE_TYPE KNOB
+#define MODULE_TYPE BUTTON
+
 #define BLINK_TIME 			200
 #define STATUS_LED_PORT 	DDB1
 
@@ -454,56 +463,60 @@ int main()
 
 				// ------------- SENDING NOTE ON/OFF 
 
-				// Send a note on message if this was a button down
-				//http://forums.obdev.com/viewtopic.php?f=8&t=1352&start=30
-				// 10010000= 90= 144	Chan 1 Note on	 Note Number (0-127)	 Note Velocity (0-127)
-
-	 			midiMsg[0] =  0x09 ; // /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
-				midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
-				midiMsg[2] =  0x3c ; // Note: 60 middle C
-	 			midiMsg[3] =  0x45 ; // velocity 
-				// usbSetInterrupt(midiMsg, 4);
-
-	 			int newButtonValue = uADC >> 1  ;
-
-	 			if(newButtonValue > 120){
-	 				buttonState = 1;
-	 			}else if (newButtonValue < 8){
-	 				buttonState = 0;
-	 			}
-	 			// If a button was pressed - debounce for X time 
-	 			// Don't send any more button presses for X time
-	 			if (  buttonState ==1 && buttonState !=lastButtonState && allowButtonEvents == 1) { 
-	 				buttonDelay = DEBOUNCE_TIME; // Start the debounce timer
+				if (MODULE_TYPE == BUTTON) {
 					
-					PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
+					// Send a note on message if this was a button down
+					//http://forums.obdev.com/viewtopic.php?f=8&t=1352&start=30
+					// 10010000= 90= 144	Chan 1 Note on	 Note Number (0-127)	 Note Velocity (0-127)
 
-	 				// Send a note on
-					usbSetInterrupt(midiMsg, 4);
-	 			}
-
-	 			else if ( buttonState == 0 && buttonState !=lastButtonState && allowButtonEvents == 1) {
-	 				buttonDelay = DEBOUNCE_TIME; // Start the debounce timer
-
-	 				// send note msg
-					uchar midiMsg[8];
 		 			midiMsg[0] =  0x09 ; // /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
-					midiMsg[1] =  0x80;  // NOTE OFF
-					// midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
+					midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
 					midiMsg[2] =  0x3c ; // Note: 60 middle C
 		 			midiMsg[3] =  0x45 ; // velocity 
+					// usbSetInterrupt(midiMsg, 4);
 
-					PORTB &= ~_BV(STATUS_LED_PORT); // LED off
+		 			int newButtonValue = uADC >> 1  ;
 
-					// Send note off
-					usbSetInterrupt(midiMsg, 4);
-	 			}
+		 			if(newButtonValue > 120){
+		 				buttonState = 1;
+		 			}else if (newButtonValue < 8){
+		 				buttonState = 0;
+		 			}
+		 			// If a button was pressed - debounce for X time 
+		 			// Don't send any more button presses for X time
+		 			if (  buttonState ==1 && buttonState !=lastButtonState && allowButtonEvents == 1) { 
+		 				buttonDelay = DEBOUNCE_TIME; // Start the debounce timer
+						
+						PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
+
+		 				// Send a note on
+						usbSetInterrupt(midiMsg, 4);
+		 			}
+
+		 			else if ( buttonState == 0 && buttonState !=lastButtonState && allowButtonEvents == 1) {
+		 				buttonDelay = DEBOUNCE_TIME; // Start the debounce timer
+
+		 				// send note msg
+						uchar midiMsg[8];
+			 			midiMsg[0] =  0x09 ; // /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
+						midiMsg[1] =  0x80;  // NOTE OFF
+						// midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
+						midiMsg[2] =  0x3c ; // Note: 60 middle C
+			 			midiMsg[3] =  0x45 ; // velocity 
+
+						PORTB &= ~_BV(STATUS_LED_PORT); // LED off
+
+						// Send note off
+						usbSetInterrupt(midiMsg, 4);
+		 			}
 
 
 
-				// -------------------------------
+					// -------------------------------
 
-				lastButtonState = buttonState;
+					lastButtonState = buttonState;
+				}
+
 				nADCOld = uADC;
 			}
 		}
