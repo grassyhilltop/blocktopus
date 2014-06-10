@@ -18,14 +18,14 @@
 
 
 enum possible_module_types {
-	KNOB,
-	BUTTON,
-	OUTPUT
+	KNOB,  	// Continuous analog read
+	BUTTON,	// Discrete analog read
+	OUTPUT 	// Discrete Output e.g. LED
 };
 
 // Define the current module type
-// #define MODULE_TYPE KNOB
-#define MODULE_TYPE BUTTON
+#define MODULE_TYPE KNOB
+// #define MODULE_TYPE BUTTON
 // #define MODULE_TYPE OUTPUT
 
 #define BLINK_TIME 			200
@@ -471,19 +471,20 @@ int main()
 				// ------------- SENDING PITCH BEND DATA
 				if (MODULE_TYPE == KNOB) {
 
-					// MIDI CC msg
+					// MIDI pitch msg
 					midiMsg[0] = 0x0b;			// CN = 0 (high nibble), CID = control change (low nibble)
-					midiMsg[1] = 0xE3; //1110 pitch wheel -  14 decimal
-					// Or use this for control change - generic
-					// 0xb0 Channel voice message "Control change" (1011xxxx) on channel 1 (xxxx0000)
-					// midiMsg[2] = 71;			// cc
-					// midiMsg[3] = uADC >> 1;		// 7 bit
-
+					midiMsg[1] = 0xE3; //1110 pitch wheel -  14 decimal					
 					// Send pitch bend data
 					midiMsg[2] = 0;			// cc
 					midiMsg[3] = uADC >> 1;		// 7 bit
 					usbSetInterrupt(midiMsg, 4);
 
+					// Or use this for control change - generic
+					// midiMsg[0] = 0x0b;			// CN = 0 (high nibble), CID = control change (low nibble)
+					// midiMsg[1] = 0xb0;			// Channel voice message "Control change" (1011xxxx) on channel 1 (xxxx0000)
+					// midiMsg[2] = 70;			// cc
+					// midiMsg[3] = uADC >> 1;		// 7 bit
+					// usbSetInterrupt(midiMsg, 4);					
 				}
 
 				// ------------- SENDING NOTE ON/OFF 

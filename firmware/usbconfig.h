@@ -237,7 +237,7 @@ extern void hadUsbReset(void);
  // Joel: the ID need to be unique in order for the device name to refresh, 5 is already taken by controller
 // #define  USB_CFG_DEVICE_ID       0xe4, 0x05 /* = 0x05dc = 1500 */
  // 5 is cached as joel's midi controller , 6 is cached as knob-9  !!
-#define  USB_CFG_DEVICE_ID       0xe4, 0x09 /* = 0x05dc = 1500 */
+#define  USB_CFG_DEVICE_ID       0xe4, 0x12 /* = 0x05dc = 1500 */
 /* This is the ID of the product, low byte first. It is interpreted in the
  * scope of the vendor ID. If you have registered your own VID with usb.org
  * or if you have licensed a PID from somebody else, define it here. Otherwise
@@ -277,12 +277,29 @@ extern void hadUsbReset(void);
 // Button  2 of them
 // #	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','4'
 // #	define USB_CFG_DEVICE_NAME_LEN 8
-#	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','9'
-#	define USB_CFG_DEVICE_NAME_LEN 8
+// #	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','9'
+// #	define USB_CFG_DEVICE_NAME_LEN 8
+
+// #	define USB_CFG_DEVICE_NAME     'L','i','g','h','t','-','8'
+// #	define USB_CFG_DEVICE_NAME_LEN 8
 
 // Buzzer
 // #	define USB_CFG_DEVICE_NAME     'B','u','z','z','e','r','-','7'
 // #	define USB_CFG_DEVICE_NAME_LEN 8
+
+// Tilt
+// #	define USB_CFG_DEVICE_NAME     'T','i','l','t','-','1','1'
+// #	define USB_CFG_DEVICE_NAME_LEN 7// Tilt
+
+// Temperature
+#	define USB_CFG_DEVICE_NAME     'T','e','m','p','-','1','2'
+#	define USB_CFG_DEVICE_NAME_LEN 7
+
+// #	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','1','3'
+// #	define USB_CFG_DEVICE_NAME_LEN 9
+// #	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','1','4'
+// #	define USB_CFG_DEVICE_NAME_LEN 9
+
 
 /* Same as above for the device name. If you don't want a device name, undefine
  * the macros. See the file USB-IDs-for-free.txt before you assign a name if
