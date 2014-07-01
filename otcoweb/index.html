@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title> hello </title>
+
+    <script src="js/libraries/jquery-1.11.1.js"></script>   
+    <script src="js/libraries/jquery-ui.js"></script>  
+    <!-- // <script src="js/libraries/dom.jsPlumb-1.6.2-min.js"></script>   -->
+    <script src="js/libraries/jquery.jsPlumb-1.6.2-min.js"></script>  
+                
+    <link rel="stylesheet" href="styles/css/clay.css">
+<!--     // <script src="js/clay.js"></script> -->
+    <script src="js/creator.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/drawer.js"></script>
+    <script src="js/midi-clay.js"></script>
+	
+    <style>
+
+    
+    .test{
+        position: absolute;
+        height: 50px;
+        width: 50px;
+        background-color: grey;
+    }
+
+    .hidden{ visibility: hidden;}
+    </style>
+
+</head>
+
+<body>
+
+<h1> Electric Octopus </h1>
+
+<div id="deviceListDiv"> </div>
+<div id="deviceValueTest"></div>
+<div id="msg">  </div>
+
+<button onmousedown='play_all();' onmouseup='stop_all();'>Test note</button>
+
+<script type="text/javascript">
+
+</script>
+</body>
+
+</html>
