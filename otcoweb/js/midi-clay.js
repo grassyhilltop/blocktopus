@@ -135,7 +135,6 @@ function print_msg(name,msg,out){
 	if( connectedOutput){
 		console.log("ROUTING from " + name + " to:" + connectedOutput);
 		midi_out(connectedOutput,[msg[0],msg[1],msg[2]]); 
-		midi_out(connectedOutput,[msg[0],msg[1],msg[2]]); 
 	}	
 }	
 
@@ -234,10 +233,11 @@ function checkForMidiDevices(){
         		var startValue = "";
 
         		// MAKE A NEW CONNECTION
-        		
+
         		// If it is an output
         		if( sensorTypes[nameShort] == 2 ){// output
-        			Pool.OpenMidiOut[currDeviceName];
+
+        			Pool.OpenMidiOut(currDeviceName);
         		}         		
         		// always add to inputs
        			Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){print_msg(name,a);};}(ins[i]));        			
