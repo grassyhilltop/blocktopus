@@ -12,6 +12,9 @@
 #ifdef INCLUDE_KNOB_FW
 	#include "knob.h"
 #endif
+#ifdef INCLUDE_OUTPUT_FW
+	#include "output.h"
+#endif
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
@@ -22,8 +25,6 @@
 #include "usbdrv/usbdrv.h"
 
 #define BLINK_TIME 			200
-
-#define OUTPUT_PORT 	DDB3 // PB3 as output 
 
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
@@ -269,24 +270,7 @@ void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 
 	// The length of the message should be 4 for a note on 
 	if (module_type == OUTPUT){
-		
-		// If note on message 0x09 OR
-		// If pitch bend
-		if(	(midiMsg[0] == 0x09  && 	midiMsg[1] == 0x90) ||
-			//(midiMsg[0] == 0x0b  && 	midiMsg[1] == 0xE3)
-			(midiMsg[1] == 0xE3 && midiMsg[3] >= 100)
-			){
-			// blink();
-			// Turn on OUTPUT
-			PORTB |= _BV(OUTPUT_PORT);	// Switch status LED on					
-		}
-		// Note off message 0x80
-		else if(midiMsg[1] == 0x80 ){
-			// PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
-			PORTB &= ~_BV(OUTPUT_PORT); // LED off
-		} 			
-		
-
+		output_usb_input_handler(midiMsg,len);
 	}	
 	
 }
@@ -488,6 +472,9 @@ ISR(TIMER1_OVF_vect)
 	// Reset timer 1 counter (Only necessary if timer 1 compare match interrupt instead of
 	// timer 1 overflow interrupt is used)
 	// TCNT1 = 0;
+	if (module_type == OUTPUT) {
+		output_timer_isr();
+	}
 }
 
 
