@@ -150,7 +150,7 @@ function print_msg(name,msg,out){
 			// Update the code box
 			codeBoxElem.find(".codeArgInput").val(newVal);
 			var result = evalCodeBox(codeBoxElem,name);
-			codeBoxElem.find(".returnValInput").val(result);						
+			// codeBoxElem.find(".returnValInput").val(result);						
 			// $("#"+connectedOutput).find(".codeArgVal").text("foo");			
 		}
 		else {
@@ -430,13 +430,6 @@ function MidiPool(){
 function updateConnections ( info, shouldRemove){
 	console.log("Updating connections");
 
-	if(shouldRemove){
-		// Find the sensor and remove it from the connection list
-		if(deviceToDeviceConnections[midiSensorName]){
-			delete deviceToDeviceConnections[midiSensorName];			
-		}
-		return;
-	}
 
 	// js
 	// First check if we plugged input a code block
@@ -447,6 +440,15 @@ function updateConnections ( info, shouldRemove){
 	var targetElem = $("#"+info.targetId);
 	var targetInputElem;
 	var targetOutputElem;
+	
+	if(shouldRemove){
+		// Find the sensor and remove it from the connection list
+		if(deviceToDeviceConnections[sourceName]){
+			delete deviceToDeviceConnections[sourceName];			
+		}
+		return;
+	}
+	
 	// Connecting TO CODE BLOCK
 	if( targetName.split("-")[0] == "clobject" ) {
 		console.log("made connection to code block");
@@ -525,19 +527,17 @@ function onInputChange(value){
 // assumes that we are passing in the container element (clay object clobject)
 // sourceName is the parent connecting node
 function evalCodeBox(clobjectDiv,sourceName){
+	
+	console.log("evaling code box");
 
 	var elem = clobjectDiv.find(".freeCell");
 	var inputValue = elem.find(".codeArgInput").val();
 	var outputValueElem = elem.find(".returnValInput");
+	var connectedOutput = deviceToDeviceConnections[clobjectDiv[0].id];
 
-	// var lines = elem.children(); // an array of lines, each line should be a div
-	
-	var str = elem.html().replace(/(<\/div>)|(<div>)/g,"\n"); // split into new lines
-	
+	var str = elem.html().replace(/(<\/div>)|(<div>)/g,"\n"); // split into new lines	
 	var lines = str.trim().split("\n");
 		
-	g = lines;
-
 	//remove empty lines
 	var trimmedlines = [];
 	for (var i = 0; i < lines.length; i++) {
@@ -556,10 +556,15 @@ function evalCodeBox(clobjectDiv,sourceName){
 		console.log("error while evaling code box.. not enough lines");
 	} else if (lines.length == 2){
 		// just pass the value through
+		outputValueElem.val(inputValue)
+
+		// If we are CONNECTED TO HARDWARE send message onwards
+		if (connectedOutput) sendMsgToHardware(connectedOutput,inputValue);
+		
+		// TODO if we are connected to another code box... eval it 
+
 		return inputValue; 
 	}
-
-	g1 = lines;
 
 	var codeStr= "function(){";
 	for (var i = 0; i < lines.length; i++) {
@@ -577,12 +582,27 @@ function evalCodeBox(clobjectDiv,sourceName){
 	};
 	
 	codeStr +="}";
+		
+	var result = tryEval(codeStr)();
 	
-	g2=codeStr;
-	
-	var result = tryEval(codeStr);
-
-	if(outputValueElem && result) outputValueElem.val(result());
+	if(outputValueElem ) {
+		console.log("evaled code box with results:" +result);
+		outputValueElem.val(result);	
+		if (connectedOutput) sendMsgToHardware(connectedOutput,result);	
+	}
 
 	return result;
 }
+
+function sendMsgToHardware( name , value){
+	console.log("sending msg to hardware:" +name + " val:" + value);
+	if (value == 0)	{		
+		midi_out(name,[128,60,value]);
+	} else if (value == 100){
+		midi_out(name,[144,60,value]);
+
+	} else{
+		midi_out(name,[227,0,Math.floor(127*value/100)]);
+	}
+
+} 
