@@ -8,12 +8,14 @@ body{
 
 div{
 	/*border:	solid 1px black;	*/
+	font-size: 14px; /* default div font size */
 }
 
 textarea{
 	font-family: inconsolata;	
 	font-size: 16px;
 }
+
 .draggable{
 	cursor: move;
 	position: absolute;	
@@ -96,6 +98,11 @@ textarea{
 .codeBody:focus{
     outline: none; /*Turn off blue highlighting on focus*/
 }
+
+.codeArgInput,.returnValInput{
+	width: 35px;
+}
+
 .codeArgument{
 	background-color: #f2f2f2;
 	padding: 1px 10px;  /*UD LR*/
@@ -178,8 +185,8 @@ div.editable.freeCell{
 	/* Add extra drag space and puts dots further out*/
 	/*margin: 1px; */
 	padding: 10px;
-	border-radius: 20px;
-	border:	solid 1px black;	
+	border-radius: 7px; /*20px;*/
+	border:	solid 1px lightgrey; /*black*/	 
 
 	/*text-align: center;*/
 }
@@ -196,6 +203,8 @@ div.editable.freeCell:hover{
 }
 .freeCellContainer:hover{
 	border: 1px solid lightGrey;
+	border:	1px dashed lightGrey; 
+
 }
 
 /*If a free cell gets changed into HTML*/
@@ -306,3 +315,6 @@ svg{
 .pull-right{
 	float:right;	
 }
+
+/*.hidden{ visibility: hidden;}*/
+.hidden{ display: none;} /* hides completly without taking up space */

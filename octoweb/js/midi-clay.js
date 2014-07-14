@@ -111,16 +111,23 @@ function print_msg(name,msg,out){
 	var splitName = name.split("-");
 	var nameShort = splitName[0];
 	var deviceUDID  = splitName[1];
+	var newVal = "";
+	//todo set hidden return value in nodes
 
 	// On off type message
-	if(msg[0] == 144)
+	if(msg[0] == 144){
+		newVal = 100;
 		$("#sensorVal"+deviceUDID).text("ON");
-	else if (msg[0] == 128)
-		$("#sensorVal"+deviceUDID).text("OFF");
+	}
+	else if (msg[0] == 128){
+		newVal = 0;
+		$("#sensorVal"+deviceUDID).text("OFF");		
+	}
 
 	// control change for pitch wheel
 	else if (msg[0] == 227 || msg[0] == 176 ){
 		var sensorPercent = Math.floor(100*msg[2]/127);
+		newVal = sensorPercent;
 		// special case for temperature
 		if(nameShort =="Temp") {
 			var temperature = 25 + (sensorPercent%50); 
@@ -129,12 +136,28 @@ function print_msg(name,msg,out){
 		else $("#sensorVal"+deviceUDID).text( sensorPercent +"%");
 	}
 
+	$("#sensorVal"+deviceUDID).val(newVal);
+
 	//Routing midi messages between devices -----
 	//  If we have a connection from this device to another output
 	var connectedOutput = deviceToDeviceConnections[name];
-	if( connectedOutput){
-		console.log("ROUTING from " + name + " to:" + connectedOutput);
-		midi_out(connectedOutput,[msg[0],msg[1],msg[2]]); 
+	if( connectedOutput ){
+
+		// If we are connected to a CODE BOX
+		if (connectedOutput.split("-")[0]=="clobject"){
+			var codeBoxElem = $("#"+connectedOutput);
+			
+			// Update the code box
+			codeBoxElem.find(".codeArgInput").val(newVal);
+			var result = evalCodeBox(codeBoxElem,name);
+			codeBoxElem.find(".returnValInput").val(result);						
+			// $("#"+connectedOutput).find(".codeArgVal").text("foo");			
+		}
+		else {
+			// Connected directly to hardware
+			console.log("ROUTING from " + name + " to:" + connectedOutput);
+			midi_out(connectedOutput,[msg[0],msg[1],msg[2]]); 			
+		}
 	}	
 }	
 
@@ -403,13 +426,10 @@ function MidiPool(){
  }
 }
 
-////////// Joel MIDI Connections
+////////// Joel MIDI Connections - jsplumb callback on change of any connection
 function updateConnections ( info, shouldRemove){
 	console.log("Updating connections");
-	var midiSensorName= info.sourceId.split("_")[0];
-	var midiOutputName= info.targetId.split("_")[0];
-	g1 = info;
-	g2 = shouldRemove;
+
 	if(shouldRemove){
 		// Find the sensor and remove it from the connection list
 		if(deviceToDeviceConnections[midiSensorName]){
@@ -417,5 +437,152 @@ function updateConnections ( info, shouldRemove){
 		}
 		return;
 	}
-	deviceToDeviceConnections[midiSensorName] = midiOutputName;
+
+	// js
+	// First check if we plugged input a code block
+	// Code blocks have divs with ID = clobject-4 etc , hardware div have id:light-1_container
+	var sourceName = info.sourceId.split("_")[0]; // remove any underscores
+	var targetName = info.targetId.split("_")[0];
+	var sourceElem = $("#"+info.sourceId);
+	var targetElem = $("#"+info.targetId);
+	var targetInputElem;
+	var targetOutputElem;
+	// Connecting TO CODE BLOCK
+	if( targetName.split("-")[0] == "clobject" ) {
+		console.log("made connection to code block");
+		// Fill in the first line of the code with the output
+		var elem = targetElem.find(".freeCell");
+		var elemHTML = elem.html();
+
+		var firstVarName = "input";
+		var firstVarValue = 0;
+
+		
+		// Two cases: either the source is a text block or hardware
+		// CONNECTING FROM CODE 
+		if ( sourceName.split("-")[0] == "clobject" ){
+						
+			// Get the return value of the source code box if one is defined there
+			var returnVal = sourceElem.find(".returnValInput").val();
+			if (returnVal) firstVarValue = returnVal;
+		}  
+		else{ // CONNECTING FROM HARDWARE 
+
+			firstVarName = sourceName.split("-")[0].toLowerCase(); // just the name of the sensor	
+			var deviceUDID = sourceName.split("-")[1];
+			
+			firstVarValue =	$("#sensorVal"+deviceUDID).val();
+		
+		}
+
+		targetInputElem = elem.find(".codeArgInput");
+		var foundExistingArgName = elem.find(".codeArgName");
+		
+		// Update the first line of the block or append a new line
+		if (targetInputElem.length != 0) {
+			// If there is already an input value field just update it
+			foundExistingArgName.text(firstVarName);
+			targetInputElem.val(firstVarValue);
+			
+		} else{ // append a new name
+			var firstLine = "<div>" + "<span class='codeArgName'>"+ firstVarName + 
+			"</span> = <input class='codeArgInput' value='" + firstVarValue + "'></input> </div> ";		
+			elem.html(firstLine + elemHTML);
+			targetInputElem = elem.find(".codeArgInput");			
+		}
+		
+		// Attach a return val input box
+		targetOutputElem = elem.find(".returnValInput");
+		g1 = targetOutputElem;
+		if(targetOutputElem.length != 0){
+
+		} else{
+			var returnVal = firstVarValue;
+			var lastLine = "<div>out = <input class='returnValInput' value='" + returnVal + "'></input> </div> ";		
+			g2 = lastLine;
+			elem.append(lastLine);			
+
+		}
+
+		jsPlumb.repaint(elem.parent())				
+	}
+
+	// -------------------------------------
+	// MAP CONNECTIONS 
+	// -------------------------------------
+	
+	// Bind a change event with the input
+	// targetInputElem.change(onInputChange); // only works for keyinput, lost focus
+
+	deviceToDeviceConnections[sourceName] = targetName;
+}
+
+function onInputChange(value){
+	console.log("Input changed to new value:" + value );
+}
+
+// Code to evaluate text boxes
+// assumes that we are passing in the container element (clay object clobject)
+// sourceName is the parent connecting node
+function evalCodeBox(clobjectDiv,sourceName){
+
+	var elem = clobjectDiv.find(".freeCell");
+	var inputValue = elem.find(".codeArgInput").val();
+	var outputValueElem = elem.find(".returnValInput");
+
+	// var lines = elem.children(); // an array of lines, each line should be a div
+	
+	var str = elem.html().replace(/(<\/div>)|(<div>)/g,"\n"); // split into new lines
+	
+	var lines = str.trim().split("\n");
+		
+	g = lines;
+
+	//remove empty lines
+	var trimmedlines = [];
+	for (var i = 0; i < lines.length; i++) {
+		if ( lines[i].trim() !="" && lines[i] !="<br>" ) trimmedlines.push(lines[i]);
+	};
+	lines = trimmedlines;
+	
+	if(inputValue) {
+		var firstVarName = sourceName.split("-")[0].toLowerCase();
+		lines[0] = "var "+ firstVarName+ " =" + inputValue; // first line is an input variable	
+		lines[lines.length-1] = ""; // blank out last line (will be evaled)
+	} 
+
+
+	if(lines.length < 2){ 
+		console.log("error while evaling code box.. not enough lines");
+	} else if (lines.length == 2){
+		// just pass the value through
+		return inputValue; 
+	}
+
+	g1 = lines;
+
+	var codeStr= "function(){";
+	for (var i = 0; i < lines.length; i++) {
+		var line = lines[i];
+		// always put a return statement on the last line
+		if (i == lines.length-2 ) line = "return (" + line + ")";
+		
+		if(!line) continue; // skip blank lines
+
+		console.log("currline is:" +line);
+		
+		line +=";" ; // add semicolon to each line
+
+		codeStr += line;
+	};
+	
+	codeStr +="}";
+	
+	g2=codeStr;
+	
+	var result = tryEval(codeStr);
+
+	if(outputValueElem && result) outputValueElem.val(result());
+
+	return result;
 }

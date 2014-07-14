@@ -143,7 +143,7 @@ function createDraggableContainer(x,y){
 
 function getUniqueId(){
     World.numObjects += 1;
-    return "clobject" + World.numObjects;
+    return "clobject-" + World.numObjects;
 }
 
 function lostCellFocus(event){
