@@ -5,6 +5,16 @@
  *      Author: Joel  ( modified from Baum's original code )
  */
 #include "main.h"
+#include "config.h"
+#ifdef INCLUDE_BUTTON_FW
+	#include "button.h"
+#endif
+#ifdef INCLUDE_KNOB_FW
+	#include "knob.h"
+#endif
+#ifdef INCLUDE_OUTPUT_FW
+	#include "output.h"
+#endif
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
@@ -12,38 +22,13 @@
 #include <avr/wdt.h>
 #include <avr/eeprom.h>
 #include <util/delay.h>
-
-
 #include "usbdrv/usbdrv.h"
 
-
-enum possible_module_types {
-	KNOB,  	// Continuous analog read
-	BUTTON,	// Discrete analog read
-	OUTPUT 	// Discrete Output e.g. LED
-};
-
-// Define the current module type
-#define MODULE_TYPE KNOB
-// #define MODULE_TYPE BUTTON
-// #define MODULE_TYPE OUTPUT
-
 #define BLINK_TIME 			200
-#define STATUS_LED_PORT 	DDB1
-
-#define OUTPUT_PORT 	DDB3 // PB3 as output 
 
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
-
-
-// Joel: for button debouncing
-#define DEBOUNCE_TIME 100
-static char buttonState = 0;
-static char lastButtonState = 0;
-static int buttonDelay = 0;
-static char allowButtonEvents = 1;
-
+volatile unsigned int module_type = MODULE_TYPE;
 
 // This descriptor is based on http://www.usb.org/developers/devclass_docs/midi10.pdf
 //
@@ -283,22 +268,9 @@ void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 {
 	// blink();
 
-	// The lenght of the message should be 4 for a note on 
-	if (MODULE_TYPE == OUTPUT){
-		
-		// If note on message 0x09
-		if(	midiMsg[0] == 0x09  && 	midiMsg[1] == 0x90){
-			// blink();
-			// Turn on OUTPUT
-			PORTB |= _BV(OUTPUT_PORT);	// Switch status LED on					
-		}
-		// Note off message 0x80
-		else if( midiMsg[1] == 0x80 ){
-			// PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
-			PORTB &= ~_BV(OUTPUT_PORT); // LED off
-		} 			
-		
-
+	// The length of the message should be 4 for a note on 
+	if (module_type == OUTPUT){
+		output_usb_input_handler(midiMsg,len);
 	}	
 	
 }
@@ -436,12 +408,11 @@ void initUSB()
 int main()
 {
 	int nADCOld = -1;
-	uchar midiMsg[8];
-
+	
     initStatusLED();
 	
 	// Setup PB3 as ADC unless this is an output
-	if( MODULE_TYPE != OUTPUT){
+	if( module_type != OUTPUT){
 		initAnalogInput();	
 	} 
 	else {
@@ -455,95 +426,34 @@ int main()
 	// Endless loop
 	// joel here is where there is a loop
 	for (;;) {
+		
 		wdt_reset();
 		usbPoll();
 		
-
 		if (usbInterruptIsReady()) {
 			// js : bug here need to check old data value
 			// e.g. if ( (uADC >> 1) != (nADCOld >> 1) ) // just look at 7 bits
 			// if ( (uADC >> 1) != (nADCOld >> 1) ) {
-			if (uADC != nADCOld && MODULE_TYPE != OUTPUT) { // if we got a new sensor value
+			if (uADC != nADCOld && module_type != OUTPUT) { // if we got a new sensor value
 				
 				// Status LED on send new message
 				// blink();
-
-				// ------------- SENDING PITCH BEND DATA
-				if (MODULE_TYPE == KNOB) {
-
-					// MIDI pitch msg
-					midiMsg[0] = 0x0b;			// CN = 0 (high nibble), CID = control change (low nibble)
-					midiMsg[1] = 0xE3; //1110 pitch wheel -  14 decimal					
-					// Send pitch bend data
-					midiMsg[2] = 0;			// cc
-					midiMsg[3] = uADC >> 1;		// 7 bit
-					usbSetInterrupt(midiMsg, 4);
-
-					// Or use this for control change - generic
-					// midiMsg[0] = 0x0b;			// CN = 0 (high nibble), CID = control change (low nibble)
-					// midiMsg[1] = 0xb0;			// Channel voice message "Control change" (1011xxxx) on channel 1 (xxxx0000)
-					// midiMsg[2] = 70;			// cc
-					// midiMsg[3] = uADC >> 1;		// 7 bit
-					// usbSetInterrupt(midiMsg, 4);					
-				}
-
-				// ------------- SENDING NOTE ON/OFF 
-				if (MODULE_TYPE == BUTTON) {
-
-					// Send a note on message if this was a button down
-					//http://forums.obdev.com/viewtopic.php?f=8&t=1352&start=30
-					// 10010000= 90= 144	Chan 1 Note on	 Note Number (0-127)	 Note Velocity (0-127)
-
-		 			midiMsg[0] =  0x09 ; // /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
-					midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
-					midiMsg[2] =  0x3c ; // Note: 60 middle C
-					// midiMsg[2] =  67 ; // Note: G3 above middle C
-		 			midiMsg[3] =  0x45 ; // velocity 
-
-		 			int newButtonValue = uADC >> 1  ;
-
-		 			if(newButtonValue > 120){
-		 				buttonState = 1;
-		 			}else if (newButtonValue < 8){
-		 				buttonState = 0;
-		 			}
-		 			// If a button was pressed - debounce for X time 
-		 			// Don't send any more button presses for X time
-		 			if (  buttonState ==1 && buttonState !=lastButtonState && allowButtonEvents == 1) { 
-		 				buttonDelay = DEBOUNCE_TIME; // Start the debounce timer
-						
-						PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
-
-		 				// Send a note on
-						usbSetInterrupt(midiMsg, 4);
-		 			}
-
-		 			else if ( buttonState == 0 && buttonState !=lastButtonState && allowButtonEvents == 1) {
-		 				buttonDelay = DEBOUNCE_TIME; // Start the debounce timer
-
-		 				// send note msg
-						uchar midiMsg[8];
-			 			midiMsg[0] =  0x09 ; // /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
-						midiMsg[1] =  0x80;  // NOTE OFF
-						// midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
-						midiMsg[2] =  0x3c ; // Note: 60 middle C
-			 			midiMsg[3] =  0x45 ; // velocity 
-
-						PORTB &= ~_BV(STATUS_LED_PORT); // LED off
-
-						// Send note off
-						usbSetInterrupt(midiMsg, 4);
-		 			}
-
-
-
-					// -------------------------------
-
-					lastButtonState = buttonState;
-				}
-
 				nADCOld = uADC;
 			}
+			// ------------- SENDING PITCH BEND DATA
+#ifdef INCLUDE_BUTTON_FW
+			if (module_type == KNOB) {
+				knob_main_loop(uADC);
+			}
+#endif
+
+			// ------------- SENDING NOTE ON/OFF
+#ifdef INCLUDE_BUTTON_FW
+			if (module_type == BUTTON) {
+				button_main_loop(uADC);
+			}
+#endif
+				
 		}
 	}
 
@@ -554,26 +464,17 @@ int main()
 // ISR(TIMER1_COMPA_vect)
 ISR(TIMER1_OVF_vect)
 {
-	if (nBlink) {
-		--nBlink;										// Decrease led timer counter value
-		if (!nBlink) PORTB &= ~_BV(STATUS_LED_PORT);	// If timer counter has reached 0, switch status led off.
-	}
-
-	// Joel For button press
-	// If there is time on the debounce clock count down , decrement
-	if(buttonDelay){
-		allowButtonEvents = 0;
-		buttonDelay--;
-		
-		// once the timer gets to zero  -allow events again
-		if(buttonDelay == 0){
-			allowButtonEvents = 1;
-		}
-	}
+	//if (nBlink) {
+	//	--nBlink;										// Decrease led timer counter value
+	//	if (!nBlink) PORTB &= ~_BV(STATUS_LED_PORT);	// If timer counter has reached 0, switch status led off.
+	//}
 
 	// Reset timer 1 counter (Only necessary if timer 1 compare match interrupt instead of
 	// timer 1 overflow interrupt is used)
 	// TCNT1 = 0;
+	if (module_type == OUTPUT) {
+		output_timer_isr();
+	}
 }
 
 
