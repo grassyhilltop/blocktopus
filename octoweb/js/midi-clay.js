@@ -534,7 +534,8 @@ function evalCodeBox(clobjectDiv,sourceName){
 	var inputValue = elem.find(".codeArgInput").val();
 	var outputValueElem = elem.find(".returnValInput");
 	var connectedOutput = deviceToDeviceConnections[clobjectDiv[0].id];
-
+	var connectedOutputElem = $("#"+connectedOutput);
+	
 	var str = elem.html().replace(/(<\/div>)|(<div>)/g,"\n"); // split into new lines	
 	var lines = str.trim().split("\n");
 		
@@ -547,6 +548,7 @@ function evalCodeBox(clobjectDiv,sourceName){
 	
 	if(inputValue) {
 		var firstVarName = sourceName.split("-")[0].toLowerCase();
+		if( firstVarName =="clobject") firstVarName = "input";
 		lines[0] = "var "+ firstVarName+ " =" + inputValue; // first line is an input variable	
 		lines[lines.length-1] = ""; // blank out last line (will be evaled)
 	} 
@@ -557,12 +559,19 @@ function evalCodeBox(clobjectDiv,sourceName){
 	} else if (lines.length == 2){
 		// just pass the value through
 		outputValueElem.val(inputValue)
-
-		// If we are CONNECTED TO HARDWARE send message onwards
-		if (connectedOutput) sendMsgToHardware(connectedOutput,inputValue);
 		
-		// TODO if we are connected to another code box... eval it 
-
+		if (connectedOutput) {
+			// TODO if we are connected to another code box... eval it 
+			if(connectedOutput.split("-")[0] == "clobject"){
+				var nextInput = connectedOutputElem.find(".codeArgInput");
+				nextInput.val(outputValueElem.val());
+				
+				evalCodeBox($("#"+connectedOutput) ,clobjectDiv[0].id); 
+			} else{
+				// If we are CONNECTED TO HARDWARE send message onwards
+				sendMsgToHardware(connectedOutput,inputValue);
+			}
+		}
 		return inputValue; 
 	}
 
@@ -582,17 +591,32 @@ function evalCodeBox(clobjectDiv,sourceName){
 	};
 	
 	codeStr +="}";
-		
+	console.log("eval code str:"+codeStr);		
+
 	var result = tryEval(codeStr)();
-	
-	if(outputValueElem ) {
-		console.log("evaled code box with results:" +result);
+	console.log("evaled code box with results:" +result);
+
+	if(outputValueElem) {
 		outputValueElem.val(result);	
-		if (connectedOutput) sendMsgToHardware(connectedOutput,result);	
+// 		if (connectedOutput) sendMsgToHardware(connectedOutput,result);	
+		// Todo factor out
+		if (connectedOutput) {
+			// TODO if we are connected to another code box... eval it 
+			if(connectedOutput.split("-")[0] == "clobject"){
+				var nextInput = connectedOutputElem.find(".codeArgInput");
+				nextInput.val(outputValueElem.val());
+				
+				evalCodeBox($("#"+connectedOutput) ,clobjectDiv[0].id); 
+			} else{
+				// If we are CONNECTED TO HARDWARE send message onwards
+				sendMsgToHardware(connectedOutput,result);
+			}
+		}
 	}
 
 	return result;
 }
+
 
 function sendMsgToHardware( name , value){
 	console.log("sending msg to hardware:" +name + " val:" + value);
@@ -600,7 +624,6 @@ function sendMsgToHardware( name , value){
 		midi_out(name,[128,60,value]);
 	} else if (value == 100){
 		midi_out(name,[144,60,value]);
-
 	} else{
 		midi_out(name,[227,0,Math.floor(127*value/100)]);
 	}
