@@ -49,7 +49,7 @@ void sendPitchBend(uchar pitch) {
 	uchar midiMsg[8];
 	
 	// MIDI pitch msg
-	midiMsg[0] = 0x0b;			// CN = 0 (high nibble), CID = control change (low nibble)
+	midiMsg[0] = 0x0e;			// CN = 0 (high nibble), CID = control change (low nibble)
 	midiMsg[1] = 0xE3; //1110 pitch wheel -  14 decimal					
 	// Send pitch bend data
 	midiMsg[2] = 0;			// cc

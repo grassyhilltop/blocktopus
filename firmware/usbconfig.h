@@ -280,8 +280,8 @@ extern void hadUsbReset(void);
 
 // Knob
 #if MODULE_TYPE==KNOB
-// #	define USB_CFG_DEVICE_NAME     'K','n','o','b','-','3'
-// #	define USB_CFG_DEVICE_NAME_LEN 6
+ #	define USB_CFG_DEVICE_NAME     'K','n','o','b','-','3'
+ #	define USB_CFG_DEVICE_NAME_LEN 6
 
 // Button  2 of them
 #elif MODULE_TYPE==BUTTON

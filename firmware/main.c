@@ -440,6 +440,12 @@ int main()
 				// blink();
 				nADCOld = uADC;
 			}
+			
+#ifdef INCLUDE_OUTPUT_FW
+			if (module_type == OUTPUT) {
+				output_timer_isr();
+			}
+#endif
 			// ------------- SENDING PITCH BEND DATA
 #ifdef INCLUDE_BUTTON_FW
 			if (module_type == KNOB) {
@@ -472,9 +478,9 @@ ISR(TIMER1_OVF_vect)
 	// Reset timer 1 counter (Only necessary if timer 1 compare match interrupt instead of
 	// timer 1 overflow interrupt is used)
 	// TCNT1 = 0;
-	if (module_type == OUTPUT) {
-		output_timer_isr();
-	}
+	//if (module_type == OUTPUT) {
+	//	output_timer_isr();
+	//}
 }
 
 
