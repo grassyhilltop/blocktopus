@@ -1,12 +1,99 @@
-
-
-
 window.addEventListener("load",setupMidi);
 
+var app = new App();
+
+function App() {
+	var obj = this;
+	this.numBlocks = 0;
+	this.blockObjects = {};
+	this.hwObjects = {};
+
+	this.newBlockID = function () {
+		return obj.numBlocks++;
+	};
+	
+	this.addNewBlock = function (block) {
+		obj.blockObjects[block.blockID] = block;
+	};
+	
+	this.addNewHwBlock = function (hwBlock) {
+		obj.hwObjects[hwBlock.blockID] = hwBlock;
+	};
+	
+	this.removeHwBlock = function (blockID) {
+		delete obj.blockObjects[blockID];
+		delete obj.hwObjects[blockID];
+	};
+
+	this.findBlockID = function (devName){
+		for (blockID in obj.hwObjects){
+			if(obj.hwObjects[blockID].devName = devName){
+				return blockID;
+			}
+		}
+	};
+};
 
 var connectedMidiDevices = {};
 var deviceDrawnNodeIds = {};
 var midiDevicePollTimer;
+
+function BlockObject(viewObj){
+	var obj = this;
+	this.viewObj = viewObj;
+	this.inConnections = {};
+	this.outConnections = {};
+	this.blockID = app.newBlockID();
+	this.type = "block";
+	this.removeConnection = function (outputConnectionObj){
+		console.log("removing connection");
+		delete obj.outConnections[outputConnectionObj.blockID];
+	};
+	this.addConnection = function (outputConnectionObj){
+		console.log("adding connection");
+		obj.outConnections[outputConnectionObj.blockID] = outputConnectionObj;
+	};
+	//add to global list of block objects
+	app.addNewBlock(this);
+	
+
+};
+
+function HwBlock(viewObj,devName){
+	var obj = this;
+	this.base = BlockObject;
+	this.base(viewObj);
+	this.devName = "";
+	this.type = "hw";
+	//this.evalBlock = function
+	app.addNewHwBlock(this);
+	
+	this.onReceiveMessage = function(fromBlockID,msg){
+		console.log("on receive message");
+		obj.sendToAllOutputs(msg);				
+	};
+	
+	this.sendToAllOutputs = function(msg){
+		for (targetBlockID in obj.outConnections){
+			obj.sendMsg(targetBlockID, msg);
+		}
+	};
+	
+	this.sendMsg = function(targetBlockID, msg){
+		app.blockObjects[blockID].onReceiveMessage(obj.blockID, msg);
+	};
+};
+HwBlock.prototype = new BlockObject;
+
+function CodeBlock(viewObj){
+	var obj = this;
+	this.base = BlockObject;
+	this.base(viewObj);
+	this.type="sw";
+	//this.evalBlock = function
+};
+CodeBlock.prototype = new BlockObject;
+
 
 // 1 = input
 // 2 = output
@@ -230,6 +317,11 @@ function checkForMidiDevices(){
 
 			// remove from device to device list
 			delete deviceToDeviceConnections[lostNode];
+			
+			//remove from global list of blocks
+			var blockID = app.findBlockID(key);
+			app.removeHwBlock(blockID);
+			
 		}
 	}
 	
@@ -261,10 +353,12 @@ function checkForMidiDevices(){
         		if( sensorTypes[nameShort] == 2 ){// output
 
         			Pool.OpenMidiOut(currDeviceName);
-        		}         		
+        		}   
+        		var newHwBlock = new HwBlock(elem,currDeviceName);
+        		      		
         		// always add to inputs
-       			Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){print_msg(name,a);};}(ins[i]));        			
-
+       			//Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){print_msg(name,a);};}(ins[i]));        			
+				Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){newHwBlock.onReceiveMessage(app.findBlockID(name),a);};}(ins[i])); 
         		// draw a node
         		var x = 50 + 400* Math.random();
         		var y = 100+ 400* Math.random();
@@ -273,6 +367,8 @@ function checkForMidiDevices(){
         		else startValue = "0%";
 
         		var elem = drawFlowNode(x,y,deviceUDID,nameShort,startValue);
+        		
+
 
         		deviceDrawnNodeIds[currDeviceName] = elem;
         	}
@@ -427,7 +523,7 @@ function MidiPool(){
 }
 
 ////////// Joel MIDI Connections - jsplumb callback on change of any connection
-function updateConnections ( info, shouldRemove){
+function updateConnections (info, shouldRemove){
 	console.log("Updating connections");
 
 
@@ -440,6 +536,15 @@ function updateConnections ( info, shouldRemove){
 	var targetElem = $("#"+info.targetId);
 	var targetInputElem;
 	var targetOutputElem;
+
+	var sourceID = app.findBlockID(sourceName);
+	var targetID = app.findBlockID(targetName);	
+	if (shouldRemove){
+		app.blockObjects[sourceID].removeConnection(app.blockObjects[targetID]);
+	}else{
+		app.blockObjects[sourceID].addConnection(app.blockObjects[targetID]);
+	}
+	
 	
 	if(shouldRemove){
 		// Find the sensor and remove it from the connection list
