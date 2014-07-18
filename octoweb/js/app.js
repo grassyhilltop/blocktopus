@@ -123,6 +123,7 @@ jsPlumb.ready(function() {
 
 	instance.bind("connection", function(info, originalEvent) {
 		console.log("Connection made info:" +	info);
+		originalEvent.preventDefault();
 		updateConnections(info);
 		// connect the source (Sensor) to Target (output eg buzzer)
 

@@ -186,7 +186,7 @@ function gotClickInEmptySpace( event){
 
     freeCellElem.onkeydown = function(event){
 
-        // repaint jsplumb so anchors move with resize
+        // repaint jsplumb so anchors move with resize , force redraw of jsplumb
         //http://jsplumbtoolkit.com/doc/utilities.html
         jsPlumb.repaint(freeCellElem.parentElement);
         // jsPlumb.repaint(el, [ui])

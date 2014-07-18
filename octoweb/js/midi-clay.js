@@ -495,13 +495,13 @@ function updateConnections ( info, shouldRemove){
 		
 		// Attach a return val input box
 		targetOutputElem = elem.find(".returnValInput");
-		g1 = targetOutputElem;
 		if(targetOutputElem.length != 0){
 
 		} else{
 			var returnVal = firstVarValue;
+			var blankLine = "<div>  </div>";
 			var lastLine = "<div>out = <input class='returnValInput' value='" + returnVal + "'></input> </div> ";		
-			g2 = lastLine;
+			elem.append(blankLine);			
 			elem.append(lastLine);			
 
 		}
