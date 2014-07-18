@@ -444,7 +444,7 @@ int main()
 			
 #ifdef INCLUDE_OUTPUT_FW
 			if (module_type == OUTPUT) {
-				output_timer_isr();
+				output_main_loop();
 			}
 #endif
 			// ------------- SENDING PITCH BEND DATA

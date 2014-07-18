@@ -2,6 +2,7 @@
 #include "hardware.h"
 #include "usbdrv/usbdrv.h"
 
+//this assumes only one pin
 void turn_on(void){
 	PORTB |= _BV(OUTPUT_PORT);	// Switch status LED on
 }

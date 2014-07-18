@@ -6,7 +6,7 @@
 static unsigned int duty_cycle = 0;
 static unsigned int iterations_p_cycle = 100;
 
-void output_timer_isr(void){
+void output_main_loop(void){
 	static int status = 0;
 	unsigned int counter = 0;
 	
@@ -37,8 +37,7 @@ void output_usb_input_handler(unsigned char * midiMsg, unsigned char len){
 			duty_cycle = (unsigned int) midiMsg[3];
 		}
 		// Note off message 0x80
-		else if(midiMsg[1] == 0x80 ){
-			// PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on					
+		else if(midiMsg[1] == 0x80 ){				
 			duty_cycle = 0;
 		} 			
 }
