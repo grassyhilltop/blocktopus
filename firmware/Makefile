@@ -16,7 +16,8 @@ FUSE_H  = 0xDD
 AVRDUDE = avrdude -c stk500v2 -P /dev/ttyUSB0 -p $(DEVICE)
 
 CFLAGS  = -Iusbdrv -I. -Ilibs-device -DDEBUG_LEVEL=0
-OBJECTS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o button.o knob.o output.o midi.o 
+OBJECTS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o button.o knob.o output.o midi.o
+OBJECTS += hardware.o
 #libs-device/osccal.o
 
 COMPILE = avr-gcc -Wall -Os -DF_CPU=$(F_CPU) $(CFLAGS) -mmcu=$(DEVICE)

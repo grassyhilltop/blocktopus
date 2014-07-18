@@ -5,6 +5,7 @@
  *      Author: Joel  ( modified from Baum's original code )
  */
 #include "main.h"
+#include "hardware.h"
 #include "config.h"
 #ifdef INCLUDE_BUTTON_FW
 	#include "button.h"
@@ -459,9 +460,10 @@ int main()
 				button_main_loop(uADC);
 			}
 #endif
+
 				
-		}
-	}
+		} //if usbInterruptIsReady
+	} // for (;;)
 
 	return 0;
 }

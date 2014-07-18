@@ -1,9 +1,10 @@
 #include "usbdrv/usbdrv.h"
 #include "main.h"
+#include "hardware.h"
 
 void sendNoteOn() {
 	uchar midiMsg[8];
-	PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on	
+	turn_on();
 
 	// Send a note on message if this was a button down
 	//http://forums.obdev.com/viewtopic.php?f=8&t=1352&start=30
@@ -26,7 +27,7 @@ void sendNoteOn() {
 void sendNoteOff() {	
 	uchar midiMsg[8];					
 
-	PORTB &= ~_BV(STATUS_LED_PORT); // LED off
+	turn_off();
 
 	// send note msg
 	//uchar midiMsg[8];
