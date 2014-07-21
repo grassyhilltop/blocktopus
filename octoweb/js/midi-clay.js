@@ -17,6 +17,7 @@ function App() {
 	};
 	
 	this.addNewHwBlock = function (hwBlock) {
+		obj.addNewBlock(hwBlock);
 		obj.hwObjects[hwBlock.blockID] = hwBlock;
 	};
 	
@@ -27,7 +28,7 @@ function App() {
 
 	this.findBlockID = function (devName){
 		for (blockID in obj.hwObjects){
-			if(obj.hwObjects[blockID].devName = devName){
+			if(obj.hwObjects[blockID].devName == devName){
 				return blockID;
 			}
 		}
@@ -39,51 +40,104 @@ var deviceDrawnNodeIds = {};
 var midiDevicePollTimer;
 
 function BlockObject(viewObj){
+	console.log("creating block object");
 	var obj = this;
 	this.viewObj = viewObj;
 	this.inConnections = {};
 	this.outConnections = {};
 	this.blockID = app.newBlockID();
 	this.type = "block";
-	this.removeConnection = function (outputConnectionObj){
-		console.log("removing connection");
-		delete obj.outConnections[outputConnectionObj.blockID];
-	};
-	this.addConnection = function (outputConnectionObj){
-		console.log("adding connection");
-		obj.outConnections[outputConnectionObj.blockID] = outputConnectionObj;
-	};
+	this.value = 0;
 	//add to global list of block objects
-	app.addNewBlock(this);
-	
-
 };
 
+BlockObject.prototype.removeConnection = function (outputConnectionObj){
+	console.log("removing connection");
+	delete this.outConnections[outputConnectionObj.blockID];
+};
+
+BlockObject.prototype.addConnection = function (outputConnectionObj){
+	console.log("adding connection from " + this.blockID + " to " + outputConnectionObj.blockID);
+	this.outConnections[outputConnectionObj.blockID] = outputConnectionObj;
+};
+
+BlockObject.prototype.updateValue = function (newValue){
+	this.value = newValue;
+};
+
+BlockObjectClone = function () {};
+BlockObjectClone.prototype = BlockObject.prototype;
+	
 function HwBlock(viewObj,devName){
+	console.log("creating hwblock");
 	var obj = this;
-	this.base = BlockObject;
-	this.base(viewObj);
-	this.devName = "";
+	BlockObject.call(this,viewObj,devName);
+	this.devName = devName;
+	this.device_type = "";
 	this.type = "hw";
 	//this.evalBlock = function
-	app.addNewHwBlock(this);
-	
-	this.onReceiveMessage = function(fromBlockID,msg){
-		console.log("on receive message");
-		obj.sendToAllOutputs(msg);				
-	};
-	
-	this.sendToAllOutputs = function(msg){
-		for (targetBlockID in obj.outConnections){
-			obj.sendMsg(targetBlockID, msg);
-		}
-	};
-	
-	this.sendMsg = function(targetBlockID, msg){
-		app.blockObjects[blockID].onReceiveMessage(obj.blockID, msg);
-	};
 };
-HwBlock.prototype = new BlockObject;
+
+HwBlock.prototype = new BlockObjectClone();
+HwBlock.prototype.constructor = HwBlock;
+
+HwBlock.prototype.sendToAllOutputs = function(msg){
+	console.log("sending to all outputs");
+	for (targetBlockID in this.outConnections){
+		this.sendMsg(targetBlockID, msg);
+	}
+};
+
+HwBlock.prototype.sendMsg = function(targetBlockID, msg){
+	console.log("Sending message to " + targetBlockID + " from " + this.blockID);
+	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
+};
+
+HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("Hw block on receive message from " + fromBlockID );
+	if(this.device_type == "Input"){
+		midi_out(this.devName,[msg[0],msg[1],msg[2]]);
+	}
+	else if (this.device_type == "Output"){
+		this.sendToAllOutputs(msg);	
+	}
+	else{
+		console.log("Error: HwBlock should be an output or input device!");
+	}	
+};
+
+HwBlockClone = function () {};
+HwBlockClone.prototype = HwBlock.prototype;
+
+function Knob(viewObj, devName){
+	var obj = this;
+	console.log("creating Knob");
+	HwBlock.call(this,viewObj,devName);
+	this.device_type = "Output";
+
+};
+Knob.prototype = new HwBlockClone();
+Knob.prototype.constructor = Knob;
+
+Knob.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("Knob on receive message");
+	HwBlock.prototype.onReceiveMessage.call(this, fromBlockID, msg);				
+};
+
+function Buzzer(viewObj, devName){
+	console.log("creating buzzer");
+	var obj = this;
+	HwBlock.call(this,viewObj,devName);
+	this.device_type = "Input";
+};
+
+Buzzer.prototype = new HwBlockClone();
+Buzzer.prototype.constructor = Buzzer;
+
+Buzzer.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("Buzzer on receive message");
+	HwBlock.prototype.onReceiveMessage.call(this, fromBlockID, msg);			
+};
 
 function CodeBlock(viewObj){
 	var obj = this;
@@ -190,6 +244,7 @@ function format(msg){
 
 // When we actually receive a message
 function print_msg(name,msg,out){
+	
 	console.log("name:" + name + " msg:" + msg  +" out:"+out);
 
 	// Update the sensor value for the flow node 
@@ -344,6 +399,7 @@ function checkForMidiDevices(){
 
         		var splitName = currDeviceName.split("-");
         		var nameShort = splitName[0];
+        		console.log("name Short " + nameShort);
         		var deviceUDID  = splitName[1];
         		var startValue = "";
 
@@ -351,14 +407,25 @@ function checkForMidiDevices(){
 
         		// If it is an output
         		if( sensorTypes[nameShort] == 2 ){// output
-
         			Pool.OpenMidiOut(currDeviceName);
-        		}   
-        		var newHwBlock = new HwBlock(elem,currDeviceName);
+        		}
+        		
+        		var elem = drawFlowNode(x,y,deviceUDID,nameShort,startValue);
+        		deviceDrawnNodeIds[currDeviceName] = elem;
+        		
+        		if(nameShort == "Knob"){
+        			var knob = new Knob(elem,currDeviceName);
+        			app.addNewHwBlock(knob);
+        			Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){knob.onReceiveMessage(app.findBlockID(name),a);};}(ins[i]));
+        		}
+        		else if (nameShort == "Buzzer"){
+        			var buzzer = new Buzzer(elem,currDeviceName);
+        			app.addNewHwBlock(buzzer);
+        			Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){buzzer.onReceiveMessage(app.findBlockID(name),a);};}(ins[i]));
+        		}
         		      		
         		// always add to inputs
        			//Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){print_msg(name,a);};}(ins[i]));        			
-				Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){newHwBlock.onReceiveMessage(app.findBlockID(name),a);};}(ins[i])); 
         		// draw a node
         		var x = 50 + 400* Math.random();
         		var y = 100+ 400* Math.random();
@@ -366,11 +433,6 @@ function checkForMidiDevices(){
         		if(nameShort =="Button" || nameShort =="Buzzer")  startValue = "OFF";
         		else startValue = "0%";
 
-        		var elem = drawFlowNode(x,y,deviceUDID,nameShort,startValue);
-        		
-
-
-        		deviceDrawnNodeIds[currDeviceName] = elem;
         	}
         }
 
@@ -539,7 +601,9 @@ function updateConnections (info, shouldRemove){
 
 	var sourceID = app.findBlockID(sourceName);
 	var targetID = app.findBlockID(targetName);	
-	if (shouldRemove){
+	console.log("source name: " + sourceName + " sourceID: " + sourceID);
+	console.log("target name: " + targetName + " targetID: " + targetID);
+		if (shouldRemove){
 		app.blockObjects[sourceID].removeConnection(app.blockObjects[targetID]);
 	}else{
 		app.blockObjects[sourceID].addConnection(app.blockObjects[targetID]);
