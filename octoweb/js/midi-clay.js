@@ -517,8 +517,8 @@ function MidiPool(){
  if(!arr.length) arr[0]={plugin:create_plugin(place)};
 
  // Comment out so midi messages pass though even when browswer doesn't have focus
- if(navigator.appName=='Microsoft Internet Explorer'){ document.onfocusin=onFocusIE; document.onfocusout=onBlurIE;}
- else{ window.onfocus=connectMidi; window.onblur=disconnectMidi;}
+ // if(navigator.appName=='Microsoft Internet Explorer'){ document.onfocusin=onFocusIE; document.onfocusout=onBlurIE;}
+ // else{ window.onfocus=connectMidi; window.onblur=disconnectMidi;}
 
  function create_plugin(where){
   var obj=document.createElement('object');
