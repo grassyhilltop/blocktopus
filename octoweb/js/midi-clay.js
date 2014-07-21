@@ -8,6 +8,12 @@ function App() {
 	this.blockObjects = {};
 	this.hwObjects = {};
 
+	// Midi Pool variables
+	this.Pool;
+	this.ins;
+	this.outs;
+	this.midiDevicePollTimer;
+
 	this.newBlockID = function () {
 		return obj.numBlocks++;
 	};
@@ -37,35 +43,15 @@ function App() {
 			}
 		}
 	};
-};
 
-function BlockObject(viewObj){
-	console.log("creating block object");
-	var obj = this;
-	this.viewObj = viewObj;
-	this.inConnections = {};
-	this.outConnections = {};
-	this.blockID = app.newBlockID();
-	this.type = "block";
-	this.value = 0;
-	//add to global list of block objects
-};
+	// MIDI FUNCTIONS
 
-BlockObjectClone = function () {};
-BlockObjectClone.prototype = BlockObject.prototype;
-
-BlockObject.prototype.removeConnection = function (outputConnectionObj){
-	console.log("removing connection");
-	delete this.outConnections[outputConnectionObj.blockID];
-};
-
-BlockObject.prototype.addConnection = function (outputConnectionObj){
-	console.log("adding connection from " + this.blockID + " to " + outputConnectionObj.blockID);
-	this.outConnections[outputConnectionObj.blockID] = outputConnectionObj;
-};
-
-BlockObject.prototype.updateValue = function (newValue){
-	this.value = newValue;
+	this.setupMidiPool = function (){
+		try{
+			obj.Pool=new MidiPool;	 
+		}
+		catch(err){ alert(err);}
+	}
 };
 
 function getDeviceTypeFromName(deviceName){
@@ -83,6 +69,29 @@ function getDeviceTypeFromName(deviceName){
 	return deviceTypes[deviceName];
 }
 
+function BlockObject(viewObj){
+	console.log("creating block object");
+	var obj = this;
+	this.viewObj = viewObj;
+	this.inConnections = {};
+	this.outConnections = {};
+	this.blockID = app.newBlockID();
+	this.type = "block";
+	this.value = 0;
+};
+BlockObjectClone = function () {};
+BlockObjectClone.prototype = BlockObject.prototype;
+
+BlockObject.prototype.removeConnection = function (outputConnectionObj){
+	console.log("removing connection");
+	delete this.outConnections[outputConnectionObj.blockID];
+};
+
+BlockObject.prototype.addConnection = function (outputConnectionObj){
+	console.log("adding connection from " + this.blockID + " to " + outputConnectionObj.blockID);
+	this.outConnections[outputConnectionObj.blockID] = outputConnectionObj;
+};
+
 function HwBlock(devName,viewObj){
 	
 	console.log("Creating new hardware block with name:" + devName);
@@ -95,7 +104,6 @@ function HwBlock(devName,viewObj){
 	this.deviceIDNum = devName.split("-")[1];// Just the numerical part of the name "5"
 	this.data = ""; 						 // Current state of device
 	this.deviceDirection = getDeviceTypeFromName(this.deviceType); // e.g. has Input or Output
-	//this.evalBlock = function
 	app.addNewHwBlock(this);
 	
 	// Create a default hardware view
@@ -162,20 +170,15 @@ function HwBlock(devName,viewObj){
 		// If the message containes a new value update hardware block
 		if( msg) obj.update(fromBlockID,msg);			
 		
-		if(this.deviceDirection == "Input"){ // If we have input e.g. buzzer
-			midi_out(this.devName,[msg[0],msg[1],msg[2]]);
+		if(obj.deviceDirection == "Input"){ // If we have input e.g. buzzer
+			midi_out(obj.devName,[msg[0],msg[1],msg[2]]);
 		}
-		else if (this.deviceDirection == "Output"){ // Sensor
-			console.log("test");
-			this.sendToAllOutputs(msg);	
+		else if (obj.deviceDirection == "Output"){ // Sensor
+			obj.sendToAllOutputs(msg);	// Send to any connected output blocks
 		}
 		else{
 			console.log("Error: HwBlock should be an output or input device!");
 		}	
-
-		
-		// Send to any connected output blocks
-		// obj.sendToAllOutputs(msg);				
 	};
 	
 	this.sendToAllOutputs = function(msg){		
@@ -248,46 +251,17 @@ function CodeBlock(viewObj){
 };
 CodeBlock.prototype = new BlockObject;
 
-// MIDI to MIDI Connections
-// Input (Sensor) ---> Output (e.g. Buzzer)
-var deviceToDeviceConnections ={}
 
-// From midi pool
-
-var Pool;
-var ins;
-var outs;
-
-var hist=[];
-var in_hist=0;
-
-var midiDevicePollTimer;
 
 function setupMidi () {
 	console.log("Setting up midi");
 	
 	/// USING JAZZ PLUGING
-	setupMidiPool();
+	app.setupMidiPool();
 
 	// Poll for new midi devices
-	midiDevicePollTimer = setInterval( checkForMidiDevices, 1000);
+	app.midiDevicePollTimer = setInterval( checkForMidiDevices, 1000);
 
-}
-
-function setupMidiPool(){
-	try{
-	 Pool=new MidiPool;
-	 ins=Pool.MidiInList();
-	 outs=Pool.MidiOutList();
-	 
-	 // for(var i in outs) Pool.OpenMidiOut(outs[i]);
-	 // for(var i in ins) Pool.OpenMidiIn(ins[i],function(name){return function(t,a){print_msg(name,a);};}(ins[i]));
-	}
-	catch(err){ alert(err);}
-
-	// Flash all the outputs
-	// play_all();
-	// stop_all();
 }
 
 // On receive of an midi message from a sensor
@@ -295,7 +269,7 @@ function midi_out(name,msg){
 	console.log("Sending midi out to device name:" + name + " msg:" + msg);
 
 	// // Send the message out to the pool
-	Pool.MidiOut(name,msg);
+	app.Pool.MidiOut(name,msg);
 	// print_msg(name,msg,true);	
 
 	// This NEVER SEEMS TO GET CALLED ??
@@ -303,20 +277,16 @@ function midi_out(name,msg){
 
 function play_all(){
 	var note=60;
- 	for(var i in outs){
- 		// Dont play the apple synth
- 		if (outs[i] == "Apple DLS Synth") {
- 			continue;
- 		}
- 		midi_out(outs[i],[144,note,0x7f]); 
+ 	for(var i in app.hwObjects){ 		
+ 		midi_out(app.hwObjects[i].devName,[144,note,0x7f]); 
  		note+=5;
  	}
 }
 
 function stop_all(){
 	var note=60;
-	for(var i in outs){ 
-		midi_out(outs[i],[128,note,0]); 
+	for(var i in app.hwObjects){ 
+		midi_out(app.hwObjects[i].devName,[128,note,0]); 
 		note+=5;
 	}
 }
@@ -390,49 +360,13 @@ function print_msg(name,msg,out){
 	}	
 }	
 
-function send_msg(){
-	var msg=[];
-	var a=fix_input(inp.value).split(" ");
-	for(var i in a){ 
-		var x=parseInt(a[i],16); 
-		if(!isNaN(x)) msg.push(x);
-	}
-	if(msg.length){
-		if(sel.selectedIndex) {
-			midi_out(outs[sel.selectedIndex-1],msg);
-		}
-		else{ 
-			for(var i in outs){ 
-				midi_out(outs[i],msg);
-			}
-		}
-		var str=format(msg);
-
-		for(var i=0;i<hist.length;i++){
-			if(hist[i]==str){
-				hist.splice(i,1);
-				i--;
-			}
-		}
-		hist.push(str);
-		in_hist=hist.length;
-	}
-	inp.value="";
-	setTimeout(function(){inp.focus();},0);
-}
-
 /////////////////////////////
 
 // Polling for midi devices
 function checkForMidiDevices(){
 	
-	// console.log("looking for midi devices");
+	var deviceList = app.Pool.MidiInList();
 	
-	ins = Pool.MidiInList();
-	outs = Pool.MidiOutList();
-
-	var deviceList = ins;
-
 	// For debugging show list of all detected midi devices in div
 	var newDeviceListStr = "Connected Devices:";
 	$("#deviceListDiv").text(newDeviceListStr);	
@@ -453,32 +387,24 @@ function checkForMidiDevices(){
 	}
 	
 	// NEW CONNECTED MODULES
-	if ( deviceList.length  > 0 ){
 		
-        for(var i = 0; i < deviceList.length ; i ++ ){
-        	var currDeviceName = deviceList[i];
-        	var blockID = app.findBlockID(currDeviceName);
-        	
-        	// Is the device already in our hw list ?
-        	if ( blockID ) {
-        		// console.log("device in connected deviceList already:" + currDeviceName );
-        	} 
-        	// First time seeing a device - make a connection and draw a node for them
-        	else{
-        		console.log("Found new midi device to connect to:" + currDeviceName );
-        		
-        		var newHwBlock = new HwBlock(currDeviceName);
+    for(var i = 0; i < deviceList.length ; i ++ ){
+    	var currDeviceName = deviceList[i];
+    	var foundBlockId = app.findBlockID(currDeviceName);
+    	
+    	if ( !foundBlockId ) { // if no device yet created
+    		console.log("Found new midi device to connect to:" + currDeviceName );
+    		
+    		var newHwBlock = new HwBlock(currDeviceName);
 
-        		 if( newHwBlock.deviceDirection == "Input" ){// output
-        			Pool.OpenMidiOut(currDeviceName);
-        		}   
-        		      		
-        		// Always add new devices as possible midi inputs (so any device can receive MIDI messages )
-       			// Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){print_msg(name,a);};}(ins[i]));        			
-       			Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){onNewMidiMsg(name,a);};}(ins[i]));        							        		
-        	}
-        }
-	}
+    		if( newHwBlock.deviceDirection == "Input" ){// output
+    			app.Pool.OpenMidiOut(currDeviceName);
+    		}       		      		
+    		// Always add new devices as possible midi inputs (so any device can receive MIDI messages )
+   			app.Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){onNewMidiMsg(name,a);};}(deviceList[i]));        							        		
+    	}
+    }
+	
 }
 
 // Main MIDI Message callback. Whenever a new midi message comes in
@@ -490,39 +416,6 @@ function onNewMidiMsg( deviceName, msg){
 	var block = app.blockObjects[blockID];
 	block.onReceiveMessage(blockID,msg);
 }
-
-function midiString(a,b,c){
-	 var cmd=Math.floor(a/16);
-	 var note=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'][b%12]+Math.floor(b/12);
-	 a=a.toString(16);
-	 b=(b<16?'0':'')+b.toString(16);
-	 c=(c<16?'0':'')+c.toString(16);
-	 var str=a+" "+b+" "+c+"    ";
-	 if(cmd==8){
-	  str+="Note Off   "+note;
-	 }
-	 else if(cmd==9){
-	  str+="Note On    "+note;
-	 }
-	 else if(cmd==10){
-	  str+="Aftertouch "+note;
-	 }
-	 else if(cmd==11){
-	  str+="Control    "+b;
-	 }
-	 else if(cmd==12){
-	  str+="Program    "+b;
-	 }
-	 else if(cmd==13){
-	  str+="Aftertouch";
-	 }
-	 else if(cmd==14){
-	  str+="Pitch Wheel";
-	 }
-	 return str;
-}
-
-
 
 // MIDI pool object that dynamically creates new instances of the plugin for each
 // Midi device
