@@ -27,7 +27,7 @@ function App() {
 
 	this.findBlockID = function (devName){
 		for (blockID in obj.hwObjects){
-			if(obj.hwObjects[blockID].devName = devName){
+			if(obj.hwObjects[blockID].devName == devName){
 				return blockID;
 			}
 		}
@@ -59,28 +59,92 @@ function BlockObject(viewObj){
 
 };
 
-function HwBlock(viewObj,devName){
+function HwBlock(devName,viewObj){
+	
+	console.log("Creating new hardware block with name:" + devName);
+
 	var obj = this;
+	this.type = "hw";						 // object type
 	this.base = BlockObject;
 	this.base(viewObj);
-	this.devName = "";
-	this.type = "hw";
+	this.devName = devName; 	             // Assumes midi device name in format "button-5"
+	this.deviceType = devName.split("-")[0]; // Just the type part of the name "button"
+	this.deviceIDNum = devName.split("-")[1];// Just the numerical part of the name "5"
+	this.data = ""; 						 // Current state of device
 	//this.evalBlock = function
 	app.addNewHwBlock(this);
 	
+	// Create a default hardware view
+	if(!viewObj){
+		
+   		var x = 50 + 400* Math.random();
+		var y = 100+ 400* Math.random();
+		
+		if(obj.deviceType =="Button" || obj.deviceType =="Buzzer")  obj.data = "OFF";
+		else obj.data = "0%";		
+		
+		obj.viewObj = drawFlowNode(x , y , obj.deviceIDNum , obj.deviceType , obj.data);
+	} 
+
+	// Called when the block state has changed - update data and view
+	this.update = function(fromBlockID,msg){
+		console.log("Updating hardware block:" + obj.devName);
+
+		// Update data - hardware state
+		var newVal = msg[2];
+
+		// Update View		
+		
+		if(msg[0] == 144){ // If the message type is note on/off use string label instead of number
+			newVal = 100;
+			$("#sensorVal"+obj.deviceIDNum).text("ON");
+		}
+		else if (msg[0] == 128){
+			newVal = 0;
+			$("#sensorVal"+obj.deviceIDNum).text("OFF");		
+		}
+
+		// control change for pitch wheel
+		else if (msg[0] == 227 || msg[0] == 176 ){
+			var sensorPercent = Math.floor(100*msg[2]/127);
+			newVal = sensorPercent;
+			// special case for temperature
+			if(obj.devName =="Temp") {
+				var temperature = 25 + (sensorPercent%50); 
+				$("#sensorVal"+obj.deviceIDNum).text( temperature +"°C");
+			}
+			else {				
+				$("#sensorVal"+obj.deviceIDNum).text( sensorPercent +"%");
+			}
+		}
+
+		$("#sensorVal"+obj.deviceIDNum).val(newVal);
+	}
+
 	this.onReceiveMessage = function(fromBlockID,msg){
-		console.log("on receive message");
-		obj.sendToAllOutputs(msg);				
+		console.log("Hardware: " + obj.devName +" blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
+
+		// If we were the hardware the generated the message
+		if (obj.blockID == fromBlockID){
+			console.log("Hardware: " + obj.devName + " message to self");
+	
+			// If the message containes a new value update hardware block
+			if( msg && msg[2]) obj.update(fromBlockID,msg);			
+		}
+		
+		// Send to any connected output blocks
+		// obj.sendToAllOutputs(msg);				
 	};
 	
-	this.sendToAllOutputs = function(msg){
+	this.sendToAllOutputs = function(msg){		
 		for (targetBlockID in obj.outConnections){
 			obj.sendMsg(targetBlockID, msg);
 		}
 	};
 	
 	this.sendMsg = function(targetBlockID, msg){
-		app.blockObjects[blockID].onReceiveMessage(obj.blockID, msg);
+		console.log( obj.devName + " sending message to block id: " + targetBlockID);
+		app.blockObjects[targetBlockID].onReceiveMessage(obj.blockID, msg);
 	};
 };
 HwBlock.prototype = new BlockObject;
@@ -139,8 +203,8 @@ function setupMidiPool(){
 	 ins=Pool.MidiInList();
 	 outs=Pool.MidiOutList();
 	 
-	 for(var i in outs) Pool.OpenMidiOut(outs[i]);
-	 for(var i in ins) Pool.OpenMidiIn(ins[i],function(name){return function(t,a){print_msg(name,a);};}(ins[i]));
+	 // for(var i in outs) Pool.OpenMidiOut(outs[i]);
+	 // for(var i in ins) Pool.OpenMidiIn(ins[i],function(name){return function(t,a){print_msg(name,a);};}(ins[i]));
 	}
 	catch(err){ alert(err);}
 
@@ -303,13 +367,13 @@ function checkForMidiDevices(){
 	// On disconn
 	// Check that the new list contains all of the previously connected
 	for (var key in connectedMidiDevices){
-		// console.log("key:" + key);
+
 		if ( $.inArray(key, deviceList) == -1){
-			console.log("Can't find:" +key + " in device list anymore");
-			
+
+			console.log("Can't find:" +key + " with id:" +app.findBlockID(key) + " in device list anymore");
+
 			delete connectedMidiDevices[key];
 			var lostNode = deviceDrawnNodeIds[key];			
-			// $(lostNode).hide();
 			$(lostNode).remove();
 
 			// Clean up jsplumb
@@ -320,6 +384,8 @@ function checkForMidiDevices(){
 			
 			//remove from global list of blocks
 			var blockID = app.findBlockID(key);
+
+			console.log("Removing block id:" + blockID + " for key name:" +key);
 			app.removeHwBlock(blockID);
 			
 		}
@@ -354,29 +420,40 @@ function checkForMidiDevices(){
 
         			Pool.OpenMidiOut(currDeviceName);
         		}   
-        		var newHwBlock = new HwBlock(elem,currDeviceName);
+        		var newHwBlock = new HwBlock(currDeviceName);
         		      		
         		// always add to inputs
-       			//Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){print_msg(name,a);};}(ins[i]));        			
-				Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){newHwBlock.onReceiveMessage(app.findBlockID(name),a);};}(ins[i])); 
+       			// Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){print_msg(name,a);};}(ins[i]));        			
+       			Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){onNewMidiMsg(name,a);};}(ins[i]));        			
+				
         		// draw a node
-        		var x = 50 + 400* Math.random();
-        		var y = 100+ 400* Math.random();
+        		// var x = 50 + 400* Math.random();
+        		// var y = 100+ 400* Math.random();
         		
-        		if(nameShort =="Button" || nameShort =="Buzzer")  startValue = "OFF";
-        		else startValue = "0%";
+        		// if(nameShort =="Button" || nameShort =="Buzzer")  startValue = "OFF";
+        		// else startValue = "0%";
 
-        		var elem = drawFlowNode(x,y,deviceUDID,nameShort,startValue);
+        		// var elem = drawFlowNode(x,y,deviceUDID,nameShort,startValue);
+        		// deviceDrawnNodeIds[currDeviceName] = elem;
         		
+        		deviceDrawnNodeIds[currDeviceName] = newHwBlock.viewObj;
 
-
-        		deviceDrawnNodeIds[currDeviceName] = elem;
         	}
         }
 
 
 		return deviceList[0];
 	}
+}
+
+// Main MIDI Message callback. Whenever a new midi message comes in
+function onNewMidiMsg( deviceName, msg){
+	console.log("New midi msg generated by: " + deviceName);
+	
+	// When a device generates a message just send it to its self (hardware block)
+	var blockID = app.findBlockID(deviceName);
+	var block = app.blockObjects[blockID];
+	block.onReceiveMessage(blockID,msg);
 }
 
 function midiString(a,b,c){
@@ -439,6 +516,7 @@ function MidiPool(){
  }
  if(!arr.length) arr[0]={plugin:create_plugin(place)};
 
+ // Comment out so midi messages pass though even when browswer doesn't have focus
  if(navigator.appName=='Microsoft Internet Explorer'){ document.onfocusin=onFocusIE; document.onfocusout=onBlurIE;}
  else{ window.onfocus=connectMidi; window.onblur=disconnectMidi;}
 
@@ -526,8 +604,6 @@ function MidiPool(){
 function updateConnections (info, shouldRemove){
 	console.log("Updating connections");
 
-
-	// js
 	// First check if we plugged input a code block
 	// Code blocks have divs with ID = clobject-4 etc , hardware div have id:light-1_container
 	var sourceName = info.sourceId.split("_")[0]; // remove any underscores
