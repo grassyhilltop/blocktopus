@@ -21,6 +21,10 @@ function App() {
 	};
 	
 	this.removeHwBlock = function (blockID) {
+		var blockToRemove = obj.blockObjects[blockID];
+		console.log("Removing block id:" + blockID + " for device name:" +blockToRemove.devName);
+		
+		blockToRemove.deleteView();
 		delete obj.blockObjects[blockID];
 		delete obj.hwObjects[blockID];
 	};
@@ -33,10 +37,6 @@ function App() {
 		}
 	};
 };
-
-var connectedMidiDevices = {};
-var deviceDrawnNodeIds = {};
-var midiDevicePollTimer;
 
 function BlockObject(viewObj){
 	var obj = this;
@@ -86,6 +86,13 @@ function HwBlock(devName,viewObj){
 		obj.viewObj = drawFlowNode(x , y , obj.deviceIDNum , obj.deviceType , obj.data);
 	} 
 
+	// Remove hardware view
+	this.deleteView =function (){
+				
+		deleteNode(obj.viewObj); // Clean up jsplumb connectors
+		$(obj.viewObj).remove();
+	}
+
 	// Called when the block state has changed - update data and view
 	this.update = function(fromBlockID,msg){
 		console.log("Updating hardware block:" + obj.devName);
@@ -125,15 +132,15 @@ function HwBlock(devName,viewObj){
 		console.log("Hardware: " + obj.devName +" blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
 
 		// If we were the hardware the generated the message
-		if (obj.blockID == fromBlockID){
-			console.log("Hardware: " + obj.devName + " message to self");
-	
-			// If the message containes a new value update hardware block
-			if( msg && msg[2]) obj.update(fromBlockID,msg);			
+		if (obj.blockID == fromBlockID){console.log("Hardware: " + obj.devName + " message to self");
+			// Todo process the message if needed here e.g. check valid message cleaning...
 		}
+
+		// If the message containes a new value update hardware block
+		if( msg) obj.update(fromBlockID,msg);			
 		
 		// Send to any connected output blocks
-		// obj.sendToAllOutputs(msg);				
+		obj.sendToAllOutputs(msg);				
 	};
 	
 	this.sendToAllOutputs = function(msg){		
@@ -185,6 +192,8 @@ var outs;
 
 var hist=[];
 var in_hist=0;
+
+var midiDevicePollTimer;
 
 function setupMidi () {
 	console.log("Setting up midi");
@@ -355,6 +364,7 @@ function checkForMidiDevices(){
 
 	var deviceList = ins;
 
+	// For debugging show list of all detected midi devices in div
 	var newDeviceListStr = "Connected Devices:";
 	$("#deviceListDiv").text(newDeviceListStr);	
 	$("#deviceListDiv").append("<br/>");
@@ -364,85 +374,42 @@ function checkForMidiDevices(){
 	};
 
 	// DISCONNECTED MODULES
-	// On disconn
-	// Check that the new list contains all of the previously connected
-	for (var key in connectedMidiDevices){
-
-		if ( $.inArray(key, deviceList) == -1){
-
-			console.log("Can't find:" +key + " with id:" +app.findBlockID(key) + " in device list anymore");
-
-			delete connectedMidiDevices[key];
-			var lostNode = deviceDrawnNodeIds[key];			
-			$(lostNode).remove();
-
-			// Clean up jsplumb
-			deleteNode(lostNode);
-
-			// remove from device to device list
-			delete deviceToDeviceConnections[lostNode];
-			
-			//remove from global list of blocks
-			var blockID = app.findBlockID(key);
-
-			console.log("Removing block id:" + blockID + " for key name:" +key);
-			app.removeHwBlock(blockID);
-			
+	// Detect on disconnection of a module - by checking that new device list contains all previously connected
+	for (var blockID in app.hwObjects){
+		var currDeviceName = app.hwObjects[blockID].devName;
+		// Is the hardware device still present in the midi list ?
+		if ( $.inArray(currDeviceName, deviceList) == -1){ // Returns -1 if A is not in B
+			app.removeHwBlock(blockID);				
 		}
 	}
 	
-
+	// NEW CONNECTED MODULES
 	if ( deviceList.length  > 0 ){
-		// console.log("Found midi devices:" + deviceList);
-
 		
         for(var i = 0; i < deviceList.length ; i ++ ){
         	var currDeviceName = deviceList[i];
-
-        	if (connectedMidiDevices[deviceList[i]] ) {
+        	var blockID = app.findBlockID(currDeviceName);
+        	
+        	// Is the device already in our hw list ?
+        	if ( blockID ) {
         		// console.log("device in connected deviceList already:" + currDeviceName );
-
         	} 
-        	////// First time seeing a device - make a connection and draw a node for them
+        	// First time seeing a device - make a connection and draw a node for them
         	else{
-        		console.log("new device to connect:" + currDeviceName );
-        		connectedMidiDevices[currDeviceName] = "connected";
+        		console.log("Found new midi device to connect to:" + currDeviceName );
+        		
+        		var newHwBlock = new HwBlock(currDeviceName);
 
-        		var splitName = currDeviceName.split("-");
-        		var nameShort = splitName[0];
-        		var deviceUDID  = splitName[1];
-        		var startValue = "";
-
-        		// MAKE A NEW CONNECTION
-
-        		// If it is an output
-        		if( sensorTypes[nameShort] == 2 ){// output
-
+        		// If it is an output open up a MIDI out connection
+        		if( sensorTypes[newHwBlock.deviceType] == 2 ){// output
         			Pool.OpenMidiOut(currDeviceName);
         		}   
-        		var newHwBlock = new HwBlock(currDeviceName);
         		      		
-        		// always add to inputs
+        		// Always add new devices as possible midi inputs (so any device can receive MIDI messages )
        			// Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){print_msg(name,a);};}(ins[i]));        			
-       			Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){onNewMidiMsg(name,a);};}(ins[i]));        			
-				
-        		// draw a node
-        		// var x = 50 + 400* Math.random();
-        		// var y = 100+ 400* Math.random();
-        		
-        		// if(nameShort =="Button" || nameShort =="Buzzer")  startValue = "OFF";
-        		// else startValue = "0%";
-
-        		// var elem = drawFlowNode(x,y,deviceUDID,nameShort,startValue);
-        		// deviceDrawnNodeIds[currDeviceName] = elem;
-        		
-        		deviceDrawnNodeIds[currDeviceName] = newHwBlock.viewObj;
-
+       			Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){onNewMidiMsg(name,a);};}(ins[i]));        							        		
         	}
         }
-
-
-		return deviceList[0];
 	}
 }
 
