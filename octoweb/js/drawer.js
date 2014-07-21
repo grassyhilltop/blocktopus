@@ -101,10 +101,12 @@ function drawFlowNode(x,y, sensorid , sensorName, initialVal){
 
     //JSplumb add connectors
     // If is input just add one connector on top
-    if(sensorTypes[sensorName]  == 2){ // Input
+    // if(sensorTypes[sensorName]  == 2){ // Input
+    if(getDeviceTypeFromName(sensorName)  == "Input"){ // Input
         _addEndpoints( nodeDiv.id, [], ["TopCenter"]);
     }
-    else if(sensorTypes[sensorName]  == 1){ // Output
+    // else if(sensorTypes[sensorName]  == 1){ // Output
+    else if(getDeviceTypeFromName(sensorName)  == "Output"){ // Output
 
         _addEndpoints( nodeDiv.id, ["BottomCenter"], []);
     }

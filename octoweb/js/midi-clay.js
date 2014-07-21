@@ -17,6 +17,7 @@ function App() {
 	};
 	
 	this.addNewHwBlock = function (hwBlock) {
+		obj.addNewBlock(hwBlock);
 		obj.hwObjects[hwBlock.blockID] = hwBlock;
 	};
 	
@@ -39,38 +40,61 @@ function App() {
 };
 
 function BlockObject(viewObj){
+	console.log("creating block object");
 	var obj = this;
 	this.viewObj = viewObj;
 	this.inConnections = {};
 	this.outConnections = {};
 	this.blockID = app.newBlockID();
 	this.type = "block";
-	this.removeConnection = function (outputConnectionObj){
-		console.log("removing connection");
-		delete obj.outConnections[outputConnectionObj.blockID];
-	};
-	this.addConnection = function (outputConnectionObj){
-		console.log("adding connection");
-		obj.outConnections[outputConnectionObj.blockID] = outputConnectionObj;
-	};
+	this.value = 0;
 	//add to global list of block objects
-	app.addNewBlock(this);
-	
-
 };
+
+BlockObjectClone = function () {};
+BlockObjectClone.prototype = BlockObject.prototype;
+
+BlockObject.prototype.removeConnection = function (outputConnectionObj){
+	console.log("removing connection");
+	delete this.outConnections[outputConnectionObj.blockID];
+};
+
+BlockObject.prototype.addConnection = function (outputConnectionObj){
+	console.log("adding connection from " + this.blockID + " to " + outputConnectionObj.blockID);
+	this.outConnections[outputConnectionObj.blockID] = outputConnectionObj;
+};
+
+BlockObject.prototype.updateValue = function (newValue){
+	this.value = newValue;
+};
+
+function getDeviceTypeFromName(deviceName){
+	var deviceTypes = {
+	"Knob": "Output",
+	"Button": "Output",
+	"Slider": "Output",
+	"Light": "Output",
+	"Temp": "Output",
+	"Tilt": "Output",
+	"LED": "Input",
+	"Buzzer": "Input"
+	};
+
+	return deviceTypes[deviceName];
+}
 
 function HwBlock(devName,viewObj){
 	
 	console.log("Creating new hardware block with name:" + devName);
 
 	var obj = this;
-	this.type = "hw";						 // object type
-	this.base = BlockObject;
-	this.base(viewObj);
+	BlockObject.call(this,viewObj);
+	this.type = "hw";						 // object type	
 	this.devName = devName; 	             // Assumes midi device name in format "button-5"
 	this.deviceType = devName.split("-")[0]; // Just the type part of the name "button"
 	this.deviceIDNum = devName.split("-")[1];// Just the numerical part of the name "5"
 	this.data = ""; 						 // Current state of device
+	this.deviceDirection = getDeviceTypeFromName(this.deviceType); // e.g. has Input or Output
 	//this.evalBlock = function
 	app.addNewHwBlock(this);
 	
@@ -135,12 +159,23 @@ function HwBlock(devName,viewObj){
 		if (obj.blockID == fromBlockID){console.log("Hardware: " + obj.devName + " message to self");
 			// Todo process the message if needed here e.g. check valid message cleaning...
 		}
-
 		// If the message containes a new value update hardware block
 		if( msg) obj.update(fromBlockID,msg);			
 		
+		if(this.deviceDirection == "Input"){ // If we have input e.g. buzzer
+			midi_out(this.devName,[msg[0],msg[1],msg[2]]);
+		}
+		else if (this.deviceDirection == "Output"){ // Sensor
+			console.log("test");
+			this.sendToAllOutputs(msg);	
+		}
+		else{
+			console.log("Error: HwBlock should be an output or input device!");
+		}	
+
+		
 		// Send to any connected output blocks
-		obj.sendToAllOutputs(msg);				
+		// obj.sendToAllOutputs(msg);				
 	};
 	
 	this.sendToAllOutputs = function(msg){		
@@ -154,7 +189,55 @@ function HwBlock(devName,viewObj){
 		app.blockObjects[targetBlockID].onReceiveMessage(obj.blockID, msg);
 	};
 };
-HwBlock.prototype = new BlockObject;
+
+HwBlock.prototype = new BlockObjectClone();
+HwBlock.prototype.constructor = HwBlock;
+
+HwBlock.prototype.sendToAllOutputs = function(msg){
+	console.log("sending to all outputs");
+	for (targetBlockID in this.outConnections){
+		this.sendMsg(targetBlockID, msg);
+	}
+};
+
+HwBlock.prototype.sendMsg = function(targetBlockID, msg){
+	console.log("Sending message to " + targetBlockID + " from " + this.blockID);
+	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
+};
+
+
+HwBlockClone = function () {};
+HwBlockClone.prototype = HwBlock.prototype;
+
+function Knob(viewObj, devName){
+	var obj = this;
+	console.log("creating Knob");
+	HwBlock.call(this,viewObj,devName);
+	this.deviceDirection = "Output";
+
+};
+Knob.prototype = new HwBlockClone();
+Knob.prototype.constructor = Knob;
+
+Knob.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("Knob on receive message");
+	HwBlock.prototype.onReceiveMessage.call(this, fromBlockID, msg);				
+};
+
+function Buzzer(viewObj, devName){
+	console.log("creating buzzer");
+	var obj = this;
+	HwBlock.call(this,viewObj,devName);
+	this.deviceDirection = "Input";
+};
+
+Buzzer.prototype = new HwBlockClone();
+Buzzer.prototype.constructor = Buzzer;
+
+Buzzer.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("Buzzer on receive message");
+	HwBlock.prototype.onReceiveMessage.call(this, fromBlockID, msg);			
+};
 
 function CodeBlock(viewObj){
 	var obj = this;
@@ -164,21 +247,6 @@ function CodeBlock(viewObj){
 	//this.evalBlock = function
 };
 CodeBlock.prototype = new BlockObject;
-
-
-// 1 = input
-// 2 = output
-// 3 = both
-var sensorTypes = {
-"Knob": 1,
-"Button": 1,
-"Slider": 1,
-"Light": 1,
-"Temp": 1,
-"Tilt": 1,
-"LED": 2,
-"Buzzer": 2
-};
 
 // MIDI to MIDI Connections
 // Input (Sensor) ---> Output (e.g. Buzzer)
@@ -224,11 +292,11 @@ function setupMidiPool(){
 
 // On receive of an midi message from a sensor
 function midi_out(name,msg){
-	console.log("sending midi out");
+	console.log("Sending midi out to device name:" + name + " msg:" + msg);
 
 	// // Send the message out to the pool
 	Pool.MidiOut(name,msg);
-	print_msg(name,msg,true);	
+	// print_msg(name,msg,true);	
 
 	// This NEVER SEEMS TO GET CALLED ??
 }
@@ -263,6 +331,7 @@ function format(msg){
 
 // When we actually receive a message
 function print_msg(name,msg,out){
+	
 	console.log("name:" + name + " msg:" + msg  +" out:"+out);
 
 	// Update the sensor value for the flow node 
@@ -400,8 +469,7 @@ function checkForMidiDevices(){
         		
         		var newHwBlock = new HwBlock(currDeviceName);
 
-        		// If it is an output open up a MIDI out connection
-        		if( sensorTypes[newHwBlock.deviceType] == 2 ){// output
+        		 if( newHwBlock.deviceDirection == "Input" ){// output
         			Pool.OpenMidiOut(currDeviceName);
         		}   
         		      		
@@ -582,7 +650,9 @@ function updateConnections (info, shouldRemove){
 
 	var sourceID = app.findBlockID(sourceName);
 	var targetID = app.findBlockID(targetName);	
-	if (shouldRemove){
+	console.log("source name: " + sourceName + " sourceID: " + sourceID);
+	console.log("target name: " + targetName + " targetID: " + targetID);
+		if (shouldRemove){
 		app.blockObjects[sourceID].removeConnection(app.blockObjects[targetID]);
 	}else{
 		app.blockObjects[sourceID].addConnection(app.blockObjects[targetID]);
