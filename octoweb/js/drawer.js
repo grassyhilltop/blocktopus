@@ -66,7 +66,7 @@ function circle2(){
     context.stroke();
 }
 
-function drawFlowNode(x,y, sensorid , sensorName, initialVal){
+function drawHardwareBlock(blockId, x,y, sensorid , sensorName, initialVal){
 	
 	if(!x) x = 400;
 	if(!y) y= 400;
@@ -80,7 +80,8 @@ function drawFlowNode(x,y, sensorid , sensorName, initialVal){
 	
 
     // override th enode div ID to be sensor container
-    nodeDiv.id = sensorName+"-"+sensorid + "_container";
+    // nodeDiv.id = sensorName+"-"+sensorid + "_container";
+    nodeDiv.id = "block-"+blockId;
 
 	$(textDiv).addClass("sensorValue")
 			  .attr("id","sensorVal" + sensorid)

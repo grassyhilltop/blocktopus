@@ -82,14 +82,36 @@ function BlockObject(viewObj){
 BlockObjectClone = function () {};
 BlockObjectClone.prototype = BlockObject.prototype;
 
-BlockObject.prototype.removeConnection = function (outputConnectionObj){
-	console.log("removing connection");
+BlockObject.prototype.removeOutputConnection = function (outputConnectionObj){
+	console.log("removing output connection");
 	delete this.outConnections[outputConnectionObj.blockID];
 };
 
-BlockObject.prototype.addConnection = function (outputConnectionObj){
-	console.log("adding connection from " + this.blockID + " to " + outputConnectionObj.blockID);
+BlockObject.prototype.addOutputConnection = function (outputConnectionObj){
+	console.log("adding output connection from " + this.blockID + " to " + outputConnectionObj.blockID);
 	this.outConnections[outputConnectionObj.blockID] = outputConnectionObj;
+};
+
+BlockObject.prototype.removeInputConnection = function (inputConnectionObj){
+	console.log("removing input connection");
+	delete this.inConnections[inputConnectionObj.blockID];
+};
+
+BlockObject.prototype.addInputConnection = function (inputConnectionObj){
+	console.log("adding input connection from " + inputConnectionObj.blockID + " to " + this.blockID );
+	this.inConnections[inputConnectionObj.blockID] = inputConnectionObj;
+};
+
+BlockObject.prototype.sendToAllOutputs = function(msg){
+	console.log("sending to all outputs");
+	for (targetBlockID in this.outConnections){
+		this.sendMsg(targetBlockID, msg);
+	}
+};
+
+BlockObject.prototype.sendMsg = function(targetBlockID, msg){
+	console.log("Sending message to " + targetBlockID + " from " + this.blockID);
+	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
 };
 
 function HwBlock(devName,viewObj){
@@ -98,7 +120,7 @@ function HwBlock(devName,viewObj){
 
 	var obj = this;
 	BlockObject.call(this,viewObj);
-	this.type = "hw";						 // object type	
+	this.type = "hw";						 // object type	 // Todo:bug this doesn't overide parent property
 	this.devName = devName; 	             // Assumes midi device name in format "button-5"
 	this.deviceType = devName.split("-")[0]; // Just the type part of the name "button"
 	this.deviceIDNum = devName.split("-")[1];// Just the numerical part of the name "5"
@@ -115,7 +137,7 @@ function HwBlock(devName,viewObj){
 		if(obj.deviceType =="Button" || obj.deviceType =="Buzzer")  obj.data = "OFF";
 		else obj.data = "0%";		
 		
-		obj.viewObj = drawFlowNode(x , y , obj.deviceIDNum , obj.deviceType , obj.data);
+		obj.viewObj = drawHardwareBlock(obj.blockID, x , y , obj.deviceIDNum , obj.deviceType , obj.data);
 	} 
 
 	// Remove hardware view
@@ -196,17 +218,17 @@ function HwBlock(devName,viewObj){
 HwBlock.prototype = new BlockObjectClone();
 HwBlock.prototype.constructor = HwBlock;
 
-HwBlock.prototype.sendToAllOutputs = function(msg){
-	console.log("sending to all outputs");
-	for (targetBlockID in this.outConnections){
-		this.sendMsg(targetBlockID, msg);
-	}
-};
+// HwBlock.prototype.sendToAllOutputs = function(msg){
+// 	console.log("sending to all outputs");
+// 	for (targetBlockID in this.outConnections){
+// 		this.sendMsg(targetBlockID, msg);
+// 	}
+// };
 
-HwBlock.prototype.sendMsg = function(targetBlockID, msg){
-	console.log("Sending message to " + targetBlockID + " from " + this.blockID);
-	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
-};
+// HwBlock.prototype.sendMsg = function(targetBlockID, msg){
+// 	console.log("Sending message to " + targetBlockID + " from " + this.blockID);
+// 	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
+// };
 
 
 HwBlockClone = function () {};
@@ -242,15 +264,72 @@ Buzzer.prototype.onReceiveMessage = function(fromBlockID,msg){
 	HwBlock.prototype.onReceiveMessage.call(this, fromBlockID, msg);			
 };
 
-function CodeBlock(viewObj){
-	var obj = this;
-	this.base = BlockObject;
-	this.base(viewObj);
-	this.type="sw";
-	//this.evalBlock = function
-};
-CodeBlock.prototype = new BlockObject;
 
+function CodeBlock(x,y,viewObj){
+	var obj = this;
+	BlockObject.call(this,viewObj);
+	this.type="sw";
+	app.addNewBlock(this);
+
+	if(!viewObj){
+		this.viewObj = drawCodeBlock(this.blockID,x,y);
+	}
+	
+	// Update software block from an incoming midi message , evaling code
+	this.update = function(fromBlockID,msg){
+		
+		if(!msg){
+			console.log("Error in software block update... no message");
+			return;
+		}
+
+		var newVal = convertMidiMsgToNumber(msg);
+
+		// Update the view 
+		var codeBoxElem = $("#block-"+obj.blockID);
+	
+		// Update input field		
+		codeBoxElem.find(".codeArgInput").val(newVal); 
+
+		// Evaluate code block
+		var codeBlockJqueryObj = $("#block-"+obj.blockID);
+		// var sourceName = app.blockObjects[fromBlockID].devName;
+		var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
+
+		// Update output field with evaluated result
+		// todo...
+		
+		return result;
+	}	
+
+	this.onReceiveMessage = function(fromBlockID,msg){
+		console.log("Software block with blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
+
+		if(!msg){
+			console.log("Error: tried to send a message to block with empty message");
+			return;
+		} 
+
+		// If the message containes a new value update block
+		var result = obj.update(fromBlockID,msg);			
+
+		// Send a new msg to any connected outputs
+		if(result !=undefined ){
+			var newMsg = convertPercentToMidiMsg(result);
+			obj.sendToAllOutputs(newMsg);
+		}
+
+	};
+
+};
+CodeBlock.prototype = new BlockObjectClone();
+CodeBlock.prototype.constructor = CodeBlock;
+
+CodeBlock.prototype.addInputConnection = function (outputConnectionObj){
+	BlockObject.prototype.addInputConnection.call(this,outputConnectionObj);
+	//joel todo update...
+
+};
 
 
 function setupMidi () {
@@ -348,7 +427,7 @@ function print_msg(name,msg,out){
 			
 			// Update the code box
 			codeBoxElem.find(".codeArgInput").val(newVal);
-			var result = evalCodeBox(codeBoxElem,name);
+			var result = evalCodeBlock(codeBoxElem,name);
 			// codeBoxElem.find(".returnValInput").val(result);						
 			// $("#"+connectedOutput).find(".codeArgVal").text("foo");			
 		}
@@ -534,34 +613,33 @@ function updateConnections (info, shouldRemove){
 
 	// First check if we plugged input a code block
 	// Code blocks have divs with ID = clobject-4 etc , hardware div have id:light-1_container
-	var sourceName = info.sourceId.split("_")[0]; // remove any underscores
-	var targetName = info.targetId.split("_")[0];
 	var sourceElem = $("#"+info.sourceId);
 	var targetElem = $("#"+info.targetId);
 	var targetInputElem;
 	var targetOutputElem;
 
-	var sourceID = app.findBlockID(sourceName);
-	var targetID = app.findBlockID(targetName);	
+	var sourceID = info.sourceId.split("-")[1];
+	var targetID = info.targetId.split("-")[1];
+	var sourceName = app.blockObjects[sourceID].devName; // remove any underscores
+	var targetName = app.blockObjects[targetID].devName;
+	
 	console.log("source name: " + sourceName + " sourceID: " + sourceID);
 	console.log("target name: " + targetName + " targetID: " + targetID);
-		if (shouldRemove){
-		app.blockObjects[sourceID].removeConnection(app.blockObjects[targetID]);
+	
+	if (shouldRemove){
+		app.blockObjects[sourceID].removeOutputConnection(app.blockObjects[targetID]);
+		app.blockObjects[targetID].removeInputConnection(app.blockObjects[sourceID]);
 	}else{
-		app.blockObjects[sourceID].addConnection(app.blockObjects[targetID]);
+		app.blockObjects[sourceID].addOutputConnection(app.blockObjects[targetID]);
+		app.blockObjects[targetID].addInputConnection(app.blockObjects[sourceID]);
 	}
 	
 	
-	if(shouldRemove){
-		// Find the sensor and remove it from the connection list
-		if(deviceToDeviceConnections[sourceName]){
-			delete deviceToDeviceConnections[sourceName];			
-		}
-		return;
-	}
-	
+	////  TOBE REMOVED
+
 	// Connecting TO CODE BLOCK
-	if( targetName.split("-")[0] == "clobject" ) {
+	// if( targetName.split("-")[0] == "clobject" ) {
+	if( app.blockObjects[targetID].type == "sw" ) {
 		console.log("made connection to code block");
 		// Fill in the first line of the code with the output
 		var elem = targetElem.find(".freeCell");
@@ -573,13 +651,15 @@ function updateConnections (info, shouldRemove){
 		
 		// Two cases: either the source is a text block or hardware
 		// CONNECTING FROM CODE 
-		if ( sourceName.split("-")[0] == "clobject" ){
-						
+		// if ( sourceName.split("-")[0] == "clobject" ){
+		if ( app.blockObjects[sourceID].type == "sw" ){
+			
 			// Get the return value of the source code box if one is defined there
 			var returnVal = sourceElem.find(".returnValInput").val();
 			if (returnVal) firstVarValue = returnVal;
 		}  
 		else{ // CONNECTING FROM HARDWARE 
+			console.log("connection from hardward to code");
 
 			firstVarName = sourceName.split("-")[0].toLowerCase(); // just the name of the sensor	
 			var deviceUDID = sourceName.split("-")[1];
@@ -627,7 +707,7 @@ function updateConnections (info, shouldRemove){
 	// Bind a change event with the input
 	// targetInputElem.change(onInputChange); // only works for keyinput, lost focus
 
-	deviceToDeviceConnections[sourceName] = targetName;
+	// deviceToDeviceConnections[sourceName] = targetName;
 }
 
 function onInputChange(value){
@@ -635,21 +715,26 @@ function onInputChange(value){
 }
 
 // Code to evaluate text boxes
-// assumes that we are passing in the container element (clay object clobject)
+// assumes that we are passing in the view of the object (a JQUERY object div container)
 // sourceName is the parent connecting node
-function evalCodeBox(clobjectDiv,sourceName){
+function evalCodeBlock(clobjectDiv,sourceID){
 	
-	console.log("evaling code box");
+	console.log("Evalling code block");
+	
+	var sourceName = app.blockObjects[sourceID].deviceType;
 
 	var elem = clobjectDiv.find(".freeCell");
 	var inputValue = elem.find(".codeArgInput").val();
 	var outputValueElem = elem.find(".returnValInput");
-	var connectedOutput = deviceToDeviceConnections[clobjectDiv[0].id];
+	// var connectedOutput = deviceToDeviceConnections[clobjectDiv[0].id];
+	var connectedOutput = app.blockObjects[clobjectDiv[0].id]; 
 	var connectedOutputElem = $("#"+connectedOutput);
 	
-	var str = elem.html().replace(/(<\/div>)|(<div>)/g,"\n"); // split into new lines	
+	// Todo -- REMOVE BELOW AND FACTOR OUT INTO SOFTWARE BLOCK
+
+	var str = elem.html().replace(/(<\/div>)|(<div>)|(<br>)/g,"\n"); // split into new lines	
 	var lines = str.trim().split("\n");
-		
+
 	//remove empty lines
 	var trimmedlines = [];
 	for (var i = 0; i < lines.length; i++) {
@@ -657,14 +742,20 @@ function evalCodeBox(clobjectDiv,sourceName){
 	};
 	lines = trimmedlines;
 	
+
 	if(inputValue) {
-		var firstVarName = sourceName.split("-")[0].toLowerCase();
-		if( firstVarName =="clobject") firstVarName = "input";
-		lines[0] = "var "+ firstVarName+ " =" + inputValue; // first line is an input variable	
+		var firstVarName = "";
+		if(sourceName)  firstVarName = sourceName.toLowerCase() ;
+		else firstVarName = "input";
+		// var firstVarName = sourceName.split("-")[0].toLowerCase();
+		
+		lines[0] = "var " + firstVarName + " =" + inputValue; // first line is an input variable	
 		lines[lines.length-1] = ""; // blank out last line (will be evaled)
 	} 
-
-
+	
+	console.log("should get here");
+	g1 = lines;
+	
 	if(lines.length < 2){ 
 		console.log("error while evaling code box.. not enough lines");
 	} else if (lines.length == 2){
@@ -673,14 +764,14 @@ function evalCodeBox(clobjectDiv,sourceName){
 		
 		if (connectedOutput) {
 			// TODO if we are connected to another code box... eval it 
-			if(connectedOutput.split("-")[0] == "clobject"){
+			// if(connectedOutput.split("-")[0] == "clobject"){
+			if(connectedOutput.type == "sw"){
 				var nextInput = connectedOutputElem.find(".codeArgInput");
-				nextInput.val(outputValueElem.val());
-				
-				evalCodeBox($("#"+connectedOutput) ,clobjectDiv[0].id); 
+				nextInput.val(outputValueElem.val());				
+				evalCodeBlock($("#block-"+connectedOutput.blockID) ,clobjectDiv[0].id); 
 			} else{
 				// If we are CONNECTED TO HARDWARE send message onwards
-				sendMsgToHardware(connectedOutput,inputValue);
+				// sendMsgToHardware("#block-"+connectedOutput.blockID,inputValue);
 			}
 		}
 		return inputValue; 
@@ -713,14 +804,15 @@ function evalCodeBox(clobjectDiv,sourceName){
 		// Todo factor out
 		if (connectedOutput) {
 			// TODO if we are connected to another code box... eval it 
-			if(connectedOutput.split("-")[0] == "clobject"){
+			// if(connectedOutput.split("-")[0] == "clobject"){
+			if(connectedOutput.type == "sw"){
 				var nextInput = connectedOutputElem.find(".codeArgInput");
 				nextInput.val(outputValueElem.val());
 				
-				evalCodeBox($("#"+connectedOutput) ,clobjectDiv[0].id); 
+				evalCodeBlock($("#block-"+connectedOutput.blockID) ,clobjectDiv[0].id); 
 			} else{
 				// If we are CONNECTED TO HARDWARE send message onwards
-				sendMsgToHardware(connectedOutput,result);
+				// sendMsgToHardware(connectedOutput,result);
 			}
 		}
 	}
@@ -728,15 +820,36 @@ function evalCodeBox(clobjectDiv,sourceName){
 	return result;
 }
 
-
-function sendMsgToHardware( name , value){
-	console.log("sending msg to hardware:" +name + " val:" + value);
-	if (value == 0)	{		
-		midi_out(name,[128,60,value]);
-	} else if (value == 100){
-		midi_out(name,[144,60,value]);
-	} else{
-		midi_out(name,[227,0,Math.floor(127*value/100)]);
+// Returns a number between 0-100 from a standard midi message
+function convertMidiMsgToNumber(msg){
+	if(!msg || msg.length !=3) {
+		console.log("Error trying to convert invalid midi msg");
+		return;
 	}
 
-} 
+	if (msg[0] == 144 ) return 100; // note on
+	if( msg[0] == 128 ) return 0;	// note off
+	if (msg[0] == 227) {			// pitch change
+		var midiVal = msg[2]; //0-127
+		return Math.floor(100*midiVal/127)
+	}		
+}
+
+// Converts a number from 0-100 into a midi message
+function convertPercentToMidiMsg( num ){	
+	if (num == 100 ) return [144,60,69]; 			    // note on
+	else if( num == 0 ) return [128,60,69];	    // note off
+	else return  [227,0,Math.round(127*num/100)];   // continuous pitch change		
+}
+
+// function sendMsgToHardware( name , value){
+// 	console.log("sending msg to hardware:" +name + " val:" + value);
+// 	if (value == 0)	{		
+// 		midi_out(name,[128,60,value]);
+// 	} else if (value == 100){
+// 		midi_out(name,[144,60,value]);
+// 	} else{
+// 		midi_out(name,[227,0,Math.floor(127*value/100)]);
+// 	}
+
+// } 

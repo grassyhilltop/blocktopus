@@ -84,7 +84,7 @@ function masterClayClickHander(event){
     }
 }
 
-function createCanvasCell(x , y ,w ,h){
+function drawCodeBlock(id, x , y ,w ,h){
 
     var yOff = 30; // Offset from cursor - so we dont occlude with mouse
     var xOff = 10;
@@ -101,7 +101,7 @@ function createCanvasCell(x , y ,w ,h){
     var y = y - 30; //offsets for draggablediv
 
     // Wrapp div in draggable div
-    var container = createDraggableContainer(x,y);
+    var container = createDraggableContainer(id,x,y);
     var divElem = createDiv(0,0,w,h,true,"relative");// Creating a contentEditable div
     append(divElem,container);
     append(container);    
@@ -120,7 +120,7 @@ function createCanvasCell(x , y ,w ,h){
     return divElem;
 }
 
-function createDraggableContainer(x,y){
+function createDraggableContainer(id,x,y){
 
     divElem = document.createElement("div");
 
@@ -131,8 +131,9 @@ function createDraggableContainer(x,y){
 
     // Add unique id to each canvas cell
     
-    var idString = "" + getUniqueId();
-    divElem.id = idString ;
+    // var idString = "" + getUniqueId();
+    var idString = "block-" + id;
+    divElem.id = idString;
 
     divElem.classList.add("draggable");
     // $( divElem ).draggable({ cancel: ".editable" });
@@ -176,19 +177,21 @@ function gotClickInEmptySpace( event){
 
     var x = event.pageX;
     var y = event.pageY;
-    var freeCellElem = createCanvasCell(x,y);
+    // var freeCellElem = drawCodeBlock(x,y);
+    var newCodeBlock = new CodeBlock(x,y);
+    var codeBlockView = newCodeBlock.viewObj;
     
-    freeCellElem.onkeyup = function(event){
+    codeBlockView.onkeyup = function(event){
         
         // jsPlumb.repaintEverything();// Key up resizes container so need to repaint
-        jsPlumb.repaint(freeCellElem.parentElement);
+        jsPlumb.repaint(codeBlockView.parentElement);
     }
 
-    freeCellElem.onkeydown = function(event){
+    codeBlockView.onkeydown = function(event){
 
         // repaint jsplumb so anchors move with resize , force redraw of jsplumb
         //http://jsplumbtoolkit.com/doc/utilities.html
-        jsPlumb.repaint(freeCellElem.parentElement);
+        jsPlumb.repaint(codeBlockView.parentElement);
         // jsPlumb.repaint(el, [ui])
         // jsPlumb.repaintEverything();
 
@@ -215,13 +218,13 @@ function gotClickInEmptySpace( event){
             
              var result =""
 
-            var textString = $(freeCellElem).text(); // cross platform get text
+            var textString = $(codeBlockView).text(); // cross platform get text
             console.log("text to parse:" +textString);
 
             // if the contents have html get them (Jquery escapes the found html)
             // So we have to unescape it to have a pure HTML string again
             // Todo: unescape HTML less hacky.(it won't unescape everything)
-            var htmlString = unescapeHTML($(freeCellElem).html()); 
+            var htmlString = unescapeHTML($(codeBlockView).html()); 
             console.log("html to parse:" +htmlString);
             
             // Just always parse the raw string
@@ -247,13 +250,13 @@ function gotClickInEmptySpace( event){
                     if(isHTMLElement(functionResult)){
 
                         functionResult.style.position ="relative";
-                        $(freeCellElem).parent().removeClass("freeCellContainer");
-                        $(freeCellElem).parent().addClass("freeHTMLContainer");
+                        $(codeBlockView).parent().removeClass("freeCellContainer");
+                        $(codeBlockView).parent().addClass("freeHTMLContainer");
 
                         //js
 
-                        $(freeCellElem).replaceWith( functionResult);
-                        // append(functionResult,freeCellElem);
+                        $(codeBlockView).replaceWith( functionResult);
+                        // append(functionResult,codeBlockView);
                     }
                 } 
                 else if( typeof(result) == "object"){
@@ -262,24 +265,24 @@ function gotClickInEmptySpace( event){
                     // result string is html
                     if(result.type =="html"){
                         console.log("replacing with html");
-                        $(freeCellElem).html(result);  
+                        $(codeBlockView).html(result);  
                     }
                     // Got some HTML back - just draw it
                     if(isHTMLElement(result)){
 
                         result.style.position ="relative";
-                        $(freeCellElem).parent().removeClass("freeCellContainer");
-                        $(freeCellElem).parent().addClass("freeHTMLContainer");
+                        $(codeBlockView).parent().removeClass("freeCellContainer");
+                        $(codeBlockView).parent().addClass("freeHTMLContainer");
 
                         //js
 
-                        $(freeCellElem).replaceWith( result);
-                        // append(functionResult,freeCellElem);
+                        $(codeBlockView).replaceWith( result);
+                        // append(functionResult,codeBlockView);
                     }
                 }
                 else{ // got a result string - add it to the div
-                    // $(freeCellElem).append(result).show(); // append below
-                    $(freeCellElem).text(result); // replaces the div with the result
+                    // $(codeBlockView).append(result).show(); // append below
+                    $(codeBlockView).text(result); // replaces the div with the result
                 }
                 
                 
