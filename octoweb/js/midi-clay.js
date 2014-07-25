@@ -261,7 +261,7 @@ function CodeBlock(x,y,viewObj){
 	var obj = this;
 	BlockObject.call(this,viewObj);
 	this.type="sw";
-	this.data = "";
+	this.data = "0";
 	app.addNewBlock(this);
 
 	if(!viewObj){
@@ -296,6 +296,10 @@ function CodeBlock(x,y,viewObj){
 				if (currName == deviceName){					
 					argElems[i].value = newVal;					
 				}	
+			} else{
+				if (currName == "input"){
+					argElems[i].value = newVal;	
+				}
 			}
 			
 		};
