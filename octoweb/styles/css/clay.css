@@ -103,6 +103,22 @@ textarea{
 	width: 35px;
 }
 
+.returnValInput{
+	display: block;
+	margin: 0 auto;	
+	text-align: center;
+}
+
+.codeArgLine{
+	/*background-color: lightgrey;*/
+}
+.dividerline{
+	border-bottom: 1px solid lightGrey;	
+	margin-bottom: 3px;
+	margin-top: 3px;
+	readonly:false;
+}
+
 .codeArgument{
 	background-color: #f2f2f2;
 	padding: 1px 10px;  /*UD LR*/

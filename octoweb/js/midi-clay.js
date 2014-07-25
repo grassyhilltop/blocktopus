@@ -124,7 +124,7 @@ function HwBlock(devName,viewObj){
 	this.devName = devName; 	             // Assumes midi device name in format "button-5"
 	this.deviceType = devName.split("-")[0]; // Just the type part of the name "button"
 	this.deviceIDNum = devName.split("-")[1];// Just the numerical part of the name "5"
-	this.data = ""; 						 // Current state of device
+	this.data = "0"; 						 // Current state of device
 	this.deviceDirection = getDeviceTypeFromName(this.deviceType); // e.g. has Input or Output
 	app.addNewHwBlock(this);
 	
@@ -134,10 +134,11 @@ function HwBlock(devName,viewObj){
    		var x = 50 + 400* Math.random();
 		var y = 100+ 400* Math.random();
 		
-		if(obj.deviceType =="Button" || obj.deviceType =="Buzzer")  obj.data = "OFF";
-		else obj.data = "0%";		
+		var displayVal = obj.data ;
+		if(obj.deviceType =="Button" || obj.deviceType =="Buzzer")  displayVal = "OFF";
+		else displayVal = "0%";		
 		
-		obj.viewObj = drawHardwareBlock(obj.blockID, x , y , obj.deviceIDNum , obj.deviceType , obj.data);
+		obj.viewObj = drawHardwareBlock(obj.blockID, x , y , obj.deviceIDNum , obj.deviceType , displayVal);
 	} 
 
 	// Remove hardware view
@@ -274,23 +275,41 @@ function CodeBlock(x,y,viewObj){
 			console.log("Error in software block update... no message");
 			return;
 		}
-
+		var fromObj = app.blockObjects[fromBlockID];
 		var newVal = convertMidiMsgToNumber(msg);
-
-		// Update the view 
 		var codeBoxElem = $("#block-"+obj.blockID);
+		
+		// Update the view -----
 	
-		// Update input field		
-		codeBoxElem.find(".codeArgInput").val(newVal); 
+		// Update input field data and view			
+		// codeBoxElem.find(".codeArgInput").val(newVal); 
 
+		// Update the existing code argument div that matches the name of the hardware
+		var argElems = codeBoxElem.find(".codeArgInput");
+		var argNames = codeBoxElem.find(".codeArgName");
+		
+		for (var i = 0; i < argNames.length; i++) {
+			var currName = argNames[i].innerHTML;
+			if (fromObj.type == "hw"){
+				var deviceName = fromObj.deviceType.toLowerCase();
+
+				if (currName == deviceName){					
+					argElems[i].value = newVal;					
+				}	
+			}
+			
+		};
+		
 		// Evaluate code block
 		var codeBlockJqueryObj = $("#block-"+obj.blockID);
 		// var sourceName = app.blockObjects[fromBlockID].devName;
-		var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
+		// var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
+		var result = evalCodeBlock(obj.blockID,fromBlockID);
 
 		// Update output field with evaluated result
 		// todo...
-		
+		obj.data = result;
+
 		return result;
 	}	
 
@@ -317,82 +336,73 @@ function CodeBlock(x,y,viewObj){
 	// CODE BLOCK - VIEW FUNCTIONS
 	// ================================================
 
-	this.addArgumentsToView = function(outputConnectionObj){
-		// Update the view by adding input and output fields 
+	this.updateArgumentsView = function(){
+
+		// Update the code block views argument lines and output field
 		// according the what parents are connected		
 
-		// Todo handle multiple parent connections 
-
-		var targetElem = $("#block-"+this.blockID);	 // the code block is the target
-		var sourceElem = $("#block-"+outputConnectionObj.blockID);
-		var sourceID = outputConnectionObj.blockID;
-		var targetID = this.blockID;
+		// Setup view variables
+		var targetElem = $("#block-"+this.blockID);	  // Jquery obj of the code block view
+		var elem = targetElem.find(".freeCell");      // Editable div inside object
+		targetInputElems = elem.find(".codeArgInput");// Any existing argument divs
+		var numInConnections = Object.keys(this.inConnections).length; // Number of connected parents,  
 		
-		// Fill in the first line of the code with the output
-		var elem = targetElem.find(".freeCell");
-		var elemHTML = elem.html();
+		var linesToAdd = "";
 
-		var firstVarName = "input";
-		var firstVarValue = 0;
-
-		// -- 1 -- Update the first variable name and value
-
-		// Two cases: either the source is a text block or hardware
-		if ( app.blockObjects[sourceID].type == "sw" ){	
-			// If connecting from a code block
-			// Get the return value of the source code box if one is defined there
-			var parentVal = outputConnectionObj.data;
-			if (parentVal !=undefined) firstVarValue = parentVal;
-		}  		
-		else{ 
-			// If connecting from a hardware device			
-			// just the name of the sensor
-			firstVarName = outputConnectionObj.deviceType.toLowerCase(); 				
-			firstVarValue =	outputConnectionObj.data;	
-		}
-
-		//  Create lines for the argument
-
-		targetInputElem = elem.find(".codeArgInput");
-		var foundExistingArgName = elem.find(".codeArgName");
-		
-		//-- 2 -- Update the first lines of the block to have input variables
-		
-		// If there is already an input value field just update it
-		if (targetInputElem.length != 0) {
-			foundExistingArgName.text(firstVarName);
-			targetInputElem.val(firstVarValue);
-			
-		} else{  // If no argments in the code box yet
-			// todo append a new variable name for each input
-			for ( idkey in this.inConnections ) {
-
-			};
-		
-			currInConnectionId = app.blockObjects[idkey];
-			console.log("test: " + currInConnectionId);
-			var firstLine = "<div>" + "<span class='codeArgName'>"+ firstVarName + 
-			"</span> = <input class='codeArgInput' value='" + firstVarValue + "'></input> </div> ";		
-			elem.html(firstLine + elemHTML);
-			targetInputElem = elem.find(".codeArgInput");			
-		
-			
+		// First clean up div - Delete all of the preexisintg argument lines
+		var argmentLines = $(this.viewObj).find(".codeArgLine");		
+		for (var i = 0; i < argmentLines.length; i++) {
+			var currTargetInputElem = argmentLines[i];
+			currTargetInputElem.remove();
 		}
 		
-		// -- 3 -- Attach a return val input box
-		targetOutputElem = elem.find(".returnValInput");
-		if( targetOutputElem.length == 0 ){ // no output div element yet		
-			var returnVal = firstVarValue;
-			var blankLine = "<div>  </div>";
-			var lastLine = "<div>out = <input class='returnValInput' value='" + returnVal + "'></input> </div> ";		
-			elem.append(blankLine);			
-			elem.append(lastLine);	
+		var existingDivider = $(this.viewObj).find(".dividerline");
+		if (existingDivider.length > 0 ) existingDivider[0].remove();
+
+		// Add a div for each input connection we have currently
+		for ( connectedObjID in this.inConnections ){
+			var currConnectedObj = app.blockObjects[connectedObjID];
+			
+			var currArgumentName ="input";                    // default name of the argument
+			var currConnectedObjVal = currConnectedObj.data;  // value of the argument x = 0
+			if (currConnectedObjVal ==undefined) currConnectedObjVal = "0";
+			
+			// Set custom argument name depending on if hardware or software
+			if ( currConnectedObj.type == "sw" ){	
+				// If connecting from a code block
+
+			} 
+			else if (currConnectedObj.type == "hw"){
+				// If connecting from hardware
+				currArgumentName = currConnectedObj.deviceType.toLowerCase();
+			} 	
+
+         	// Append a new variable name for each input
+			linesToAdd += "<div contenteditable ='false' class='codeArgLine'>" + "<span class='codeArgName'>"+ currArgumentName + 
+			"</span> = <input class='codeArgInput' value='" + currConnectedObjVal + "'></input> </div> ";		
+		}
+
+		// Append the lines to the elem
+		var originalHTML = elem.html();
+		var blankLine = "<div><br></div>";
+		var dividerline = "<div class='dividerline' contenteditable='false'></div>";
+		elem.html(linesToAdd + dividerline + originalHTML + blankLine);
+
+		// Update the output field
+		// js todo
+
+		var returnValElem = targetElem.find(".returnValInput");
+		var returnVal = "0"; // default return val 
+		if( returnValElem.length == 0 ){ // no output div element yet		
+			var lastLine = "<div class='returnValDiv' contenteditable='false'><input class='returnValInput' value='" + returnVal + "' readonly></input> </div> ";		
+			// elem.append(lastLine);	
+			targetElem.append(lastLine);	
 			// Set our new data		
 			this.data = returnVal;
 		}
 
-		jsPlumb.repaint(elem.parent());	// repaint anchors in case shifted
-	}
+		jsPlumb.repaint(elem.parent());	// repaint anchors in case shifted	
+	}	
 
 };
 CodeBlock.prototype = new BlockObjectClone();
@@ -405,7 +415,17 @@ CodeBlock.prototype.addInputConnection = function (outputConnectionObj){
 
 	console.log("Adding input to code block");
 	
-	this.addArgumentsToView(outputConnectionObj);			
+	this.updateArgumentsView();			
+};
+
+// When some object dissconnects from a code block
+CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
+
+	BlockObject.prototype.removeInputConnection.call(this,outputConnectionObj);
+
+	console.log("Removing input from code block");
+	
+	this.updateArgumentsView();			
 };
 
 
@@ -643,22 +663,20 @@ function updateConnections (info, shouldRemove){
 // Code to evaluate text boxes
 // assumes that we are passing in the view of the object (a JQUERY object div container)
 // sourceName is the parent connecting node
-function evalCodeBlock(clobjectDiv,sourceID){
+function evalCodeBlock( codeBlockID,sourceID){
 	
-	console.log("Evalling code block");
+	console.log("Evaling code block");
 	
-	var sourceName = app.blockObjects[sourceID].deviceType;
-
+	var clobjectDiv = $("#block-"+codeBlockID);
+	var codeBlockObj = app.blockObjects[codeBlockID];
+	
 	var elem = clobjectDiv.find(".freeCell");
 	var inputValue = elem.find(".codeArgInput").val();
-	var outputValueElem = elem.find(".returnValInput");
-	// var connectedOutput = deviceToDeviceConnections[clobjectDiv[0].id];
-	var connectedOutput = app.blockObjects[clobjectDiv[0].id]; 
-	var connectedOutputElem = $("#"+connectedOutput);
+	var outputValueElem = clobjectDiv.find(".returnValInput");
 	
 	// Todo -- REMOVE BELOW AND FACTOR OUT INTO SOFTWARE BLOCK
-
-	var str = elem.html().replace(/(<\/div>)|(<div>)|(<br>)/g,"\n"); // split into new lines	
+	
+	var str = elem.html().replace(/(<\/div>)|(<div>)|<div[^>]*>|(<br>)/g,"\n"); // split into new lines	
 	var lines = str.trim().split("\n");
 
 	//remove empty lines
@@ -667,46 +685,39 @@ function evalCodeBlock(clobjectDiv,sourceID){
 		if ( lines[i].trim() !="" && lines[i] !="<br>" ) trimmedlines.push(lines[i]);
 	};
 	lines = trimmedlines;
-	
 
-	if(inputValue) {
-		var firstVarName = "";
-		if(sourceName)  firstVarName = sourceName.toLowerCase() ;
-		else firstVarName = "input";
-		// var firstVarName = sourceName.split("-")[0].toLowerCase();
-		
-		lines[0] = "var " + firstVarName + " =" + inputValue; // first line is an input variable	
-		lines[lines.length-1] = ""; // blank out last line (will be evaled)
-	} 
+	// Add a line for each input argument
+	var argElems = clobjectDiv.find(".codeArgInput");
+	var argNames = clobjectDiv.find(".codeArgName");
 	
-	console.log("should get here");
-	g1 = lines;
+	for (var i = 0; i < argNames.length; i++) {
+		var currName = argNames[i].innerHTML;
+		var currVal = argElems[i].value;	
+
+		lines[i] = "var " + currName + " = " + currVal; // first line is an input variable	
+			
+	};
 	
-	if(lines.length < 2){ 
-		console.log("error while evaling code box.. not enough lines");
-	} else if (lines.length == 2){
-		// just pass the value through
-		outputValueElem.val(inputValue)
-		
-		if (connectedOutput) {
-			// if(connectedOutput.split("-")[0] == "clobject"){
-			if(connectedOutput.type == "sw"){
-				var nextInput = connectedOutputElem.find(".codeArgInput");
-				nextInput.val(outputValueElem.val());				
-				evalCodeBlock($("#block-"+connectedOutput.blockID) ,clobjectDiv[0].id); 
-			} else{
-				// If we are CONNECTED TO HARDWARE send message onwards
-				// sendMsgToHardware("#block-"+connectedOutput.blockID,inputValue);
-			}
-		}
-		return inputValue; 
+	console.log("should get here lines: "+  lines.length);
+
+	// If there is no code to eval  just pass through the first input value
+	
+	var numInConnections = Object.keys(codeBlockObj.inConnections).length
+	// if(lines.length == 1){		
+	if(lines.length == numInConnections){		
+		outputValueElem.val(inputValue);
+		return inputValue;
 	}
+		
+	////////////////////////////////////
+	/// CODE GENERATION (line by line)
+	////////////////////////////////////
 
 	var codeStr= "function(){";
 	for (var i = 0; i < lines.length; i++) {
 		var line = lines[i];
 		// always put a return statement on the last line
-		if (i == lines.length-2 ) line = "return (" + line + ")";
+		if (i == lines.length-1 ) line = "return (" + line + ")";
 		
 		if(!line) continue; // skip blank lines
 
@@ -723,21 +734,9 @@ function evalCodeBlock(clobjectDiv,sourceID){
 	var result = tryEval(codeStr)();
 	console.log("evaled code box with results:" +result);
 
+	// todo place this in code box update
 	if(outputValueElem) {
 		outputValueElem.val(result);	
-// 		if (connectedOutput) sendMsgToHardware(connectedOutput,result);	
-		if (connectedOutput) {
-			// if(connectedOutput.split("-")[0] == "clobject"){
-			if(connectedOutput.type == "sw"){
-				var nextInput = connectedOutputElem.find(".codeArgInput");
-				nextInput.val(outputValueElem.val());
-				
-				evalCodeBlock($("#block-"+connectedOutput.blockID) ,clobjectDiv[0].id); 
-			} else{
-				// If we are CONNECTED TO HARDWARE send message onwards
-				// sendMsgToHardware(connectedOutput,result);
-			}
-		}
 	}
 
 	return result;
