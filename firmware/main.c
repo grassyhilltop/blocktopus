@@ -448,7 +448,7 @@ int main()
 			}
 #endif
 			// ------------- SENDING PITCH BEND DATA
-#ifdef INCLUDE_BUTTON_FW
+#ifdef INCLUDE_KNOB_FW
 			if (module_type == KNOB) {
 				knob_main_loop(uADC);
 			}
