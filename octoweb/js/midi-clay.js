@@ -305,10 +305,7 @@ function CodeBlock(x,y,viewObj){
 		};
 		
 		// Evaluate code block
-		var codeBlockJqueryObj = $("#block-"+obj.blockID);
-		// var sourceName = app.blockObjects[fromBlockID].devName;
-		// var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
-		var result = evalCodeBlock(obj.blockID,fromBlockID);
+		var result = evalCodeBlock(obj.blockID);
 
 		// Update output field with evaluated result
 		// todo...
@@ -665,23 +662,23 @@ function updateConnections (info, shouldRemove){
 
 
 // Code to evaluate text boxes
-// assumes that we are passing in the view of the object (a JQUERY object div container)
-// sourceName is the parent connecting node
-function evalCodeBlock( codeBlockID,sourceID){
+// assumes that we are passing in the ID of the codebox object 
+function evalCodeBlock(codeBlockID){
 	
 	console.log("Evaling code block");
 	
-	var clobjectDiv = $("#block-"+codeBlockID);
 	var codeBlockObj = app.blockObjects[codeBlockID];
+	var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
 	
 	var elem = clobjectDiv.find(".freeCell");
 	var inputValue = elem.find(".codeArgInput").val();
 	var outputValueElem = clobjectDiv.find(".returnValInput");
+		
+	// Insert new lines around div tags so we can spilt into a line array
+	var str = elem.html().replace(/(<\/div>)|(<div>)|<div[^>]*>|(<br>)/g,"\n"); 
 	
-	// Todo -- REMOVE BELOW AND FACTOR OUT INTO SOFTWARE BLOCK
-	
-	var str = elem.html().replace(/(<\/div>)|(<div>)|<div[^>]*>|(<br>)/g,"\n"); // split into new lines	
-	var lines = str.trim().split("\n");
+	str = unescapeHTML(str); // remove any unescaped chars e.g. & " ' < >
+	var lines = str.trim().split("\n"); // split string into array of lines
 
 	//remove empty lines
 	var trimmedlines = [];
@@ -702,10 +699,7 @@ function evalCodeBlock( codeBlockID,sourceID){
 			
 	};
 	
-	console.log("should get here lines: "+  lines.length);
-
-	// If there is no code to eval  just pass through the first input value
-	
+	// If there is no code to eval  just pass through the first input value	
 	var numInConnections = Object.keys(codeBlockObj.inConnections).length
 	// if(lines.length == 1){		
 	if(lines.length == numInConnections){		
@@ -716,22 +710,37 @@ function evalCodeBlock( codeBlockID,sourceID){
 	////////////////////////////////////
 	/// CODE GENERATION (line by line)
 	////////////////////////////////////
-
+	var lastAssignment;
+	var lastLine;
 	var codeStr= "function(){";
 	for (var i = 0; i < lines.length; i++) {
 		var line = lines[i];
-		// always put a return statement on the last line
-		if (i == lines.length-1 ) line = "return (" + line + ")";
+		if(!line) continue; // skip blank lines		
 		
-		if(!line) continue; // skip blank lines
-
 		console.log("currline is:" +line);
 		
-		line +=";" ; // add semicolon to each line
+		// Check if current line is an assigment and store variable name for later
+		var lineAssignmnetMatch =  isAssignmentLine(line);
+		if(lineAssignmnetMatch) lastAssignment = lineAssignmnetMatch[1];
+
+		lastLine = line;
+		if(isValidLine(line)) line +=";" ; // add semicolon to each line
 
 		codeStr += line;
 	};
 	
+	// Add a return value line , with defaults:
+	// 1. Return last line if it is a valid expression
+	// 2. else return last variable assignment in code
+	if (lastLine) {
+		if(!isValidReturnValue(lastLine)){
+			lastLine = lastAssignment;
+		}
+		codeStr += "return (" + lastLine + ")";
+	}
+
+	g1 = lastAssignment;
+
 	codeStr +="}";
 	console.log("eval code str:"+codeStr);		
 
@@ -744,6 +753,44 @@ function evalCodeBlock( codeBlockID,sourceID){
 	}
 
 	return result;
+}
+
+// Checks if the string is a valid javascript expression 
+// i.e. a full statement 
+function isValidLine(line){
+	if(! line 
+		|| line.match("{[^}]*$") // open ended block ( { not closed ) e.g. if () { ...
+		|| line.match("^\s*}\s*$") // close bracket hanging out by itself
+		// || line.match("^\s*(if|else)") // starts with keyword ( with arbitrary spaces)
+	){return false }
+	else {
+	 return true;
+	}
+}
+
+// Checks if statement can be returned in an eval
+// Assignments , and lines with keywords cannot be returned by javascript syntax
+function isValidReturnValue(line){
+
+	if(! line 
+		|| line.match("^\s*(if|else|var)") // starts with keyword ( with arbitrary spaces)
+		|| line.match("^\s*}\s*$") // close bracket hanging out by itself
+		|| line.match("=") // has assignment 
+	){return false }
+	else {
+	 return true;
+	}
+}
+
+// Is the line an assigment
+function isAssignmentLine(line){
+
+	if(! line ) return false;
+
+	// is X = Y , not X == Y
+	var foundMatch = line.match(/(\w+)[^=]?=[^=]?(\w+)/);
+	
+	return 	foundMatch;
 }
 
 // Returns a number between 0-100 from a standard midi message

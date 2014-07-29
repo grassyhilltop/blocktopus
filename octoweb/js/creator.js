@@ -300,7 +300,8 @@ function unescapeHTML(inputString){
       .replace(/&lt;/g  , "<")
       .replace(/&gt;/g  , ">")
       .replace(/&quot;/ , '"')
-      .replace(/&#39;/g , "'"); 
+      .replace(/&#39;/g , "'")
+      .replace(/&nbsp;/g , ""); 
 
     // var escapeMap = { 
     //     '&amp;' :  '&',
