@@ -260,8 +260,10 @@ Buzzer.prototype.onReceiveMessage = function(fromBlockID,msg){
 function CodeBlock(x,y,viewObj){
 	var obj = this;
 	BlockObject.call(this,viewObj);
+	this.result = 0;
 	this.type="sw";
 	this.data = "0";
+	this.sandbox   = new JSandbox();
 	app.addNewBlock(this);
 
 	if(!viewObj){
@@ -308,14 +310,53 @@ function CodeBlock(x,y,viewObj){
 		var codeBlockJqueryObj = $("#block-"+obj.blockID);
 		// var sourceName = app.blockObjects[fromBlockID].devName;
 		// var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
-		var result = this.evalCodeBlock();
-
+		//var result = this.evalCodeBlock();
+		var result = this.evalCodeBlockFromSandBox();
 		// Update output field with evaluated result
 		// todo...
 		obj.data = result;
 
 		return result;
-	}
+	};
+	
+	this.evalCodeBlockFromSandBox = function () {
+		
+		var codeBlockID = this.blockID;
+	
+		var codeBlockObj = app.blockObjects[codeBlockID];
+		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
+	
+		var elem = clobjectDiv.find(".freeCell");
+		var inputValue = elem.find(".codeArgInput").val();
+		var outputValueElem = clobjectDiv.find(".returnValInput");
+		
+		var str = elem.html();
+		var divs = elem.find('div');
+		var code = "";
+		divs.each(function() {
+			if ($(this).hasClass("codeArgLine")){
+				var argElem = $(this).find(".codeArgInput");
+				var argName = $(this).find(".codeArgName");
+				code = code + argName.text() + " = " + argElem.val() + " ; ";
+			}else{
+				code = code + " " + $(this).text() + " ";
+			}
+		});
+		console.log("code "+code);
+		this.sandbox.eval(code, function (returnVal) {
+			console.log("ret " + returnVal);
+			obj.result = returnVal;
+		});
+		
+		console.log("evaled code box with results:" +this.result);
+
+		// todo place this in code box update
+		if(outputValueElem) {
+			outputValueElem.val(this.result);	
+		}
+
+		return this.result;
+	};
 	
 	this.evalCodeBlock = function(){
 		console.log("Evaling code block");
@@ -407,7 +448,7 @@ function CodeBlock(x,y,viewObj){
 		}
 
 		return result;
-	}
+	};
 
 	this.onReceiveMessage = function(fromBlockID,msg){
 		console.log("Software block with blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
