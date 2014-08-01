@@ -6,6 +6,7 @@ function App() {
 	var obj = this;
 	this.numBlocks = 0;
 	this.blockObjects = {};
+	this.blockTypeCounts = {};
 	this.hwObjects = {};
 
 	// Midi Pool variables
@@ -20,21 +21,57 @@ function App() {
 	
 	this.addNewBlock = function (block) {
 		obj.blockObjects[block.blockID] = block;
+		
+		// Update display names e.g. block1
+		obj.updateDisplayName(block.blockID);
 	};
 	
+	this.updateDisplayName = function (blockID){
+		
+		var currBlock = obj.blockObjects[blockID];
+
+		var typeName ="";
+		if (currBlock.type == "hw")	typeName =  currBlock.deviceType;	
+		else typeName = currBlock.type; 	
+		
+		// increment the type count
+		var currBlockTypeCount = obj.blockTypeCounts[typeName];
+		if ( currBlockTypeCount ) currBlockTypeCount += 1;
+		else currBlockTypeCount = 1;
+		obj.blockTypeCounts[typeName] = currBlockTypeCount;
+
+		// only show number if more than one type
+		if (currBlockTypeCount != 1) currBlock.displayName += currBlockTypeCount;  
+	}
+
+	this.removeBlock = function (blockID) {
+
+		console.log("removing block with id: " + blockID );
+		var blockToRemove = obj.blockObjects[blockID];
+
+		blockToRemove.deleteView();
+
+		var deviceType = blockToRemove.type;
+		if (blockToRemove.type == "hw") deviceType = blockToRemove.deviceType;
+
+		var currBlockTypeCount = obj.blockTypeCounts[deviceType];				
+		obj.blockTypeCounts[deviceType] = currBlockTypeCount - 1;
+
+		delete obj.blockObjects[blockID];
+	};
+
 	this.addNewHwBlock = function (hwBlock) {
 		obj.addNewBlock(hwBlock);
 		obj.hwObjects[hwBlock.blockID] = hwBlock;
 	};
 	
 	this.removeHwBlock = function (blockID) {
-		var blockToRemove = obj.blockObjects[blockID];
-		console.log("Removing block id:" + blockID + " for device name:" +blockToRemove.devName);
-		
-		blockToRemove.deleteView();
-		delete obj.blockObjects[blockID];
+
+		obj.removeBlock(blockID);
 		delete obj.hwObjects[blockID];
 	};
+
+
 
 	this.findBlockID = function (devName){
 		for (blockID in obj.hwObjects){
@@ -77,33 +114,34 @@ function BlockObject(viewObj){
 	this.outConnections = {};
 	this.blockID = app.newBlockID();
 	this.type = "block";
+	this.displayName = "block";
 	this.value = 0;
 };
 BlockObjectClone = function () {};
 BlockObjectClone.prototype = BlockObject.prototype;
 
 BlockObject.prototype.removeOutputConnection = function (outputConnectionObj){
-	console.log("removing output connection");
+	// console.log("removing output connection");
 	delete this.outConnections[outputConnectionObj.blockID];
 };
 
 BlockObject.prototype.addOutputConnection = function (outputConnectionObj){
-	console.log("adding output connection from " + this.blockID + " to " + outputConnectionObj.blockID);
+	// console.log("adding output connection from " + this.blockID + " to " + outputConnectionObj.blockID);
 	this.outConnections[outputConnectionObj.blockID] = outputConnectionObj;
 };
 
 BlockObject.prototype.removeInputConnection = function (inputConnectionObj){
-	console.log("removing input connection");
+	// console.log("removing input connection");
 	delete this.inConnections[inputConnectionObj.blockID];
 };
 
 BlockObject.prototype.addInputConnection = function (inputConnectionObj){
-	console.log("adding input connection from " + inputConnectionObj.blockID + " to " + this.blockID );
+	// console.log("adding input connection from " + inputConnectionObj.blockID + " to " + this.blockID );
 	this.inConnections[inputConnectionObj.blockID] = inputConnectionObj;
 };
 
 BlockObject.prototype.sendToAllOutputs = function(msg){
-	console.log("sending to all outputs");
+	// console.log("sending to all outputs");
 	for (targetBlockID in this.outConnections){
 		this.sendMsg(targetBlockID, msg);
 	}
@@ -124,6 +162,7 @@ function HwBlock(devName,viewObj){
 	this.devName = devName; 	             // Assumes midi device name in format "button-5"
 	this.deviceType = devName.split("-")[0]; // Just the type part of the name "button"
 	this.deviceIDNum = devName.split("-")[1];// Just the numerical part of the name "5"
+	this.displayName = this.deviceType;      // What gets displayed in a block
 	this.data = "0"; 						 // Current state of device
 	this.deviceDirection = getDeviceTypeFromName(this.deviceType); // e.g. has Input or Output
 	app.addNewHwBlock(this);
@@ -262,10 +301,16 @@ function CodeBlock(x,y,viewObj){
 	BlockObject.call(this,viewObj);
 	this.type="sw";
 	this.data = "0";
+	this.displayName = "input";      
+
 	app.addNewBlock(this);
 
 	if(!viewObj){
 		this.viewObj = drawCodeBlock(this.blockID,x,y);
+	}
+
+	this.deleteView =function (){
+				
 	}
 	
 	// Update software block from an incoming midi message , evaling code
@@ -290,17 +335,26 @@ function CodeBlock(x,y,viewObj){
 		
 		for (var i = 0; i < argNames.length; i++) {
 			var currName = argNames[i].innerHTML;
-			if (fromObj.type == "hw"){
-				var deviceName = fromObj.deviceType.toLowerCase();
+			
+			// Using display name to find a match
+			var displayName = fromObj.displayName;
+			if (fromObj.type == "hw") displayName = displayName.toLowerCase();
+			
+			if (currName == displayName ){
+				argElems[i].value = newVal;	
+			} 
+			
+			// if (fromObj.type == "hw"){
+			// 	var deviceName = fromObj.deviceType.toLowerCase();
 
-				if (currName == deviceName){					
-					argElems[i].value = newVal;					
-				}	
-			} else{
-				if (currName == "input"){
-					argElems[i].value = newVal;	
-				}
-			}
+			// 	if (currName == deviceName){					
+			// 		argElems[i].value = newVal;					
+			// 	}	
+			// } else{
+			// 	if (currName == "input"){
+			// 		argElems[i].value = newVal;	
+			// 	}
+			// }
 			
 		};
 		
@@ -369,14 +423,16 @@ function CodeBlock(x,y,viewObj){
 			if (currConnectedObjVal ==undefined) currConnectedObjVal = "0";
 			
 			// Set custom argument name depending on if hardware or software
-			if ( currConnectedObj.type == "sw" ){	
-				// If connecting from a code block
+			// if ( currConnectedObj.type == "sw" ){	
+			// 	// If connecting from a code block
 
-			} 
-			else if (currConnectedObj.type == "hw"){
-				// If connecting from hardware
-				currArgumentName = currConnectedObj.deviceType.toLowerCase();
-			} 	
+			// } 
+			// else if (currConnectedObj.type == "hw"){
+			// 	// If connecting from hardware
+			// 	currArgumentName = currConnectedObj.deviceType.toLowerCase();
+			// } 	
+
+			currArgumentName = currConnectedObj.displayName.toLowerCase();
 
          	// Append a new variable name for each input
 			linesToAdd += "<div contenteditable ='false' class='codeArgLine'>" + "<span class='codeArgName'>"+ currArgumentName + 
@@ -414,7 +470,7 @@ CodeBlock.prototype.addInputConnection = function (outputConnectionObj){
 
 	BlockObject.prototype.addInputConnection.call(this,outputConnectionObj);
 
-	console.log("Adding input to code block");
+	// console.log("Adding input to code block");
 	
 	this.updateArgumentsView();			
 };
@@ -424,7 +480,7 @@ CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
 
 	BlockObject.prototype.removeInputConnection.call(this,outputConnectionObj);
 
-	console.log("Removing input from code block");
+	// console.log("Removing input from code block");
 	
 	this.updateArgumentsView();			
 };
@@ -648,8 +704,8 @@ function updateConnections (info, shouldRemove){
 	var sourceName = app.blockObjects[sourceID].devName; // remove any underscores
 	var targetName = app.blockObjects[targetID].devName;
 	
-	console.log("source name: " + sourceName + " sourceID: " + sourceID);
-	console.log("target name: " + targetName + " targetID: " + targetID);
+	// console.log("source name: " + sourceName + " sourceID: " + sourceID);
+	// console.log("target name: " + targetName + " targetID: " + targetID);
 	
 	if (shouldRemove){
 		app.blockObjects[sourceID].removeOutputConnection(app.blockObjects[targetID]);

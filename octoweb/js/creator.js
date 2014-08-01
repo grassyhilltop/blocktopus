@@ -172,6 +172,10 @@ function deleteNode(id){
     //http://stackoverflow.com/questions/15147291/jsplumb-delete-a-draggable-element
     jsPlumb.detachAllConnections(id);
     jsPlumb.removeAllEndpoints(id);
+
+    g1 =id;
+    var blockObjectID = id.split("-")[1];
+    app.removeBlock(blockObjectID);
 }
 function gotClickInEmptySpace( event){
 
