@@ -309,6 +309,8 @@ function CodeBlock(x,y,viewObjInput){
 	this.type="sw";
 	this.data = "0";
 	this.displayName = "input";      
+	this.sandbox   = new JSandbox();
+	this.result = 0;
 
 	app.addNewBlock(this);
 
@@ -366,14 +368,149 @@ function CodeBlock(x,y,viewObjInput){
 		};
 		
 		// Evaluate code block
-		var result = evalCodeBlock(obj.blockID);
-
+		var codeBlockJqueryObj = $("#block-"+obj.blockID);
+		// var sourceName = app.blockObjects[fromBlockID].devName;
+		// var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
+		var result = this.evalCodeBlock();
+		// var result = this.evalCodeBlockFromSandBox();
+		
 		// Update output field with evaluated result
 		// todo...
 		obj.data = result;
 
 		return result;
-	}	
+	};
+	
+	this.evalCodeBlockFromSandBox = function () {
+		
+		var codeBlockID = this.blockID;
+	
+		var codeBlockObj = app.blockObjects[codeBlockID];
+		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
+	
+		var elem = clobjectDiv.find(".freeCell");
+		var inputValue = elem.find(".codeArgInput").val();
+		var outputValueElem = clobjectDiv.find(".returnValInput");
+		
+		var str = elem.html();
+		var divs = elem.find('div');
+		var code = "";
+		divs.each(function() {
+			if ($(this).hasClass("codeArgLine")){
+				var argElem = $(this).find(".codeArgInput");
+				var argName = $(this).find(".codeArgName");
+				code = code + argName.text() + " = " + argElem.val() + " ; ";
+			}else{
+				code = code + " " + $(this).text() + " ";
+			}
+		});
+		console.log("code "+code);
+		this.sandbox.eval(code, function (returnVal) {
+			console.log("ret " + returnVal);
+			obj.result = returnVal;
+		});
+		
+		console.log("evaled code box with results:" +this.result);
+
+		// todo place this in code box update
+		if(outputValueElem) {
+			outputValueElem.val(this.result);	
+		}
+
+		return this.result;
+	};
+	
+	this.evalCodeBlock = function(){
+		console.log("Evaling code block");
+		var codeBlockID = this.blockID;
+	
+		var codeBlockObj = app.blockObjects[codeBlockID];
+		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
+	
+		var elem = clobjectDiv.find(".freeCell");
+		var inputValue = elem.find(".codeArgInput").val();
+		var outputValueElem = clobjectDiv.find(".returnValInput");
+		
+		// Insert new lines around div tags so we can spilt into a line array
+		var str = elem.html().replace(/(<\/div>)|(<div>)|<div[^>]*>|(<br>)/g,"\n"); 
+	
+		str = unescapeHTML(str); // remove any unescaped chars e.g. & " ' < >
+		var lines = str.trim().split("\n"); // split string into array of lines
+
+		//remove empty lines
+		var trimmedlines = [];
+		for (var i = 0; i < lines.length; i++) {
+			if ( lines[i].trim() !="" && lines[i] !="<br>" ) trimmedlines.push(lines[i]);
+		};
+		lines = trimmedlines;
+
+		// Add a line for each input argument
+		var argElems = clobjectDiv.find(".codeArgInput");
+		var argNames = clobjectDiv.find(".codeArgName");
+	
+		for (var i = 0; i < argNames.length; i++) {
+			var currName = argNames[i].innerHTML;
+			var currVal = argElems[i].value;	
+
+			lines[i] = "var " + currName + " = " + currVal; // first line is an input variable	
+			
+		};
+	
+		// If there is no code to eval  just pass through the first input value	
+		var numInConnections = Object.keys(codeBlockObj.inConnections).length
+		// if(lines.length == 1){		
+		if(lines.length == numInConnections){		
+			outputValueElem.val(inputValue);
+			return inputValue;
+		}
+		
+		////////////////////////////////////
+		/// CODE GENERATION (line by line)
+		////////////////////////////////////
+		var lastAssignment;
+		var lastLine;
+		var codeStr= "function(){";
+		for (var i = 0; i < lines.length; i++) {
+			var line = lines[i];
+			if(!line) continue; // skip blank lines		
+		
+			console.log("currline is:" +line);
+		
+			// Check if current line is an assigment and store variable name for later
+			var lineAssignmnetMatch =  isAssignmentLine(line);
+			if(lineAssignmnetMatch) lastAssignment = lineAssignmnetMatch[1];
+
+			lastLine = line;
+			if(isValidLine(line)) line +=";" ; // add semicolon to each line
+
+			codeStr += line;
+		};
+	
+		// Add a return value line , with defaults:
+		// 1. Return last line if it is a valid expression
+		// 2. else return last variable assignment in code
+		if (lastLine) {
+			if(!isValidReturnValue(lastLine)){
+				lastLine = lastAssignment;
+			}
+			codeStr += "return (" + lastLine + ")";
+		}
+
+		g1 = lastAssignment;
+
+		codeStr +="}";
+		console.log("eval code str:"+codeStr);		
+
+		var result = tryEval(codeStr)();
+		console.log("evaled code box with results:" +result);
+
+		// todo place this in code box update
+		if(outputValueElem) {
+			outputValueElem.val(result);	
+		}
+
+		return result;
+	};
 
 	this.onReceiveMessage = function(fromBlockID,msg){
 		console.log("Software block with blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
@@ -725,9 +862,8 @@ function updateConnections (info, shouldRemove){
 
 
 // Code to evaluate text boxes
-// assumes that we are passing in the ID of the codebox object 
-function evalCodeBlock(codeBlockID){
-	
+function evalCodeBlock( codeBlockID,sourceID){
+	return 0;
 	console.log("Evaling code block");
 	
 	var codeBlockObj = app.blockObjects[codeBlockID];
