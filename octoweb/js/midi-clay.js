@@ -47,6 +47,7 @@ function App() {
 	this.removeBlock = function (blockID) {
 
 		console.log("removing block with id: " + blockID );
+		
 		var blockToRemove = obj.blockObjects[blockID];
 
 		blockToRemove.deleteView();
@@ -120,6 +121,19 @@ function BlockObject(viewObj){
 BlockObjectClone = function () {};
 BlockObjectClone.prototype = BlockObject.prototype;
 
+BlockObject.prototype.deleteView = function(){
+	
+	console.log("deleting view!");	
+	g1 = this;
+
+	// Clean up jsplumb connectors
+	jsPlumb.detachAllConnections(this.viewObj.id);
+	jsPlumb.removeAllEndpoints(this.viewObj.id); 
+
+	// Remove the actual node
+	$(this.viewObj).remove();
+}
+
 BlockObject.prototype.removeOutputConnection = function (outputConnectionObj){
 	// console.log("removing output connection");
 	delete this.outConnections[outputConnectionObj.blockID];
@@ -152,12 +166,12 @@ BlockObject.prototype.sendMsg = function(targetBlockID, msg){
 	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
 };
 
-function HwBlock(devName,viewObj){
+function HwBlock(devName,viewObjInput){
 	
 	console.log("Creating new hardware block with name:" + devName);
 
 	var obj = this;
-	BlockObject.call(this,viewObj);
+	BlockObject.call(this,viewObjInput);
 	this.type = "hw";						 // object type	 
 	this.devName = devName; 	             // Assumes midi device name in format "button-5"
 	this.deviceType = devName.split("-")[0]; // Just the type part of the name "button"
@@ -168,7 +182,7 @@ function HwBlock(devName,viewObj){
 	app.addNewHwBlock(this);
 	
 	// Create a default hardware view
-	if(!viewObj){
+	if(!viewObjInput){
 		
    		var x = 50 + 400* Math.random();
 		var y = 100+ 400* Math.random();
@@ -179,13 +193,6 @@ function HwBlock(devName,viewObj){
 		
 		obj.viewObj = drawHardwareBlock(obj.blockID, x , y , obj.deviceIDNum , obj.deviceType , displayVal);
 	} 
-
-	// Remove hardware view
-	this.deleteView =function (){
-				
-		deleteNode(obj.viewObj); // Clean up jsplumb connectors
-		$(obj.viewObj).remove();
-	}
 
 	// Called when the block state has changed - update data and view
 	this.update = function(fromBlockID,msg){
@@ -296,21 +303,21 @@ Buzzer.prototype.onReceiveMessage = function(fromBlockID,msg){
 };
 
 
-function CodeBlock(x,y,viewObj){
+function CodeBlock(x,y,viewObjInput){
 	var obj = this;
-	BlockObject.call(this,viewObj);
+	BlockObject.call(this,viewObjInput);
 	this.type="sw";
 	this.data = "0";
 	this.displayName = "input";      
 
 	app.addNewBlock(this);
 
-	if(!viewObj){
-		this.viewObj = drawCodeBlock(this.blockID,x,y);
-	}
+	if(!viewObjInput){
 
-	this.deleteView =function (){
-				
+		var freeCellELem = drawCodeBlock(this.blockID,x,y);
+		
+		// parent element has unique container id .e.g. block-3 		
+		this.viewObj = freeCellELem.parentElement;  
 	}
 	
 	// Update software block from an incoming midi message , evaling code
@@ -343,7 +350,7 @@ function CodeBlock(x,y,viewObj){
 			if (currName == displayName ){
 				argElems[i].value = newVal;	
 			} 
-			
+
 			// if (fromObj.type == "hw"){
 			// 	var deviceName = fromObj.deviceType.toLowerCase();
 
@@ -794,8 +801,6 @@ function evalCodeBlock(codeBlockID){
 		}
 		codeStr += "return (" + lastLine + ")";
 	}
-
-	g1 = lastAssignment;
 
 	codeStr +="}";
 	console.log("eval code str:"+codeStr);		

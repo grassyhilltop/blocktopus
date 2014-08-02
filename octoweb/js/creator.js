@@ -150,44 +150,37 @@ function getUniqueId(){
 function lostCellFocus(event){
     
     var parentnode = this.parentNode;
-    // console.log("lost focus and text is:"+$(this).text()+" with parent:" +parentnode);
-    
+    console.log("lost focus and text is:"+$(this).text()+" with parent:" +parentnode);
+    g1 = this;
     // If we lose focus on a cell that is emtpy just delete it from the DOM
-    if( $(this).text() =="" && document.hasFocus()){
-        // console.log("Removeing : this is: " + this + " and parentNode:" + parentnode);
+    if( $(this).text().trim() =="" && document.hasFocus()){
+        // console.log("Removing : this is: " + this + " and parentNode:" + parentnode);
         
-        // parentnode.removeChild(this); // remove just the child
+        // get id of lost node
+        var divId = parentnode.id;
+        var blockID;
+        if (divId) blockID = parentnode.id.split("-")[1];
 
-        deleteNode(parentnode.id);
-        // assumes that this is just a div wrapped in a draggable container
-        $(parentnode).remove();  // remove the parent and child  
+        //Get the block
+        if (!blockID) return;
+
+        app.removeBlock(blockID);
     }
     
 }
 
-// Clean up all the node elements
-function deleteNode(id){
-    
-    // Remove jsplub anchors    
-    //http://stackoverflow.com/questions/15147291/jsplumb-delete-a-draggable-element
-    jsPlumb.detachAllConnections(id);
-    jsPlumb.removeAllEndpoints(id);
-
-    g1 =id;
-    var blockObjectID = id.split("-")[1];
-    app.removeBlock(blockObjectID);
-}
 function gotClickInEmptySpace( event){
 
     var x = event.pageX;
     var y = event.pageY;
     // var freeCellElem = drawCodeBlock(x,y);
     var newCodeBlock = new CodeBlock(x,y);
-    var codeBlockView = newCodeBlock.viewObj;
+    // var codeBlockView = newCodeBlock.viewObj; 
+    var codeBlockView = newCodeBlock.viewObj.children[0]; // The free cell inside the view
     
     codeBlockView.onkeyup = function(event){
         
-        // jsPlumb.repaintEverything();// Key up resizes container so need to repaint
+        // Key up resizes container so need to repaint
         jsPlumb.repaint(codeBlockView.parentElement);
     }
 
