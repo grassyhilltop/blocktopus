@@ -5,7 +5,9 @@
  *      Author: Joel  ( modified from Baum's original code )
  */
 #include "main.h"
+//#include "i2cmaster/i2cmaster.h"
 #include "hardware.h"
+#include "midi.h"
 #include "config.h"
 #ifdef INCLUDE_BUTTON_FW
 	#include "button.h"
@@ -26,6 +28,33 @@
 #include "usbdrv/usbdrv.h"
 
 #define BLINK_TIME 			200
+
+// Port for the I2C
+#define I2C_DDR DDRB
+#define I2C_PIN PINB
+#define I2C_PORT PORTB
+
+// Pins to be used in the bit banging
+#define I2C_CLK 3
+#define I2C_DAT 4
+
+#define I2C_DATA_HI()\
+I2C_DDR &= ~ (1 << I2C_DAT);\
+I2C_PORT |= (1 << I2C_DAT);
+#define I2C_DATA_LO()\
+I2C_DDR |= (1 << I2C_DAT);\
+I2C_PORT &= ~ (1 << I2C_DAT);
+
+#define I2C_CLOCK_HI()\
+I2C_DDR &= ~ (1 << I2C_CLK);\
+I2C_PORT |= (1 << I2C_CLK);
+#define I2C_CLOCK_LO()\
+I2C_DDR |= (1 << I2C_CLK);\
+I2C_PORT &= ~ (1 << I2C_CLK);
+
+#define _CL_RED             0
+#define _CL_GREEN           1
+#define _CL_BLUE            2
 
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
@@ -351,6 +380,9 @@ void blink()
 void initOutputPort(){
 
 	DDRB = _BV(OUTPUT_PORT); 	// LED pin = output
+	DDRB |= _BV(DDB4); 	// LED pin = output
+	PORTB |= _BV(DDB3);	
+	PORTB |= _BV(DDB4);	
 }
 
 
@@ -406,23 +438,193 @@ void initUSB()
     usbDeviceConnect();
 }
 
+void busy_wait(){
+	int i;
+	for(i = 0;i<5000;i++){
+		i++;
+	}
+}
+//http://codinglab.blogspot.com/2008/10/i2c-on-avr-using-bit-banging.html
+
+void I2C_WriteBit(unsigned char c)
+{
+    if (c > 0)
+    {
+        I2C_DATA_HI();
+    }
+    else
+    {
+        I2C_DATA_LO();
+    }
+
+    I2C_CLOCK_HI();
+    busy_wait(1);
+
+    I2C_CLOCK_LO();
+    busy_wait(1);
+
+    if (c > 0)
+    {
+        I2C_DATA_LO();
+    }
+
+    busy_wait(1);
+}
+
+unsigned char I2C_ReadBit()
+{
+    I2C_DATA_HI();
+
+    I2C_CLOCK_HI();
+    busy_wait(1);
+
+    unsigned char c = I2C_PIN;
+
+    I2C_CLOCK_LO();
+    busy_wait(1);
+
+    return (c >> I2C_DAT) & 1;
+}
+
+// Inits bitbanging port, must be called before using the functions below
+//
+void I2C_Init()
+{
+    I2C_PORT &= ~ ((1 << I2C_DAT) | (1 << I2C_CLK));
+
+    I2C_CLOCK_HI();
+    I2C_DATA_HI();
+
+    busy_wait(1);
+}
+
+// Send a START Condition
+//
+void I2C_Start()
+{
+    // set both to high at the same time
+    I2C_DDR &= ~ ((1 << I2C_DAT) | (1 << I2C_CLK));
+    busy_wait(1);
+
+    I2C_DATA_LO();
+    busy_wait(1);
+
+    I2C_CLOCK_LO();
+    busy_wait(1);
+}
+
+// Send a STOP Condition
+//
+void I2C_Stop()
+{
+    I2C_CLOCK_HI();
+    busy_wait(1);
+
+    I2C_DATA_HI();
+    busy_wait(1);
+}
+
+// write a byte to the I2C slave device
+//
+unsigned char I2C_Write(unsigned char c)
+{
+	char i;
+    for (i = 0; i < 8; i++)
+    {
+        I2C_WriteBit(c & 128);
+
+        c <<= 1;
+    }
+
+    //return I2C_ReadBit();
+    return 0;
+}
+
+
+// read a byte from the I2C slave device
+//
+unsigned char I2C_Read(unsigned char ack)
+{
+    unsigned char res = 0;
+	char i;
+    for (i = 0; i < 8; i++)
+    {
+        res <<= 1;
+        res |= I2C_ReadBit();
+    }
+
+    if (ack > 0)
+    {
+        I2C_WriteBit(0);
+    }
+    else
+    {
+        I2C_WriteBit(1);
+    }
+
+    busy_wait(1);
+
+    return res;
+}
+
+
+void sendColor(unsigned char red, unsigned char green, unsigned char blue)
+{
+    // Start by sending a byte with the format "1 1 /B7 /B6 /G7 /G6 /R7 /R6"
+    unsigned char prefix = 0b11000000;
+    if ((blue & 0x80) == 0)     prefix|= 0b00100000;
+    if ((blue & 0x40) == 0)     prefix|= 0b00010000; 
+    if ((green & 0x80) == 0)    prefix|= 0b00001000;
+    if ((green & 0x40) == 0)    prefix|= 0b00000100;
+    if ((red & 0x80) == 0)      prefix|= 0b00000010;
+    if ((red & 0x40) == 0)      prefix|= 0b00000001;
+    I2C_Write(prefix);
+        
+    // Now must send the 3 colors
+    I2C_Write(blue);
+    I2C_Write(green);
+    I2C_Write(red);
+}
+
+
+
+void setColorRGB(unsigned char red, unsigned char green, unsigned char blue)
+{
+    // Send data frame prefix (32x "0")
+    I2C_Write(0x00);
+    I2C_Write(0x00);
+    I2C_Write(0x00);
+    I2C_Write(0x00);
+    
+     
+	sendColor(red, green, blue);
+
+    // Terminate data frame (32x "0")
+    I2C_Write(0x00);
+    I2C_Write(0x00);
+    I2C_Write(0x00);
+    I2C_Write(0x00);
+}
+
 int main()
 {
 	int nADCOld = -1;
+	int i = 0;
 	
     initStatusLED();
 	
-	// Setup PB3 as ADC unless this is an output
-	if( module_type != OUTPUT){
-		initAnalogInput();	
-	} 
-	else {
-		initOutputPort();
-	}
-	initUSB();
-
-	// Globally enable interrupts
-	sei();
+//Setup PB3 as ADC unless this is an output
+ 	if( module_type != OUTPUT){
+ 		initAnalogInput();	
+ 	} 
+ 	else {
+ 		initOutputPort();
+ 	}
+ 	initUSB();
+// Globally enable interrupts
+ 	sei();
+ 	
+ 	I2C_Init();
 
 	// Endless loop
 	// joel here is where there is a loop
@@ -430,6 +632,10 @@ int main()
 		
 		wdt_reset();
 		usbPoll();
+		
+		I2C_Start();
+		//setColorRGB(0xff,0x00,0xff);
+		I2C_Stop();
 		
 		if (usbInterruptIsReady()) {
 			// js : bug here need to check old data value
@@ -442,10 +648,13 @@ int main()
 				nADCOld = uADC;
 			}
 			
+ 			//PORTB |= _BV(DDB4);
+ 			//PORTB |= _BV(DDB3);
+			
 #ifdef INCLUDE_OUTPUT_FW
-			if (module_type == OUTPUT) {
-				output_main_loop();
-			}
+// 			if (module_type == OUTPUT) {
+//  				output_main_loop();
+// 			}
 #endif
 			// ------------- SENDING PITCH BEND DATA
 #ifdef INCLUDE_KNOB_FW

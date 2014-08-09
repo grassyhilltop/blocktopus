@@ -11,13 +11,14 @@
 
 DEVICE=attiny85
 F_CPU   = 16500000    # in Hz
-FUSE_L  = 0xC1
-FUSE_H  = 0xDD
-AVRDUDE = avrdude -c stk500v2 -P /dev/ttyUSB0 -p $(DEVICE)
+FUSE_L  = 0xE1
+#0x5D to disable reset
+FUSE_H  = 0x5D
+AVRDUDE = avrdude -c avrispmkII -p $(DEVICE)
 
 CFLAGS  = -Iusbdrv -I. -Ilibs-device -DDEBUG_LEVEL=0
 OBJECTS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o button.o knob.o output.o midi.o
-OBJECTS += hardware.o
+OBJECTS += hardware.o i2cmaster/i2cmaster.o
 #libs-device/osccal.o
 
 COMPILE = avr-gcc -Wall -Os -DF_CPU=$(F_CPU) $(CFLAGS) -mmcu=$(DEVICE)
@@ -119,8 +120,8 @@ program: flash fuse
 fuse:
 	@[ "$(FUSE_H)" != "" -a "$(FUSE_L)" != "" ] || \
 		{ echo "*** Edit Makefile and choose values for FUSE_L and FUSE_H!"; exit 1; }
-	$(AVRDUDE) -U hfuse:w:$(FUSE_H):m -U lfuse:w:$(FUSE_L):m efuse:w:0xFF:m
-
+	$(AVRDUDE) -U hfuse:w:$(FUSE_H):m -U lfuse:w:$(FUSE_L):m -U efuse:w:0xFE:m
+	
 # rule for uploading firmware:
 flash: main.hex
 	$(AVRDUDE) -U flash:w:main.hex:i
