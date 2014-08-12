@@ -17,8 +17,8 @@ FUSE_H  = 0x5D
 AVRDUDE = avrdude -c avrispmkII -p $(DEVICE)
 
 CFLAGS  = -Iusbdrv -I. -Ilibs-device -DDEBUG_LEVEL=0
-OBJECTS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o button.o knob.o output.o midi.o
-OBJECTS += hardware.o i2cmaster/i2cmaster.o
+OBJECTS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o modules/button.o modules/knob.o modules/output.o midi.o
+OBJECTS += hardware.o
 #libs-device/osccal.o
 
 COMPILE = avr-gcc -Wall -Os -DF_CPU=$(F_CPU) $(CFLAGS) -mmcu=$(DEVICE)

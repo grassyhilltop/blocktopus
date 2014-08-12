@@ -10,13 +10,13 @@
 #include "midi.h"
 #include "config.h"
 #ifdef INCLUDE_BUTTON_FW
-	#include "button.h"
+	#include "modules/button.h"
 #endif
 #ifdef INCLUDE_KNOB_FW
-	#include "knob.h"
+	#include "modules/knob.h"
 #endif
 #ifdef INCLUDE_OUTPUT_FW
-	#include "output.h"
+	#include "modules/output.h"
 #endif
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -299,9 +299,11 @@ void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 	// blink();
 
 	// The length of the message should be 4 for a note on 
+#ifdef INCLUDE_OUTPUT_FW
 	if (module_type == OUTPUT){
 		output_usb_input_handler(midiMsg,len);
-	}	
+	}
+#endif
 	
 }
 
@@ -609,7 +611,7 @@ void setColorRGB(unsigned char red, unsigned char green, unsigned char blue)
 int main()
 {
 	int nADCOld = -1;
-	int i = 0;
+	//int i = 0;
 	
     initStatusLED();
 	
