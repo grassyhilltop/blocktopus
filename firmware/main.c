@@ -6,8 +6,9 @@
  */
 #include "main.h"
 //#include "i2cmaster/i2cmaster.h"
-#include "hardware.h"
-#include "midi.h"
+#include "lib/hardware.h"
+#include "lib/midi.h"
+#include "lib/i2c_bb.h"
 #include "config.h"
 #ifdef INCLUDE_BUTTON_FW
 	#include "modules/button.h"
@@ -29,32 +30,33 @@
 
 #define BLINK_TIME 			200
 
-// Port for the I2C
-#define I2C_DDR DDRB
-#define I2C_PIN PINB
-#define I2C_PORT PORTB
-
-// Pins to be used in the bit banging
-#define I2C_CLK 3
-#define I2C_DAT 4
-
-#define I2C_DATA_HI()\
-I2C_DDR &= ~ (1 << I2C_DAT);\
-I2C_PORT |= (1 << I2C_DAT);
-#define I2C_DATA_LO()\
-I2C_DDR |= (1 << I2C_DAT);\
-I2C_PORT &= ~ (1 << I2C_DAT);
-
-#define I2C_CLOCK_HI()\
-I2C_DDR &= ~ (1 << I2C_CLK);\
-I2C_PORT |= (1 << I2C_CLK);
-#define I2C_CLOCK_LO()\
-I2C_DDR |= (1 << I2C_CLK);\
-I2C_PORT &= ~ (1 << I2C_CLK);
-
 #define _CL_RED             0
 #define _CL_GREEN           1
 #define _CL_BLUE            2
+
+#define MMA7660_ADDR  0x4c
+
+#define MMA7660_X     0x00
+#define MMA7660_Y     0x01
+#define MMA7660_Z     0x02
+#define MMA7660_TILT  0x03
+#define MMA7660_SRST  0x04
+#define MMA7660_SPCNT 0x05
+#define MMA7660_INTSU 0x06
+#define MMA7660_MODE  0x07
+	#define MMA7660_STAND_BY 0x00
+	#define MMA7660_ACTIVE	 0x01	
+#define MMA7660_SR    0x08		//sample rate register
+	#define AUTO_SLEEP_120	0X00//120 sample per second
+	#define AUTO_SLEEP_64	0X01
+	#define AUTO_SLEEP_32	0X02
+	#define AUTO_SLEEP_16	0X03
+	#define AUTO_SLEEP_8	0X04
+	#define AUTO_SLEEP_4	0X05
+	#define AUTO_SLEEP_2	0X06
+	#define AUTO_SLEEP_1	0X07
+#define MMA7660_PDET  0x09
+#define MMA7660_PD    0x0A
 
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
@@ -440,134 +442,6 @@ void initUSB()
     usbDeviceConnect();
 }
 
-void busy_wait(){
-	int i;
-	for(i = 0;i<5000;i++){
-		i++;
-	}
-}
-//http://codinglab.blogspot.com/2008/10/i2c-on-avr-using-bit-banging.html
-
-void I2C_WriteBit(unsigned char c)
-{
-    if (c > 0)
-    {
-        I2C_DATA_HI();
-    }
-    else
-    {
-        I2C_DATA_LO();
-    }
-
-    I2C_CLOCK_HI();
-    busy_wait(1);
-
-    I2C_CLOCK_LO();
-    busy_wait(1);
-
-    if (c > 0)
-    {
-        I2C_DATA_LO();
-    }
-
-    busy_wait(1);
-}
-
-unsigned char I2C_ReadBit()
-{
-    I2C_DATA_HI();
-
-    I2C_CLOCK_HI();
-    busy_wait(1);
-
-    unsigned char c = I2C_PIN;
-
-    I2C_CLOCK_LO();
-    busy_wait(1);
-
-    return (c >> I2C_DAT) & 1;
-}
-
-// Inits bitbanging port, must be called before using the functions below
-//
-void I2C_Init()
-{
-    I2C_PORT &= ~ ((1 << I2C_DAT) | (1 << I2C_CLK));
-
-    I2C_CLOCK_HI();
-    I2C_DATA_HI();
-
-    busy_wait(1);
-}
-
-// Send a START Condition
-//
-void I2C_Start()
-{
-    // set both to high at the same time
-    I2C_DDR &= ~ ((1 << I2C_DAT) | (1 << I2C_CLK));
-    busy_wait(1);
-
-    I2C_DATA_LO();
-    busy_wait(1);
-
-    I2C_CLOCK_LO();
-    busy_wait(1);
-}
-
-// Send a STOP Condition
-//
-void I2C_Stop()
-{
-    I2C_CLOCK_HI();
-    busy_wait(1);
-
-    I2C_DATA_HI();
-    busy_wait(1);
-}
-
-// write a byte to the I2C slave device
-//
-unsigned char I2C_Write(unsigned char c)
-{
-	char i;
-    for (i = 0; i < 8; i++)
-    {
-        I2C_WriteBit(c & 128);
-
-        c <<= 1;
-    }
-
-    //return I2C_ReadBit();
-    return 0;
-}
-
-
-// read a byte from the I2C slave device
-//
-unsigned char I2C_Read(unsigned char ack)
-{
-    unsigned char res = 0;
-	char i;
-    for (i = 0; i < 8; i++)
-    {
-        res <<= 1;
-        res |= I2C_ReadBit();
-    }
-
-    if (ack > 0)
-    {
-        I2C_WriteBit(0);
-    }
-    else
-    {
-        I2C_WriteBit(1);
-    }
-
-    busy_wait(1);
-
-    return res;
-}
 
 
 void sendColor(unsigned char red, unsigned char green, unsigned char blue)
@@ -608,10 +482,160 @@ void setColorRGB(unsigned char red, unsigned char green, unsigned char blue)
     I2C_Write(0x00);
 }
 
+void write(unsigned char _register, unsigned char _data)
+{
+//    Wire.begin();
+	I2C_Start();
+    //Wire.beginTransmission(MMA7660_ADDR);
+    I2C_Write(MMA7660_ADDR | 0x2);
+    //Wire.write(_register);
+    I2C_Write(_register);
+    //Wire.write(_data);
+    I2C_Write(_data);
+    //Wire.endTransmission();
+    I2C_Stop();
+}
+
+unsigned char read(unsigned char _register)
+{
+    uint8_t data_read;
+//     Wire.begin();
+	I2C_Start();
+//    Wire.beginTransmission(MMA7660_ADDR);
+    I2C_Write(MMA7660_ADDR);
+//     Wire.write(_register);
+    I2C_Write(_register);
+//    Wire.endTransmission();
+    I2C_Stop();
+//     Wire.beginTransmission(MMA7660_ADDR);
+	I2C_Start();
+//     Wire.requestFrom(MMA7660_ADDR,1);
+    data_read = I2C_Read(MMA7660_ADDR);
+    data_read = I2C_Read(MMA7660_ADDR);
+    data_read = I2C_Read(MMA7660_ADDR);
+//     while(Wire.available())
+//     {
+//         data_read = Wire.read();
+//     }
+//     Wire.endTransmission();
+    I2C_Stop();
+    return data_read;
+}
+
+void setMode(uint8_t mode)
+{
+    write(MMA7660_MODE,mode);
+}
+
+void setSampleRate(uint8_t rate)
+{
+    write(MMA7660_SR,rate);
+}
+
+void init()
+{
+    setMode(MMA7660_STAND_BY);
+    setSampleRate(AUTO_SLEEP_120);
+    setMode(MMA7660_ACTIVE);
+}
+
+unsigned char getXYZ_new(int8_t *x,int8_t *y,int8_t *z)
+{
+	unsigned char val[3];
+    int count = 0;
+    val[0] = val[1] = val[2] = 64;
+//     val[0] = read(MMA7660_ADDR);
+// 	val[1] = read(MMA7660_ADDR);
+	val[2] = read(MMA7660_ADDR);
+
+     *x = ((char)(val[0]<<2))/4;
+     *y = ((char)(val[1]<<2))/4;
+     *z = ((char)(val[2]<<2))/4;
+     
+	return 1;
+}
+
+/*Function: Get the contents of the registers in the MMA7660*/
+/*          so as to calculate the acceleration.            */
+// unsigned char getXYZ(int8_t *x,int8_t *y,int8_t *z)
+// {
+//     unsigned char val[3];
+//     int count = 0;
+//     val[0] = val[1] = val[2] = 64;
+//     
+//     long timer1 = millis();
+//     long timer2 = 0;
+//     
+//     while(Wire.available() > 0)
+//     {
+//         timer2 = millis();
+//         if((timer2-timer1)>500)
+//         {
+//             return 0;
+//         }
+//     }
+// 
+//     //read();
+//     //requestFrom(MMA7660_ADDR,3);
+// 
+//     timer1 = millis();
+//     while(Wire.available())
+//     {
+//     
+//         if(count < 3)
+//         {
+// 
+//             timer1 = millis();
+//             while ( val[count] > 63 )  // reload the damn thing it is bad
+//             {
+//                 val[count] = Wire.read();
+// 
+//                 timer2 = millis();
+//                 if((timer2-timer1)>50)
+//                 {
+//                     return 0;
+//                 }
+// 
+//             }
+//         }
+// 
+//         count++;
+//         
+//         timer2 = millis();
+//         
+//         if((timer2-timer1)>500)
+//         {
+//             return 0;
+//         }
+// 
+//     }
+//     
+//     *x = ((char)(val[0]<<2))/4;
+//     *y = ((char)(val[1]<<2))/4;
+//     *z = ((char)(val[2]<<2))/4;
+//     
+//     return 1;
+// }
+
+
+unsigned char getAcceleration(float *ax,float *ay,float *az)
+{
+    int8_t x,y,z;
+    
+    if(!getXYZ_new(&x, &y, &z))return 0;
+    *ax = x/21.00;
+    *ay = y/21.00;
+    *az = z/21.00;
+    
+    return 1;
+    
+}
+
 int main()
 {
 	int nADCOld = -1;
 	//int i = 0;
+	int8_t x=0,y=0,z=0;
 	
     initStatusLED();
 	
@@ -621,23 +645,29 @@ int main()
  	} 
  	else {
  		initOutputPort();
- 	}
+  	}
  	initUSB();
 // Globally enable interrupts
  	sei();
  	
  	I2C_Init();
-
+ 	init();
 	// Endless loop
 	// joel here is where there is a loop
 	for (;;) {
-		
+		x=0,y=0,z=0;
 		wdt_reset();
 		usbPoll();
 		
-		I2C_Start();
+		//I2C_Start();
 		//setColorRGB(0xff,0x00,0xff);
-		I2C_Stop();
+		//I2C_Stop();
+		
+		getXYZ_new(&x, &y, &z);
+// 		sendPitchBend((uchar)x);
+// 		sendPitchBend((uchar)y);
+//		if( x > 0 )
+		sendPitchBend((uchar)y >> 1);
 		
 		if (usbInterruptIsReady()) {
 			// js : bug here need to check old data value
