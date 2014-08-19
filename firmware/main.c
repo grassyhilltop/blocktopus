@@ -19,6 +19,9 @@
 #ifdef INCLUDE_OUTPUT_FW
 	#include "modules/output.h"
 #endif
+#ifdef INCLUDE_RGB_LED_FW
+	#include "modules/output.h"
+#endif
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
@@ -29,10 +32,6 @@
 #include "usbdrv/usbdrv.h"
 
 #define BLINK_TIME 			200
-
-#define _CL_RED             0
-#define _CL_GREEN           1
-#define _CL_BLUE            2
 
 #define MMA7660_ADDR  0x4c
 
@@ -440,46 +439,6 @@ void initUSB()
         _delay_ms(1);
     }
     usbDeviceConnect();
-}
-
-
-
-void sendColor(unsigned char red, unsigned char green, unsigned char blue)
-{
-    // Start by sending a byte with the format "1 1 /B7 /B6 /G7 /G6 /R7 /R6"
-    unsigned char prefix = 0b11000000;
-    if ((blue & 0x80) == 0)     prefix|= 0b00100000;
-    if ((blue & 0x40) == 0)     prefix|= 0b00010000; 
-    if ((green & 0x80) == 0)    prefix|= 0b00001000;
-    if ((green & 0x40) == 0)    prefix|= 0b00000100;
-    if ((red & 0x80) == 0)      prefix|= 0b00000010;
-    if ((red & 0x40) == 0)      prefix|= 0b00000001;
-    I2C_Write(prefix);
-        
-    // Now must send the 3 colors
-    I2C_Write(blue);
-    I2C_Write(green);
-    I2C_Write(red);
-}
-
-
-
-void setColorRGB(unsigned char red, unsigned char green, unsigned char blue)
-{
-    // Send data frame prefix (32x "0")
-    I2C_Write(0x00);
-    I2C_Write(0x00);
-    I2C_Write(0x00);
-    I2C_Write(0x00);
-    
-     
-	sendColor(red, green, blue);
-
-    // Terminate data frame (32x "0")
-    I2C_Write(0x00);
-    I2C_Write(0x00);
-    I2C_Write(0x00);
-    I2C_Write(0x00);
 }
 
 void write(unsigned char _register, unsigned char _data)
