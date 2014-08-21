@@ -19,7 +19,7 @@ AVRDUDE = avrdude -c avrispmkII -p $(DEVICE)
 CFLAGS  = -Imodules -Ilib -Iusbdrv -I. -Ilibs-device -DDEBUG_LEVEL=0
 OBJECTS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o 
 OBJECTS += lib/hardware.o lib/midi.o lib/i2c_bb.o 
-OBJECTS += modules/rgb_led.o modules/button.o modules/knob.o modules/output.o
+OBJECTS += modules/rgb_led.o modules/button.o modules/knob.o modules/output.o modules/compass.o
 #libs-device/osccal.o
 
 COMPILE = avr-gcc -Wall -Os -DF_CPU=$(F_CPU) $(CFLAGS) -mmcu=$(DEVICE)
@@ -129,7 +129,7 @@ flash: main.hex
 
 # rule for deleting dependent files (those which can be built by Make):
 clean:
-	rm -f main.hex main.lst main.obj main.cof main.list main.map main.eep.hex main.elf *.o usbdrv/*.o main.s usbdrv/oddebug.s usbdrv/usbdrv.s  libs-device/osccal.o
+	rm -f main.hex main.lst main.obj main.cof main.list main.map main.eep.hex main.elf *.o usbdrv/*.o main.s usbdrv/oddebug.s usbdrv/usbdrv.s  libs-device/osccal.o lib/*.o modules/*.o
 
 # Generic rule for compiling C files:
 .c.o:

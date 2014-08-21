@@ -5,10 +5,9 @@
  *      Author: Joel  ( modified from Baum's original code )
  */
 #include "main.h"
-//#include "i2cmaster/i2cmaster.h"
-#include "lib/hardware.h"
-#include "lib/midi.h"
-#include "lib/i2c_bb.h"
+#include "hardware.h"
+#include "midi.h"
+#include "i2c_bb.h"
 #include "config.h"
 #ifdef INCLUDE_BUTTON_FW
 	#include "button.h"
@@ -21,6 +20,9 @@
 #endif
 #ifdef INCLUDE_RGB_LED_FW
 	#include "rgb_led.h"
+#endif
+#ifdef INCLUDE_COMPASS_FW
+	#include "compass.h"
 #endif
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -58,11 +60,9 @@
 #define MMA7660_PDET  0x09
 #define MMA7660_PD    0x0A
 
-int HMC6352SlaveAddress = 0x42;
-int HMC6352ReadAddress = 0x41; //"A" in hex, A command is: 
-
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
+
 volatile unsigned int module_type = MODULE_TYPE;
 
 // This descriptor is based on http://www.usb.org/developers/devclass_docs/midi10.pdf
@@ -479,7 +479,7 @@ unsigned char read(unsigned char _register)
 //    Wire.endTransmission();
 	
 //     Wire.beginTransmission(MMA7660_ADDR);
-	I2C_R_Start();
+	I2C_Start();
       ret |= I2C_Write(MMA7660_ADDR + 0x1);
 //    I2C_Write(MMA7660_ADDR | 0x1);
 //     Wire.requestFrom(MMA7660_ADDR,1);
@@ -518,9 +518,9 @@ void init()
 unsigned char getX(int8_t *x)
 {
 	unsigned char val[3];
-    static unsigned char count = 0;
+//     static unsigned char count = 0;
     val[0] = val[1] = val[2] = 64;
-     count++;
+//      count++;
 //    write(0x00,count);
 //    _delay_ms(25);
   	val[0] = read(0x0);
@@ -538,7 +538,7 @@ unsigned char getX(int8_t *x)
 unsigned char getY(int8_t *y)
 {
 	unsigned char val[3];
-    static unsigned char count = 0;
+//     static unsigned char count = 0;
     val[0] = val[1] = val[2] = 64;
 //      count++;
 //      write(0x00,count);
@@ -559,7 +559,7 @@ unsigned char getY(int8_t *y)
 unsigned char getZ(int8_t *z)
 {
 	unsigned char val[3];
-    static unsigned char count = 0;
+//     static unsigned char count = 0;
     val[0] = val[1] = val[2] = 64;
 //      count++;
 //      write(0x00,count);
@@ -579,7 +579,7 @@ unsigned char getZ(int8_t *z)
 unsigned char getXYZ_new(int8_t *x,int8_t *y,int8_t *z)
 {
 	unsigned char val[3];
-    int count = 0;
+//     int count = 0;
     val[0] = val[1] = val[2] = 64;
     
  	val[0] = read(0x0);
@@ -672,24 +672,12 @@ unsigned char getAcceleration(float *ax,float *ay,float *az)
     return 1;
 }
 
-void setup(){
-  // "The Wire library uses 7 bit addresses throughout. 
-  //If you have a datasheet or sample code that uses 8 bit address, 
-  //you'll want to drop the low bit (i.e. shift the value one bit to the right), 
-  //yielding an address between 0 and 127."
-  //HMC6352SlaveAddress = HMC6352SlaveAddress >> 1; // I know 0x42 is less than 127, but this is still required
-
-//   Wire.begin();
-	I2C_Init();
-}
-
 int main()
 {
-	static unsigned int delay_cnt = 0;
 	int nADCOld = -1;
-	unsigned char i = 0;
-	int8_t x=0, y=0, z=0;
-	float ax=0,ay=0,az=0;
+// 	unsigned char i = 0;
+// 	int8_t x=0, y=0, z=0;
+// 	float ax=0,ay=0,az=0;
 	
     initStatusLED();
 	
@@ -704,47 +692,15 @@ int main()
 // Globally enable interrupts
  	sei();
  	I2C_Init();
-//   	init();
-	setup();
+//   init();
+#ifdef INCLUDE_COMPASS_FW
+	setup_compass();
+#endif
 	// Endless loop
 	// joel here is where there is a loop
 	for (;;) {
 		wdt_reset();
 		usbPoll();
-		
-  if(delay_cnt % 50 == 0){
-		
-		 //"Get Data. Compensate and Calculate New Heading"
-  //Wire.beginTransmission(HMC6352SlaveAddress);
-  //Wire.send(HMC6352ReadAddress);              // The "Get Data" command
-  //Wire.endTransmission();
-  I2C_Start();
-  i = I2C_Write(HMC6352SlaveAddress);
-  i |= I2C_Write(HMC6352ReadAddress);
-  //time delays required by HMC6352 upon receipt of the command
-  //Get Data. Compensate and Calculate New Heading : 6ms
-  _delay_ms(20);
-
-//   Wire.requestFrom(HMC6352SlaveAddress, 2); //get the two data bytes, MSB and LSB
-
-  //"The heading output data will be the value in tenths of degrees
-  //from zero to 3599 and provided in binary format over the two bytes."
-//   byte MSB = Wire.receive();
-//   byte LSB = Wire.receive();
-  I2C_Start();
-  i = I2C_Write(HMC6352SlaveAddress | 0x1);
-  unsigned char MSB = I2C_Read(1);
-  unsigned char LSB = I2C_Read(0);
-  I2C_Stop();
-
-  float headingSum = (MSB << 8) + LSB; //(MSB / LSB sum)
-  float headingInt = headingSum / 10; 
-  
-  sendPitchBend(((uchar)headingInt >> 1) & 0x7F);
-
-   }
-   _delay_ms(20);
-	delay_cnt++;
 		
 // 		if(delay_cnt % 50 == 0){
 // 			init();
@@ -791,6 +747,13 @@ int main()
 #endif
 				
 		} //if usbInterruptIsReady
+		
+#ifdef INCLUDE_COMPASS_FW
+  			if (module_type == COMPASS) {
+   				rgb_led_main_loop();
+  			}
+#endif
+
 	} // for (;;)
 
 	return 0;

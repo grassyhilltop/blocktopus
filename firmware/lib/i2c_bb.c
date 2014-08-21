@@ -79,20 +79,6 @@ void I2C_Start()
     _delay_us(3);
 }
 
-void I2C_R_Start()
-{
-    // set both to high at the same time
-    I2C_DATA_HI();
-    _delay_us(3);
-    I2C_CLOCK_HI();
-
-    I2C_DATA_LO();
-    _delay_us(3);
-
-    I2C_CLOCK_LO();
-    _delay_us(3);
-}
-
 // Send a STOP Condition
 //
 void I2C_Stop()
