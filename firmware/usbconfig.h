@@ -245,6 +245,8 @@ extern void hadUsbReset(void);
 	#define  USB_CFG_DEVICE_ID       0xe4, 0x03 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==OUTPUT
 	#define  USB_CFG_DEVICE_ID       0xe4, 0x07 /* = 0x05dc = 1500 */
+#elif MODULE_TYPE==RGB_LED
+	#define  USB_CFG_DEVICE_ID       0xe4, 0x01 /* = 0x05dc = 1500 */
 #endif
 /* This is the ID of the product, low byte first. It is interpreted in the
  * scope of the vendor ID. If you have registered your own VID with usb.org
@@ -296,6 +298,10 @@ extern void hadUsbReset(void);
 // Buzzer
 #elif MODULE_TYPE==OUTPUT
  #	define USB_CFG_DEVICE_NAME     'B','u','z','z','e','r','-','7'
+ #	define USB_CFG_DEVICE_NAME_LEN 8
+ 
+ #elif MODULE_TYPE==RGB_LED
+ #	define USB_CFG_DEVICE_NAME     'R','G','B','_','L','E','D','-','1'
  #	define USB_CFG_DEVICE_NAME_LEN 8
 
 // Tilt

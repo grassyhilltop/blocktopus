@@ -4,10 +4,12 @@
 #define KNOB   1
 #define BUTTON 2
 #define OUTPUT 3
+#define RGB_LED 4
 
 //Define the initial type of the module
 //#define MODULE_TYPE BUTTON
-#define MODULE_TYPE KNOB
+//#define MODULE_TYPE KNOB
+#define MODULE_TYPE RGB_LED
 //#define MODULE_TYPE OUTPUT
 
 // Define firmware you want to include in the binary

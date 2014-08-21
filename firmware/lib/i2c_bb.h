@@ -24,6 +24,7 @@ I2C_PORT |= (1 << I2C_CLK);
 I2C_DDR |= (1 << I2C_CLK);\
 I2C_PORT &= ~ (1 << I2C_CLK);
 
+void busy_wait();
 void I2C_Init();
 void I2C_Start();
 void I2C_Stop();

@@ -1,10 +1,11 @@
 #include "i2c_bb.h"
+#include <util/delay.h>
 
 //http://codinglab.blogspot.com/2008/10/i2c-on-avr-using-bit-banging.html
 void busy_wait(){
-	int i;
-	for(i = 0;i<5000;i++){
-		i++;
+	volatile int i;
+	for(i = 0;i<1;i++){
+		
 	}
 }
 
@@ -20,17 +21,18 @@ void I2C_WriteBit(unsigned char c)
     }
 
     I2C_CLOCK_HI();
-    busy_wait(1);
+    while ((I2C_PIN & (1 << I2C_CLK)) == 0);
+    _delay_us(3);
 
     I2C_CLOCK_LO();
-    busy_wait(1);
+    _delay_us(3);
 
     if (c > 0)
     {
         I2C_DATA_LO();
     }
 
-    busy_wait(1);
+    _delay_us(3);
 }
 
 unsigned char I2C_ReadBit()
@@ -38,12 +40,13 @@ unsigned char I2C_ReadBit()
     I2C_DATA_HI();
 
     I2C_CLOCK_HI();
-    busy_wait(1);
+    while ((I2C_PIN & (1 << I2C_CLK)) == 0);
+    _delay_us(3);
 
     unsigned char c = I2C_PIN;
 
     I2C_CLOCK_LO();
-    busy_wait(1);
+    _delay_us(3);
 
     return (c >> I2C_DAT) & 1;
 }
@@ -55,9 +58,10 @@ void I2C_Init()
     I2C_PORT &= ~ ((1 << I2C_DAT) | (1 << I2C_CLK));
 
     I2C_CLOCK_HI();
+    _delay_us(3);
     I2C_DATA_HI();
 
-    busy_wait(1);
+    _delay_us(3);
 }
 
 // Send a START Condition
@@ -66,13 +70,27 @@ void I2C_Start()
 {
     // set both to high at the same time
     I2C_DDR &= ~ ((1 << I2C_DAT) | (1 << I2C_CLK));
-    busy_wait(1);
+    _delay_us(3);
 
     I2C_DATA_LO();
-    busy_wait(1);
+    _delay_us(3);
 
     I2C_CLOCK_LO();
-    busy_wait(1);
+    _delay_us(3);
+}
+
+void I2C_R_Start()
+{
+    // set both to high at the same time
+    I2C_DATA_HI();
+    _delay_us(3);
+    I2C_CLOCK_HI();
+
+    I2C_DATA_LO();
+    _delay_us(3);
+
+    I2C_CLOCK_LO();
+    _delay_us(3);
 }
 
 // Send a STOP Condition
@@ -80,10 +98,10 @@ void I2C_Start()
 void I2C_Stop()
 {
     I2C_CLOCK_HI();
-    busy_wait(1);
+    _delay_us(3);
 
     I2C_DATA_HI();
-    busy_wait(1);
+    _delay_us(3);
 }
 
 // write a byte to the I2C slave device
@@ -98,8 +116,8 @@ unsigned char I2C_Write(unsigned char c)
         c <<= 1;
     }
 
-    //return I2C_ReadBit();
-    return 0;
+    return I2C_ReadBit();
+    //return 0;
 }
 
 
@@ -124,7 +142,7 @@ unsigned char I2C_Read(unsigned char ack)
         I2C_WriteBit(1);
     }
 
-    busy_wait(1);
+    _delay_us(3);
 
     return res;
 }

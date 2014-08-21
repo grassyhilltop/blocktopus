@@ -11,16 +11,16 @@
 #include "lib/i2c_bb.h"
 #include "config.h"
 #ifdef INCLUDE_BUTTON_FW
-	#include "modules/button.h"
+	#include "button.h"
 #endif
 #ifdef INCLUDE_KNOB_FW
-	#include "modules/knob.h"
+	#include "knob.h"
 #endif
 #ifdef INCLUDE_OUTPUT_FW
-	#include "modules/output.h"
+	#include "output.h"
 #endif
 #ifdef INCLUDE_RGB_LED_FW
-	#include "modules/output.h"
+	#include "rgb_led.h"
 #endif
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -44,7 +44,8 @@
 #define MMA7660_INTSU 0x06
 #define MMA7660_MODE  0x07
 	#define MMA7660_STAND_BY 0x00
-	#define MMA7660_ACTIVE	 0x01	
+	#define MMA7660_ACTIVE	 0x01
+	#define MMA7660_TEST	 0x04
 #define MMA7660_SR    0x08		//sample rate register
 	#define AUTO_SLEEP_120	0X00//120 sample per second
 	#define AUTO_SLEEP_64	0X01
@@ -56,6 +57,9 @@
 	#define AUTO_SLEEP_1	0X07
 #define MMA7660_PDET  0x09
 #define MMA7660_PD    0x0A
+
+int HMC6352SlaveAddress = 0x42;
+int HMC6352ReadAddress = 0x41; //"A" in hex, A command is: 
 
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
@@ -305,7 +309,6 @@ void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 		output_usb_input_handler(midiMsg,len);
 	}
 #endif
-	
 }
 
 /* ------------------------------------------------------------------------- */
@@ -381,7 +384,6 @@ void blink()
 
 
 void initOutputPort(){
-
 	DDRB = _BV(OUTPUT_PORT); 	// LED pin = output
 	DDRB |= _BV(DDB4); 	// LED pin = output
 	PORTB |= _BV(DDB3);	
@@ -443,41 +445,55 @@ void initUSB()
 
 void write(unsigned char _register, unsigned char _data)
 {
+	unsigned char ret = 1;
 //    Wire.begin();
 	I2C_Start();
     //Wire.beginTransmission(MMA7660_ADDR);
-    I2C_Write(MMA7660_ADDR | 0x2);
+    ret = I2C_Write(MMA7660_ADDR);
     //Wire.write(_register);
-    I2C_Write(_register);
+    ret |= I2C_Write(_register);
     //Wire.write(_data);
-    I2C_Write(_data);
+    ret |= I2C_Write(_data);
     //Wire.endTransmission();
     I2C_Stop();
+    
+     if(ret)
+     	sendPitchBend((uchar)0x03 >> 1);
 }
 
 unsigned char read(unsigned char _register)
 {
-    uint8_t data_read;
-//     Wire.begin();
-	I2C_Start();
+	unsigned char ret = 0;
+	
+    uint8_t data_read = 0x00;
+//  Wire.begin();
+ 	I2C_Start();
 //    Wire.beginTransmission(MMA7660_ADDR);
-    I2C_Write(MMA7660_ADDR);
+
+    ret = I2C_Write(MMA7660_ADDR);
+// 	  I2C_Write(MMA7660_ADDR);
+
 //     Wire.write(_register);
-    I2C_Write(_register);
+      ret |= I2C_Write(_register);
+//    I2C_Write(_register);
 //    Wire.endTransmission();
-    I2C_Stop();
+	
 //     Wire.beginTransmission(MMA7660_ADDR);
-	I2C_Start();
+	I2C_R_Start();
+      ret |= I2C_Write(MMA7660_ADDR + 0x1);
+//    I2C_Write(MMA7660_ADDR | 0x1);
 //     Wire.requestFrom(MMA7660_ADDR,1);
-    data_read = I2C_Read(MMA7660_ADDR);
-    data_read = I2C_Read(MMA7660_ADDR);
-    data_read = I2C_Read(MMA7660_ADDR);
+    data_read = I2C_Read(0x0);
 //     while(Wire.available())
 //     {
 //         data_read = Wire.read();
 //     }
 //     Wire.endTransmission();
-    I2C_Stop();
+     I2C_Stop();
+     
+    if(ret)
+    	sendPitchBend((uchar)0x0a >> 1);
+    	
     return data_read;
 }
 
@@ -493,23 +509,90 @@ void setSampleRate(uint8_t rate)
 
 void init()
 {
-    setMode(MMA7660_STAND_BY);
-    setSampleRate(AUTO_SLEEP_120);
-    setMode(MMA7660_ACTIVE);
+     setMode(MMA7660_STAND_BY);
+     setSampleRate(AUTO_SLEEP_32);
+     setMode(MMA7660_ACTIVE);
+//   	setMode(MMA7660_TEST);
 }
 
+unsigned char getX(int8_t *x)
+{
+	unsigned char val[3];
+    static unsigned char count = 0;
+    val[0] = val[1] = val[2] = 64;
+     count++;
+//    write(0x00,count);
+//    _delay_ms(25);
+  	val[0] = read(0x0);
+//   	while ( val[0] > 63 ){
+//   		val[0] = read(0x0);
+//   	}
+
+       *x = ((char)(val[0]<<2))/4;
+//       *y = ((char)(val[1]<<2))/4;
+//       *z = ((char)(val[2]<<2))/4;
+     
+	return val[0];
+}
+
+unsigned char getY(int8_t *y)
+{
+	unsigned char val[3];
+    static unsigned char count = 0;
+    val[0] = val[1] = val[2] = 64;
+//      count++;
+//      write(0x00,count);
+
+  	val[0] = read(0x1);
+//  	while ( val[0] > 63 ){
+//  		val[0] = read(0x0);
+//  	}
+
+
+//        *x = ((char)(val[0]<<2))/4;
+       *y = ((char)(val[1]<<2))/4;
+//       *z = ((char)(val[2]<<2))/4;
+     
+	return 1;
+}
+
+unsigned char getZ(int8_t *z)
+{
+	unsigned char val[3];
+    static unsigned char count = 0;
+    val[0] = val[1] = val[2] = 64;
+//      count++;
+//      write(0x00,count);
+
+  	val[0] = read(0x2);
+//  	while ( val[0] > 63 ){
+//  		val[0] = read(0x0);
+//  	}
+
+
+//       *x = ((char)(val[0]<<2))/4;
+//       *y = ((char)(val[1]<<2))/4;
+       *z = ((char)(val[2]<<2))/4;
+     
+	return 1;
+}
 unsigned char getXYZ_new(int8_t *x,int8_t *y,int8_t *z)
 {
 	unsigned char val[3];
     int count = 0;
     val[0] = val[1] = val[2] = 64;
-//     val[0] = read(MMA7660_ADDR);
-// 	val[1] = read(MMA7660_ADDR);
-	val[2] = read(MMA7660_ADDR);
+    
+ 	val[0] = read(0x0);
+ 	val[1] = read(0x01);
+	val[2] = read(0x02);
 
-     *x = ((char)(val[0]<<2))/4;
-     *y = ((char)(val[1]<<2))/4;
-     *z = ((char)(val[2]<<2))/4;
+	*x = val[0];
+	*y = val[1];
+	*z = val[2];
+
+//       *x = ((char)(val[0]<<2))/4;
+//       *y = ((char)(val[1]<<2))/4;
+//       *z = ((char)(val[2]<<2))/4;
      
 	return 1;
 }
@@ -587,61 +670,107 @@ unsigned char getAcceleration(float *ax,float *ay,float *az)
     *az = z/21.00;
     
     return 1;
-    
+}
+
+void setup(){
+  // "The Wire library uses 7 bit addresses throughout. 
+  //If you have a datasheet or sample code that uses 8 bit address, 
+  //you'll want to drop the low bit (i.e. shift the value one bit to the right), 
+  //yielding an address between 0 and 127."
+  //HMC6352SlaveAddress = HMC6352SlaveAddress >> 1; // I know 0x42 is less than 127, but this is still required
+
+//   Wire.begin();
+	I2C_Init();
 }
 
 int main()
 {
+	static unsigned int delay_cnt = 0;
 	int nADCOld = -1;
-	//int i = 0;
-	int8_t x=0,y=0,z=0;
+	unsigned char i = 0;
+	int8_t x=0, y=0, z=0;
+	float ax=0,ay=0,az=0;
 	
     initStatusLED();
 	
 //Setup PB3 as ADC unless this is an output
- 	if( module_type != OUTPUT){
- 		initAnalogInput();	
- 	} 
- 	else {
- 		initOutputPort();
-  	}
- 	initUSB();
+//  	if( module_type != OUTPUT){
+//  		initAnalogInput();	
+//  	} 
+//  	else {
+  		initOutputPort();
+//   	}
+  	initUSB();
 // Globally enable interrupts
  	sei();
- 	
  	I2C_Init();
- 	init();
+//   	init();
+	setup();
 	// Endless loop
 	// joel here is where there is a loop
 	for (;;) {
-		x=0,y=0,z=0;
 		wdt_reset();
 		usbPoll();
 		
-		//I2C_Start();
-		//setColorRGB(0xff,0x00,0xff);
-		//I2C_Stop();
+  if(delay_cnt % 50 == 0){
 		
-		getXYZ_new(&x, &y, &z);
-// 		sendPitchBend((uchar)x);
-// 		sendPitchBend((uchar)y);
-//		if( x > 0 )
-		sendPitchBend((uchar)y >> 1);
+		 //"Get Data. Compensate and Calculate New Heading"
+  //Wire.beginTransmission(HMC6352SlaveAddress);
+  //Wire.send(HMC6352ReadAddress);              // The "Get Data" command
+  //Wire.endTransmission();
+  I2C_Start();
+  i = I2C_Write(HMC6352SlaveAddress);
+  i |= I2C_Write(HMC6352ReadAddress);
+  //time delays required by HMC6352 upon receipt of the command
+  //Get Data. Compensate and Calculate New Heading : 6ms
+  _delay_ms(20);
+
+//   Wire.requestFrom(HMC6352SlaveAddress, 2); //get the two data bytes, MSB and LSB
+
+  //"The heading output data will be the value in tenths of degrees
+  //from zero to 3599 and provided in binary format over the two bytes."
+//   byte MSB = Wire.receive();
+//   byte LSB = Wire.receive();
+  I2C_Start();
+  i = I2C_Write(HMC6352SlaveAddress | 0x1);
+  unsigned char MSB = I2C_Read(1);
+  unsigned char LSB = I2C_Read(0);
+  I2C_Stop();
+
+  float headingSum = (MSB << 8) + LSB; //(MSB / LSB sum)
+  float headingInt = headingSum / 10; 
+  
+  sendPitchBend(((uchar)headingInt >> 1) & 0x7F);
+
+   }
+   _delay_ms(20);
+	delay_cnt++;
+		
+// 		if(delay_cnt % 50 == 0){
+// 			init();
+// 			_delay_ms(30);
+// 			i = getX(&x);
+// 			 ax = (x)/21.00;
+// 			sendPitchBend(((uchar)ax >> 1) & 0x7F);
+// 		}
+// 		delay_cnt++;
+//  		_delay_ms(30);
 		
 		if (usbInterruptIsReady()) {
 			// js : bug here need to check old data value
 			// e.g. if ( (uADC >> 1) != (nADCOld >> 1) ) // just look at 7 bits
 			// if ( (uADC >> 1) != (nADCOld >> 1) ) {
 			if (uADC != nADCOld && module_type != OUTPUT) { // if we got a new sensor value
-				
-				// Status LED on send new message
-				// blink();
+			
 				nADCOld = uADC;
 			}
 			
- 			//PORTB |= _BV(DDB4);
- 			//PORTB |= _BV(DDB3);
-			
+#ifdef INCLUDE_RGB_LED_FW
+//  			if (module_type == RGB_LED) {
+//   				rgb_led_main_loop();
+//  			}
+#endif
+	
 #ifdef INCLUDE_OUTPUT_FW
 // 			if (module_type == OUTPUT) {
 //  				output_main_loop();
@@ -649,18 +778,17 @@ int main()
 #endif
 			// ------------- SENDING PITCH BEND DATA
 #ifdef INCLUDE_KNOB_FW
-			if (module_type == KNOB) {
-				knob_main_loop(uADC);
-			}
+// 			if (module_type == KNOB) {
+// 				knob_main_loop(uADC);
+// 			}
 #endif
 
 			// ------------- SENDING NOTE ON/OFF
 #ifdef INCLUDE_BUTTON_FW
-			if (module_type == BUTTON) {
-				button_main_loop(uADC);
-			}
+// 			if (module_type == BUTTON) {
+// 				button_main_loop(uADC);
+// 			}
 #endif
-
 				
 		} //if usbInterruptIsReady
 	} // for (;;)
