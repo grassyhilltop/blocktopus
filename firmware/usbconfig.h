@@ -249,6 +249,8 @@ extern void hadUsbReset(void);
 	#define  USB_CFG_DEVICE_ID       0xe4, 0x01 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==COMPASS
 	#define  USB_CFG_DEVICE_ID       0xe4, 0x02 /* = 0x05dc = 1500 */
+#elif MODULE_TYPE==ACCELEROMETER
+	#define  USB_CFG_DEVICE_ID       0xe4, 0x02 /* = 0x05dc = 1500 */
 #endif
 /* This is the ID of the product, low byte first. It is interpreted in the
  * scope of the vendor ID. If you have registered your own VID with usb.org
@@ -306,9 +308,14 @@ extern void hadUsbReset(void);
  #	define USB_CFG_DEVICE_NAME     'R','G','B','_','L','E','D','-','1'
  #	define USB_CFG_DEVICE_NAME_LEN 9
  
-  #elif MODULE_TYPE==COMPASS
+#elif MODULE_TYPE==COMPASS
  #	define USB_CFG_DEVICE_NAME     'C','o','m','p','a','s','s','-','2'
  #	define USB_CFG_DEVICE_NAME_LEN 9
+
+#elif MODULE_TYPE==ACCELEROMETER
+ #	define USB_CFG_DEVICE_NAME     'A','c','c','e','l','e','r','o','m','e','t','e','r','-','2'
+ #	define USB_CFG_DEVICE_NAME_LEN 15
+
 
 // Tilt
 // #	define USB_CFG_DEVICE_NAME     'T','i','l','t','-','1','1'

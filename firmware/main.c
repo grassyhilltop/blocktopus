@@ -24,6 +24,9 @@
 #ifdef INCLUDE_COMPASS_FW
 	#include "compass.h"
 #endif
+#ifdef INCLUDE_ACCELEROMETER_FW
+	#include "accelerometer.h"
+#endif
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
@@ -34,31 +37,6 @@
 #include "usbdrv/usbdrv.h"
 
 #define BLINK_TIME 			200
-
-#define MMA7660_ADDR  0x4c
-
-#define MMA7660_X     0x00
-#define MMA7660_Y     0x01
-#define MMA7660_Z     0x02
-#define MMA7660_TILT  0x03
-#define MMA7660_SRST  0x04
-#define MMA7660_SPCNT 0x05
-#define MMA7660_INTSU 0x06
-#define MMA7660_MODE  0x07
-	#define MMA7660_STAND_BY 0x00
-	#define MMA7660_ACTIVE	 0x01
-	#define MMA7660_TEST	 0x04
-#define MMA7660_SR    0x08		//sample rate register
-	#define AUTO_SLEEP_120	0X00//120 sample per second
-	#define AUTO_SLEEP_64	0X01
-	#define AUTO_SLEEP_32	0X02
-	#define AUTO_SLEEP_16	0X03
-	#define AUTO_SLEEP_8	0X04
-	#define AUTO_SLEEP_4	0X05
-	#define AUTO_SLEEP_2	0X06
-	#define AUTO_SLEEP_1	0X07
-#define MMA7660_PDET  0x09
-#define MMA7660_PD    0x0A
 
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
@@ -443,241 +421,23 @@ void initUSB()
     usbDeviceConnect();
 }
 
-void write(unsigned char _register, unsigned char _data)
-{
-	unsigned char ret = 1;
-//    Wire.begin();
-	I2C_Start();
-    //Wire.beginTransmission(MMA7660_ADDR);
-    ret = I2C_Write(MMA7660_ADDR);
-    //Wire.write(_register);
-    ret |= I2C_Write(_register);
-    //Wire.write(_data);
-    ret |= I2C_Write(_data);
-    //Wire.endTransmission();
-    I2C_Stop();
-    
-     if(ret)
-     	sendPitchBend((uchar)0x03 >> 1);
-}
+void init_modules(void) {
+#ifdef INCLUDE_COMPASS_FW
+	if (module_type == COMPASS) {
+  		setup_compass();
+  	}
+#endif
 
-unsigned char read(unsigned char _register)
-{
-	unsigned char ret = 0;
-	
-    uint8_t data_read = 0x00;
-//  Wire.begin();
- 	I2C_Start();
-//    Wire.beginTransmission(MMA7660_ADDR);
-
-    ret = I2C_Write(MMA7660_ADDR);
-// 	  I2C_Write(MMA7660_ADDR);
-
-//     Wire.write(_register);
-      ret |= I2C_Write(_register);
-//    I2C_Write(_register);
-//    Wire.endTransmission();
-	
-//     Wire.beginTransmission(MMA7660_ADDR);
-	I2C_Start();
-      ret |= I2C_Write(MMA7660_ADDR + 0x1);
-//    I2C_Write(MMA7660_ADDR | 0x1);
-//     Wire.requestFrom(MMA7660_ADDR,1);
-    data_read = I2C_Read(0x0);
-//     while(Wire.available())
-//     {
-//         data_read = Wire.read();
-//     }
-//     Wire.endTransmission();
-     I2C_Stop();
-     
-    if(ret)
-    	sendPitchBend((uchar)0x0a >> 1);
-    	
-    return data_read;
-}
-
-void setMode(uint8_t mode)
-{
-    write(MMA7660_MODE,mode);
-}
-
-void setSampleRate(uint8_t rate)
-{
-    write(MMA7660_SR,rate);
-}
-
-void init()
-{
-     setMode(MMA7660_STAND_BY);
-     setSampleRate(AUTO_SLEEP_32);
-     setMode(MMA7660_ACTIVE);
-//   	setMode(MMA7660_TEST);
-}
-
-unsigned char getX(int8_t *x)
-{
-	unsigned char val[3];
-//     static unsigned char count = 0;
-    val[0] = val[1] = val[2] = 64;
-//      count++;
-//    write(0x00,count);
-//    _delay_ms(25);
-  	val[0] = read(0x0);
-//   	while ( val[0] > 63 ){
-//   		val[0] = read(0x0);
-//   	}
-
-       *x = ((char)(val[0]<<2))/4;
-//       *y = ((char)(val[1]<<2))/4;
-//       *z = ((char)(val[2]<<2))/4;
-     
-	return val[0];
-}
-
-unsigned char getY(int8_t *y)
-{
-	unsigned char val[3];
-//     static unsigned char count = 0;
-    val[0] = val[1] = val[2] = 64;
-//      count++;
-//      write(0x00,count);
-
-  	val[0] = read(0x1);
-//  	while ( val[0] > 63 ){
-//  		val[0] = read(0x0);
-//  	}
-
-
-//        *x = ((char)(val[0]<<2))/4;
-       *y = ((char)(val[1]<<2))/4;
-//       *z = ((char)(val[2]<<2))/4;
-     
-	return 1;
-}
-
-unsigned char getZ(int8_t *z)
-{
-	unsigned char val[3];
-//     static unsigned char count = 0;
-    val[0] = val[1] = val[2] = 64;
-//      count++;
-//      write(0x00,count);
-
-  	val[0] = read(0x2);
-//  	while ( val[0] > 63 ){
-//  		val[0] = read(0x0);
-//  	}
-
-
-//       *x = ((char)(val[0]<<2))/4;
-//       *y = ((char)(val[1]<<2))/4;
-       *z = ((char)(val[2]<<2))/4;
-     
-	return 1;
-}
-unsigned char getXYZ_new(int8_t *x,int8_t *y,int8_t *z)
-{
-	unsigned char val[3];
-//     int count = 0;
-    val[0] = val[1] = val[2] = 64;
-    
- 	val[0] = read(0x0);
- 	val[1] = read(0x01);
-	val[2] = read(0x02);
-
-	*x = val[0];
-	*y = val[1];
-	*z = val[2];
-
-//       *x = ((char)(val[0]<<2))/4;
-//       *y = ((char)(val[1]<<2))/4;
-//       *z = ((char)(val[2]<<2))/4;
-     
-	return 1;
-}
-
-/*Function: Get the contents of the registers in the MMA7660*/
-/*          so as to calculate the acceleration.            */
-// unsigned char getXYZ(int8_t *x,int8_t *y,int8_t *z)
-// {
-//     unsigned char val[3];
-//     int count = 0;
-//     val[0] = val[1] = val[2] = 64;
-//     
-//     long timer1 = millis();
-//     long timer2 = 0;
-//     
-//     while(Wire.available() > 0)
-//     {
-//         timer2 = millis();
-//         if((timer2-timer1)>500)
-//         {
-//             return 0;
-//         }
-//     }
-// 
-//     //read();
-//     //requestFrom(MMA7660_ADDR,3);
-// 
-//     timer1 = millis();
-//     while(Wire.available())
-//     {
-//     
-//         if(count < 3)
-//         {
-// 
-//             timer1 = millis();
-//             while ( val[count] > 63 )  // reload the damn thing it is bad
-//             {
-//                 val[count] = Wire.read();
-// 
-//                 timer2 = millis();
-//                 if((timer2-timer1)>50)
-//                 {
-//                     return 0;
-//                 }
-// 
-//             }
-//         }
-// 
-//         count++;
-//         
-//         timer2 = millis();
-//         
-//         if((timer2-timer1)>500)
-//         {
-//             return 0;
-//         }
-// 
-//     }
-//     
-//     *x = ((char)(val[0]<<2))/4;
-//     *y = ((char)(val[1]<<2))/4;
-//     *z = ((char)(val[2]<<2))/4;
-//     
-//     return 1;
-// }
-
-
-unsigned char getAcceleration(float *ax,float *ay,float *az)
-{
-    int8_t x,y,z;
-    
-    if(!getXYZ_new(&x, &y, &z))return 0;
-    *ax = x/21.00;
-    *ay = y/21.00;
-    *az = z/21.00;
-    
-    return 1;
+#ifdef INCLUDE_ACCELEROMETER_FW
+	if (module_type == ACCELEROMETER) {
+  		init_accelerometer();
+  	}
+#endif
 }
 
 int main()
 {
 	int nADCOld = -1;
-// 	unsigned char i = 0;
-// 	int8_t x=0, y=0, z=0;
-// 	float ax=0,ay=0,az=0;
 	
     initStatusLED();
 	
@@ -692,25 +452,12 @@ int main()
 // Globally enable interrupts
  	sei();
  	I2C_Init();
-//   init();
-#ifdef INCLUDE_COMPASS_FW
-	setup_compass();
-#endif
+	init_modules();
 	// Endless loop
 	// joel here is where there is a loop
 	for (;;) {
 		wdt_reset();
 		usbPoll();
-		
-// 		if(delay_cnt % 50 == 0){
-// 			init();
-// 			_delay_ms(30);
-// 			i = getX(&x);
-// 			 ax = (x)/21.00;
-// 			sendPitchBend(((uchar)ax >> 1) & 0x7F);
-// 		}
-// 		delay_cnt++;
-//  		_delay_ms(30);
 		
 		if (usbInterruptIsReady()) {
 			// js : bug here need to check old data value
@@ -722,31 +469,37 @@ int main()
 			}
 			
 #ifdef INCLUDE_RGB_LED_FW
-//  			if (module_type == RGB_LED) {
-//   				rgb_led_main_loop();
-//  			}
+ 			if (module_type == RGB_LED) {
+  				rgb_led_main_loop();
+ 			}
 #endif
 	
 #ifdef INCLUDE_OUTPUT_FW
-// 			if (module_type == OUTPUT) {
-//  				output_main_loop();
-// 			}
+			if (module_type == OUTPUT) {
+ 				output_main_loop();
+			}
 #endif
 			// ------------- SENDING PITCH BEND DATA
 #ifdef INCLUDE_KNOB_FW
-// 			if (module_type == KNOB) {
-// 				knob_main_loop(uADC);
-// 			}
+			if (module_type == KNOB) {
+				knob_main_loop(uADC);
+			}
 #endif
 
 			// ------------- SENDING NOTE ON/OFF
 #ifdef INCLUDE_BUTTON_FW
-// 			if (module_type == BUTTON) {
-// 				button_main_loop(uADC);
-// 			}
+			if (module_type == BUTTON) {
+				button_main_loop(uADC);
+			}
 #endif
 				
 		} //if usbInterruptIsReady
+		
+#ifdef INCLUDE_ACCELEROMETER_FW
+   			if (module_type == ACCELEROMETER) {
+    				accelerometer_main_loop();
+   			}
+#endif
 		
 #ifdef INCLUDE_COMPASS_FW
   			if (module_type == COMPASS) {
@@ -758,7 +511,6 @@ int main()
 
 	return 0;
 }
-
 
 // ISR(TIMER1_COMPA_vect)
 ISR(TIMER1_OVF_vect)

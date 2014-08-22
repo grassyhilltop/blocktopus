@@ -30,6 +30,7 @@ void I2C_Start();
 void I2C_Stop();
 unsigned char I2C_Write(unsigned char c);
 unsigned char I2C_Read(unsigned char ack);
+void I2C_Read_Mul(unsigned int bytes, unsigned char *buf);
 void I2C_WriteBit(unsigned char c);
 unsigned char I2C_ReadBit(void);
 

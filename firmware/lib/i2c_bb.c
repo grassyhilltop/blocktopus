@@ -132,3 +132,18 @@ unsigned char I2C_Read(unsigned char ack)
 
     return res;
 }
+
+// read multiple byte from the I2C slave device
+//
+void I2C_Read_Mul(unsigned int bytes, unsigned char *buf)
+{
+	unsigned int i;
+    for (i = 0; i < bytes-1; i++)
+    {
+        *buf = I2C_Read(1);
+        buf++;
+    }
+    	*buf = I2C_Read(0);
+}
+
+
