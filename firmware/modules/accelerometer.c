@@ -9,21 +9,6 @@ static void setMode(unsigned char mode);
 static void setSampleRate(unsigned char rate);
 static unsigned char sixb_to_eightb(unsigned char sixb);
 
-//    Wire.begin();
-//    Wire.beginTransmission(MMA7660_ADDR);
-// 	  I2C_Write(MMA7660_ADDR);
-//    Wire.write(_register);
-//    I2C_Write(_register);
-//    Wire.endTransmission();
-//    Wire.beginTransmission(MMA7660_ADDR);
-//    I2C_Write(MMA7660_ADDR | 0x1);
-//    Wire.requestFrom(MMA7660_ADDR,1);
-//    while(Wire.available())
-//     {
-//         data_read = Wire.read();
-//     }
-//    Wire.endTransmission();
-
 void read_mul(unsigned char _register,unsigned int bytes, unsigned char *buf)
 {
 	unsigned char ret = 0;
@@ -96,6 +81,7 @@ void init_for_test_accelerometer(void)
 
 void init_accelerometer(void)
 {
+	I2C_Init();
 	setMode(MMA7660_STAND_BY);
 	setSampleRate(AUTO_SLEEP_120);
 	setMode(MMA7660_ACTIVE);
@@ -191,6 +177,22 @@ void accelerometer_main_loop(){
 	delay_cnt++;
 	_delay_ms(20);
 }
+
+//    Wire.begin();
+//    Wire.beginTransmission(MMA7660_ADDR);
+// 	  I2C_Write(MMA7660_ADDR);
+//    Wire.write(_register);
+//    I2C_Write(_register);
+//    Wire.endTransmission();
+//    Wire.beginTransmission(MMA7660_ADDR);
+//    I2C_Write(MMA7660_ADDR | 0x1);
+//    Wire.requestFrom(MMA7660_ADDR,1);
+//    while(Wire.available())
+//     {
+//         data_read = Wire.read();
+//     }
+//    Wire.endTransmission();
+
 
 
 /*Function: Get the contents of the registers in the MMA7660*/

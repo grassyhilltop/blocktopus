@@ -1,5 +1,10 @@
 #include "midi.h"
 #include "button.h"
+#include "hardware.h"
+
+void init_button(void){
+	initAnalogInput();
+}
 
 void button_main_loop(unsigned char uADC){
 
@@ -21,5 +26,4 @@ void button_main_loop(unsigned char uADC){
 			sendNoteOff();	
 		}
 	}
-
 }

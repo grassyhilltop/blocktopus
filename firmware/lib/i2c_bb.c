@@ -52,9 +52,10 @@ unsigned char I2C_ReadBit()
 }
 
 // Inits bitbanging port, must be called before using the functions below
-//
+// puts clk and data to low
 void I2C_Init()
 {
+	//set data and clock low at the same time
     I2C_PORT &= ~ ((1 << I2C_DAT) | (1 << I2C_CLK));
 
     I2C_CLOCK_HI();
@@ -106,6 +107,42 @@ unsigned char I2C_Write(unsigned char c)
     //return 0;
 }
 
+// I2C slave device addr is typically given as two hex numbers even
+// though it is only 7 bits.  Shift left 1 and leave last bit for read
+// or write bit
+unsigned char I2C_Write_Slave_Addr_Cmd(unsigned char slave_addr)
+{
+	char i;
+	//Write is 0, Read is 1 in LSB
+	slave_addr = (slave_addr << 1) & 0xFE;
+	
+    for (i = 0; i < 8; i++)
+    {
+        I2C_WriteBit(slave_addr & 128);
+
+        slave_addr <<= 1;
+    }
+
+	//Check for Ack - ack is a 0
+    return I2C_ReadBit();
+}
+
+unsigned char I2C_Read_Slave_Addr_Cmd(unsigned char slave_addr)
+{
+	char i;
+	//Write is 0, Read is 1 in LSB
+	slave_addr = (slave_addr << 1) | 0x01;
+	
+    for (i = 0; i < 8; i++)
+    {
+        I2C_WriteBit(slave_addr & 128);
+
+        slave_addr <<= 1;
+    }
+
+	//Check for Ack - ack is a 0
+    return I2C_ReadBit();
+}
 
 // read a byte from the I2C slave device
 //

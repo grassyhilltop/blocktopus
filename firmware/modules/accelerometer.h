@@ -1,7 +1,7 @@
 #ifndef ACCELEROMETER_H
 #define ACCELEROMETER_H
 
-//NOTE: Arduino only send the 7 LSB bits, we have to shift right 1
+//NOTE: Arduino only send the 7 LSB bits, we have to shift left 1
 // #define MMA7660_ADDR  0x4c
 #define MMA7660_ADDR  0x98
 

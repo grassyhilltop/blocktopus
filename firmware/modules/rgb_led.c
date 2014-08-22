@@ -4,6 +4,11 @@
 static unsigned char red = 0x00;
 static unsigned char green = 0x03;
 static unsigned char blue = 0xFF;
+
+void setup_rgb_led(void){
+	I2C_Init();
+}
+
 void rgb_led_main_loop()
 {
 		I2C_Start();

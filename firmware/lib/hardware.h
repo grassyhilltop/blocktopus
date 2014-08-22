@@ -6,5 +6,10 @@
 
 void turn_on(void);
 void turn_off(void);
+void initPB3AsOutput();
+void initPB4AsOutput();
+void initAnalogInput();
+void setPB3High();
+void setPB4High();
 
 #endif

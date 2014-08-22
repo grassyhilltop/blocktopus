@@ -1,5 +1,10 @@
 #include "midi.h"
 #include "knob.h"
+#include "hardware.h"
+
+void init_knob(void){
+	initAnalogInput();
+}
 
 void knob_main_loop(unsigned char uADC){
 	static unsigned char pitch = 0;

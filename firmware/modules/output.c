@@ -6,6 +6,10 @@
 static unsigned int duty_cycle = 0;
 static unsigned int iterations_p_cycle = 100;
 
+void init_output(void){
+	initPB3AsOutput();
+}
+
 void output_main_loop(void){
 	static int status = 0;
 	unsigned int counter = 0;

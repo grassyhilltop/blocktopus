@@ -9,6 +9,14 @@
 #include "midi.h"
 #include "i2c_bb.h"
 #include "config.h"
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <avr/sleep.h>
+#include <avr/pgmspace.h>
+#include <avr/wdt.h>
+#include <avr/eeprom.h>
+#include <util/delay.h>
+#include "usbdrv/usbdrv.h"
 #ifdef INCLUDE_BUTTON_FW
 	#include "button.h"
 #endif
@@ -27,14 +35,6 @@
 #ifdef INCLUDE_ACCELEROMETER_FW
 	#include "accelerometer.h"
 #endif
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include <avr/sleep.h>
-#include <avr/pgmspace.h>
-#include <avr/wdt.h>
-#include <avr/eeprom.h>
-#include <util/delay.h>
-#include "usbdrv/usbdrv.h"
 
 #define BLINK_TIME 			200
 
@@ -287,6 +287,7 @@ void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 		output_usb_input_handler(midiMsg,len);
 	}
 #endif
+
 }
 
 /* ------------------------------------------------------------------------- */
@@ -344,7 +345,6 @@ ATTiny25, ATTiny45, ATTiny85), it may be useful to search for the optimum in
 both regions.
 */
 
-
 void hadUsbReset(void)
 {
 	cli();
@@ -360,15 +360,7 @@ void blink()
 	PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on
 }
 
-
-void initOutputPort(){
-	DDRB = _BV(OUTPUT_PORT); 	// LED pin = output
-	DDRB |= _BV(DDB4); 	// LED pin = output
-	PORTB |= _BV(DDB3);	
-	PORTB |= _BV(DDB4);	
-}
-
-
+//Status LED is PB1
 void initStatusLED()
 {
 	DDRB = _BV(STATUS_LED_PORT); 	// LED pin = output
@@ -386,20 +378,6 @@ void initStatusLED()
 	// Set timer 1 output compare register A.
 	// OCR1A = 127;
 }
-
-
-void initAnalogInput()
-{
-	ADMUX = _BV(ADLAR) | _BV(MUX1) | _BV(MUX0);		// Left adjust result (ADCH is result with 8 bit resolution), Vcc is reference voltage, sample port ADC3
-
-	// Enable ADC,
-	// start conversion,
-	// ADC auto triger enable (starts "free running mode" because ADTS0 - 2 in ADCSRB are set to 0 at this point),
-	// acivate ADC conversion complete interrupt,
-	// set prescaler to 128
-	ADCSRA = _BV(ADEN) | _BV(ADSC) | _BV(ADATE) | _BV(ADIE) | _BV(ADPS0)| _BV(ADPS1) | _BV(ADPS2);
-}
-
 
 void initUSB()
 {
@@ -422,97 +400,103 @@ void initUSB()
 }
 
 void init_modules(void) {
+
+#ifdef INCLUDE_RGB_LED_FW
+	if (module_type == RGB_LED) {
+		setup_rgb_led();
+	}
+#endif
+
+#ifdef INCLUDE_OUTPUT_FW
+	if (module_type == OUTPUT) {
+		init_output();
+	}
+#endif
+
+#ifdef INCLUDE_KNOB_FW
+	if (module_type == KNOB) {
+		init_knob();
+	}
+#endif
+
+#ifdef INCLUDE_BUTTON_FW
+	if (module_type == BUTTON) {
+		init_button();
+	}
+#endif
+			
+
 #ifdef INCLUDE_COMPASS_FW
 	if (module_type == COMPASS) {
   		setup_compass();
   	}
 #endif
 
-#ifdef INCLUDE_ACCELEROMETER_FW
+	#ifdef INCLUDE_ACCELEROMETER_FW
 	if (module_type == ACCELEROMETER) {
   		init_accelerometer();
   	}
-#endif
+	#endif
 }
 
 int main()
 {
-	int nADCOld = -1;
-	
     initStatusLED();
-	
-//Setup PB3 as ADC unless this is an output
-//  	if( module_type != OUTPUT){
-//  		initAnalogInput();	
-//  	} 
-//  	else {
-  		initOutputPort();
-//   	}
   	initUSB();
-// Globally enable interrupts
+  	
+	// Globally enable interrupts
  	sei();
- 	I2C_Init();
+ 	
 	init_modules();
 	// Endless loop
-	// joel here is where there is a loop
 	for (;;) {
 		wdt_reset();
 		usbPoll();
 		
 		if (usbInterruptIsReady()) {
-			// js : bug here need to check old data value
-			// e.g. if ( (uADC >> 1) != (nADCOld >> 1) ) // just look at 7 bits
-			// if ( (uADC >> 1) != (nADCOld >> 1) ) {
-			if (uADC != nADCOld && module_type != OUTPUT) { // if we got a new sensor value
 			
-				nADCOld = uADC;
-			}
-			
-#ifdef INCLUDE_RGB_LED_FW
+			#ifdef INCLUDE_RGB_LED_FW
  			if (module_type == RGB_LED) {
   				rgb_led_main_loop();
  			}
-#endif
+			#endif
 	
-#ifdef INCLUDE_OUTPUT_FW
+			#ifdef INCLUDE_OUTPUT_FW
 			if (module_type == OUTPUT) {
  				output_main_loop();
 			}
-#endif
-			// ------------- SENDING PITCH BEND DATA
-#ifdef INCLUDE_KNOB_FW
+			#endif
+
+			#ifdef INCLUDE_KNOB_FW
 			if (module_type == KNOB) {
 				knob_main_loop(uADC);
 			}
-#endif
+			#endif
 
-			// ------------- SENDING NOTE ON/OFF
-#ifdef INCLUDE_BUTTON_FW
+			#ifdef INCLUDE_BUTTON_FW
 			if (module_type == BUTTON) {
 				button_main_loop(uADC);
 			}
-#endif
-				
-		} //if usbInterruptIsReady
-		
-#ifdef INCLUDE_ACCELEROMETER_FW
-   			if (module_type == ACCELEROMETER) {
-    				accelerometer_main_loop();
-   			}
-#endif
-		
-#ifdef INCLUDE_COMPASS_FW
-  			if (module_type == COMPASS) {
-   				rgb_led_main_loop();
-  			}
-#endif
-
-	} // for (;;)
+			#endif
+			
+			#ifdef INCLUDE_ACCELEROMETER_FW
+			if (module_type == ACCELEROMETER) {
+					accelerometer_main_loop();
+			}
+			#endif
+	
+			#ifdef INCLUDE_COMPASS_FW
+			if (module_type == COMPASS) {
+				rgb_led_main_loop();
+			}
+			#endif	
+		}
+	}
 
 	return 0;
 }
 
-// ISR(TIMER1_COMPA_vect)
+
 ISR(TIMER1_OVF_vect)
 {
 	//if (nBlink) {
