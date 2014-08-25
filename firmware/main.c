@@ -36,7 +36,7 @@
 	#include "accelerometer.h"
 #endif
 
-#define BLINK_TIME 			200
+#define BLINK_TIME 			8056
 
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
@@ -356,8 +356,17 @@ void hadUsbReset(void)
 
 void blink()
 {
+	static int on=1;
 	nBlink = BLINK_TIME;			// Set blink timer counter
-	PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on
+	
+	if(on){
+		PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on
+		on = 0;
+	}
+	else{
+		PORTB &= ~_BV(STATUS_LED_PORT);	// Switch status LED off
+		on = 1;
+	}
 }
 
 //Status LED is PB1
@@ -450,11 +459,13 @@ int main()
 	init_modules();
 	// Endless loop
 	for (;;) {
+
 		wdt_reset();
 		usbPoll();
+ 		
 		
 		if (usbInterruptIsReady()) {
-			
+	
 			#ifdef INCLUDE_RGB_LED_FW
  			if (module_type == RGB_LED) {
   				rgb_led_main_loop();
@@ -499,17 +510,16 @@ int main()
 
 ISR(TIMER1_OVF_vect)
 {
-	//if (nBlink) {
-	//	--nBlink;										// Decrease led timer counter value
-	//	if (!nBlink) PORTB &= ~_BV(STATUS_LED_PORT);	// If timer counter has reached 0, switch status led off.
-	//}
+	// For timing calibration
+	if (nBlink) {
+		--nBlink;	// Decrease led timer counter value
+	}else{
+		blink();
+	}
 
 	// Reset timer 1 counter (Only necessary if timer 1 compare match interrupt instead of
 	// timer 1 overflow interrupt is used)
-	// TCNT1 = 0;
-	//if (module_type == OUTPUT) {
-	//	output_timer_isr();
-	//}
+	 TCNT1 = 0;
 }
 
 
