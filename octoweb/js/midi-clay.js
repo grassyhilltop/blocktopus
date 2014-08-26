@@ -958,6 +958,7 @@ function isValidLine(line){
 	if(! line 
 		|| line.match("{[^}]*$") // open ended block ( { not closed ) e.g. if () { ...
 		|| line.match("^\s*}\s*$") // close bracket hanging out by itself
+		|| line.match("^\s*{\s*$") // open bracket hanging out by itself
 		// || line.match("^\s*(if|else)") // starts with keyword ( with arbitrary spaces)
 	){return false }
 	else {

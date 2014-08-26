@@ -111,11 +111,20 @@ function drawCodeBlock(id, x , y ,w ,h){
     divElem.focus();  
     divElem.addEventListener("blur",lostCellFocus);
 
-    _addEndpoints( container.id, ["BottomCenter"], ["TopCenter"]);
+    // jsplumb add anchors for wire connections
+    _addEndpoints( container.id, ["BottomCenter"], ["TopCenter"]); 
     
     //jsPlumb.draggable($(".draggable") );
     jsPlumb.draggable($(".draggable") ,  { cancel: ".editable" } );
 
+    // add a delete button       
+    var divId = container.id;
+    var blockID;
+    if (divId) blockID = divId.split("-")[1]; // get id of parent container
+    var html = "<div class='deleteButton'></div>";
+    $(container).append(html);
+    // cblockID= function(){ app.removeBlock(blockID); }
+    $("#"+divId+">div.deleteButton").click( function(){ app.removeBlock(blockID); } );
 
     return divElem;
 }

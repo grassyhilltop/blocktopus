@@ -72,6 +72,29 @@ textarea{
 
 
 /* -------------------------- FOR CODE BOXES  --------------------------*/
+
+.deleteButton{
+	position: absolute;
+	width: 16px;
+	height: 16px;
+	top: 0px;
+	right:0px;
+	display: none;	
+	background-image: url("../img/glyphicons_197_remove.png");
+	background-repeat: no-repeat;
+	background-size: contain;
+	opacity: 0.2; filter: alpha(opacity=20);
+}
+
+.deleteButton:hover{
+	cursor: pointer;
+}
+
+
+.freeCellContainer:hover .deleteButton{
+	display:block;
+}
+
 .codeContainer{
 	/*background-color: red;*/
 	/*border:	solid 1px #e2e2e2;*/
