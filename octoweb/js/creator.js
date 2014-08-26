@@ -112,7 +112,7 @@ function drawCodeBlock(id, x , y ,w ,h){
     divElem.addEventListener("blur",lostCellFocus);
 
     _addEndpoints( container.id, ["BottomCenter"], ["TopCenter"]);
-
+    
     //jsPlumb.draggable($(".draggable") );
     jsPlumb.draggable($(".draggable") ,  { cancel: ".editable" } );
 

@@ -258,7 +258,10 @@ div.testImage{
 
 svg{
 	position: absolute;
+	/*-webkit-svg-shadow: 0 0 7px red;*/
 }
+
+
 /* -------------------------- FOR SENSOR NODES - ARDUINO  --------------------------*/
 
 .sensorNodeContainer{
@@ -334,3 +337,17 @@ svg{
 
 /*.hidden{ visibility: hidden;}*/
 .hidden{ display: none;} /* hides completly without taking up space */
+
+
+
+/* -----  For jsplumb ----  */
+
+._jsPlumb_connector { 
+	/*Put connectors behind endpoints (makes plugging out easier*/
+	z-index:-1; 	
+} 
+
+
+
+/*._jsPlumb_endpoint { z-index:9999; }*/
+/*._jsPlumb_endpoint_full { z-index:9999; }*/

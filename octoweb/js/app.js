@@ -56,20 +56,26 @@ jsPlumb.ready(function() {
 		strokeStyle:"#3CB6FF",
 		outlineWidth:2,
 		outlineColor:"white"
+
 	},
 	endpointHoverStyle = {
 		fillStyle:"#3CB6FF",
 		strokeStyle:"#3CB6FF"
 	},
+	targetEndpointHoverStyle = {
+		
+		strokeStyle:"#3CB6FF"
+	},
 	// the definition of source endpoints (the small blue ones)
 	sourceEndpoint = {
 		endpoint:"Dot",
+		// endpoint: [ "Image", { url:"styles/img/wire-nub.png" } ],  // use an image
 		paintStyle:{ 
 			strokeStyle:"black",
 			// fillStyle:"transparent",
 			fillStyle:"#616161",
-			radius:6,
-			lineWidth:1 
+			radius:6,  // size of the target
+			lineWidth:1
 		},
 		maxConnections:-1,
 		isSource:true,
@@ -94,7 +100,7 @@ jsPlumb.ready(function() {
 	targetEndpoint = {
 		endpoint:"Dot",					
 		paintStyle:{ fillStyle:"white",radius:6, strokeStyle:"black",lineWidth:1},
-		hoverPaintStyle:endpointHoverStyle,
+		hoverPaintStyle:targetEndpointHoverStyle,
 		maxConnections:-1,
 		dropOptions:{ hoverClass:"hover", activeClass:"active" },
 		isTarget:true,			
@@ -115,10 +121,21 @@ jsPlumb.ready(function() {
 				var sourceUUID = toId + sourceAnchors[i];
 				instance.addEndpoint("" + toId, sourceEndpoint, { anchor:sourceAnchors[i], uuid:sourceUUID });						
 			}
-			for (var j = 0; j < targetAnchors.length; j++) {
-				var targetUUID = toId + targetAnchors[j];
-				instance.addEndpoint("" + toId, targetEndpoint, { anchor:targetAnchors[j], uuid:targetUUID });						
-			}
+
+			// js : Manually offset move anchors , last two are x and y offset
+			// Offset endpoints using custom  anchor:[ 0.5, 1, 0, 1 ] , [x, y, dx, dy]
+    		// x and yare coordinates in the interval [0,1] specifying the position of the anchor, and dx and dy
+    		// e.g. [0, 0.5, -1, 0] defines a Left ,  [0.5, 0, 0, -1] defines a Top
+    		// https://jsplumbtoolkit.com/doc/anchors
+			
+			var targetUUID = toId + targetAnchors[0];
+			instance.addEndpoint("" + toId, targetEndpoint, { anchor: [0.5, 0, 0, -1,0,10] , uuid:targetUUID });						
+			
+			// for (var j = 0; j < targetAnchors.length; j++) {
+			// 	console.log("ass: " + targetAnchors[j]);
+			// 	var targetUUID = toId + targetAnchors[j];
+			// 	instance.addEndpoint("" + toId, targetEndpoint, { anchor:targetAnchors[j], uuid:targetUUID });						
+			// }
 		};
 
 	instance.bind("connection", function(info, originalEvent) {
