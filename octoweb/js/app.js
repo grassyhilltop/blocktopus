@@ -117,9 +117,12 @@ jsPlumb.ready(function() {
 	};			
 
 	_addEndpoints = function(toId, sourceAnchors, targetAnchors) {
-			for (var i = 0; i < sourceAnchors.length; i++) {
-				var sourceUUID = toId + sourceAnchors[i];
-				instance.addEndpoint("" + toId, sourceEndpoint, { anchor:sourceAnchors[i], uuid:sourceUUID });						
+	
+			if(sourceAnchors.length > 0){
+				for (var i = 0; i < sourceAnchors.length; i++) {
+					var sourceUUID = toId + sourceAnchors[i];
+					instance.addEndpoint("" + toId, sourceEndpoint, { anchor:sourceAnchors[i], uuid:sourceUUID });						
+				}
 			}
 
 			// js : Manually offset move anchors , last two are x and y offset
@@ -128,14 +131,15 @@ jsPlumb.ready(function() {
     		// e.g. [0, 0.5, -1, 0] defines a Left ,  [0.5, 0, 0, -1] defines a Top
     		// https://jsplumbtoolkit.com/doc/anchors
 			
-			var targetUUID = toId + targetAnchors[0];
-			instance.addEndpoint("" + toId, targetEndpoint, { anchor: [0.5, 0, 0, -1,0,10] , uuid:targetUUID });						
+			if(targetAnchors.length > 0){
+				var targetUUID = toId + targetAnchors[0];
+				instance.addEndpoint("" + toId, targetEndpoint, { anchor: [0.5, 0, 0, -1,0,10] , uuid:targetUUID });						
+			}
 			
 			// for (var j = 0; j < targetAnchors.length; j++) {
-			// 	console.log("ass: " + targetAnchors[j]);
-			// 	var targetUUID = toId + targetAnchors[j];
-			// 	instance.addEndpoint("" + toId, targetEndpoint, { anchor:targetAnchors[j], uuid:targetUUID });						
-			// }
+// 				var targetUUID = toId + targetAnchors[j];
+// 				instance.addEndpoint("" + toId, targetEndpoint, { anchor:targetAnchors[j], uuid:targetUUID });						
+// 			}
 		};
 
 	instance.bind("connection", function(info, originalEvent) {

@@ -97,7 +97,7 @@ function getDeviceTypeFromName(deviceName){
 	"Knob": "Output",
 	"Button": "Output",
 	"Slider": "Output",
-	"Light": "Output",
+	"Light": "Input",
 	"Temp": "Output",
 	"Tilt": "Output",
 	"LED": "Input",
@@ -371,8 +371,8 @@ function CodeBlock(x,y,viewObjInput){
 		var codeBlockJqueryObj = $("#block-"+obj.blockID);
 		// var sourceName = app.blockObjects[fromBlockID].devName;
 		// var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
-		var result = this.evalCodeBlock();
-		// var result = this.evalCodeBlockFromSandBox();
+		// var result = this.evalCodeBlock();
+		var result = this.evalCodeBlockFromSandBox();
 		
 		// Update output field with evaluated result
 		// todo...
