@@ -36,7 +36,12 @@
 	#include "accelerometer.h"
 #endif
 
-#define BLINK_TIME 			8056
+#define BLINK_TIME 			8056  
+
+//  Timing description: 1 Second is 8056 cycles
+//  With a 1:8 prescaler - the timer ticks with frequency = 16.5Mhz/8 = 2 Mhz 
+//  An 8 bit timer will overflow after 256 ticks  - i.e. 256 (*1/2 Mhz) every 0.124 ms
+//  overflow every  = 256*1/(1650000000/8) s 
 
 unsigned char uADC = 0;		// Analog value
 int nBlink = 0;				// Blink timer
@@ -510,11 +515,16 @@ int main()
 
 ISR(TIMER1_OVF_vect)
 {
+	// Todo: using blick function like this causes module to not show up sometimes over USB?
+	//  doesn't happen if no function call ...
+
 	// For timing calibration
 	if (nBlink) {
 		--nBlink;	// Decrease led timer counter value
 	}else{
-		blink();
+		// blink();							// This causes module to not be identified sometimes??
+		// PORTB ^= _BV(STATUS_LED_PORT);	// Toggle LED - this works
+
 	}
 
 	// Reset timer 1 counter (Only necessary if timer 1 compare match interrupt instead of
