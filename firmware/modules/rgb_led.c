@@ -54,3 +54,25 @@ void setColorRGB(unsigned char red, unsigned char green, unsigned char blue)
     I2C_Write_No_Ack(0x00);
     I2C_Write_No_Ack(0x00);
 }
+
+//Assume that messages to the RGB LED come in sets of 3. First message is for R, Second
+//is for G, Third is for B
+void rgb_led_usb_input_handler(unsigned char * midiMsg, unsigned char len){
+	static unsigned int rgb = 0;
+	
+	switch(rgb % 3){
+		case _CL_RED:
+			red = midiMsg[3];
+			break;
+		case _CL_BLUE:
+			blue = midiMsg[3];
+			break;
+		case _CL_GREEN:
+			green = midiMsg[3];
+			break;
+		default:
+			red = midiMsg[3];
+	}
+	
+	rgb++;
+}

@@ -9,4 +9,6 @@ void rgb_led_main_loop(void);
 void sendColor(unsigned char red, unsigned char green, unsigned char blue);
 void setColorRGB(unsigned char red, unsigned char green, unsigned char blue);
 void setup_rgb_led(void);
+void rgb_led_usb_input_handler(unsigned char * midiMsg, unsigned char len);
+
 #endif

@@ -288,6 +288,12 @@ void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 	}
 #endif
 
+#ifdef INCLUDE_RGB_LED_FW
+	if (module_type == RGB_LED){
+		rgb_led_usb_input_handler(midiMsg,len);
+	}
+#endif
+
 }
 
 /* ------------------------------------------------------------------------- */
@@ -514,7 +520,7 @@ ISR(TIMER1_OVF_vect)
 	if (nBlink) {
 		--nBlink;	// Decrease led timer counter value
 	}else{
-		blink();
+		//blink();
 	}
 
 	// Reset timer 1 counter (Only necessary if timer 1 compare match interrupt instead of
