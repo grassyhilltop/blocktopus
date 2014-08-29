@@ -1,9 +1,10 @@
 #include "rgb_led.h"
 #include "i2c_bb.h"
+#include <util/delay.h>
 
-static unsigned char red = 0x00;
-static unsigned char green = 0x03;
-static unsigned char blue = 0xFF;
+static unsigned int red = 0x00;
+static unsigned int green = 0x00;
+static unsigned int blue = 0x00;
 
 void setup_rgb_led(void){
 	I2C_Init();
@@ -60,19 +61,22 @@ void setColorRGB(unsigned char red, unsigned char green, unsigned char blue)
 void rgb_led_usb_input_handler(unsigned char * midiMsg, unsigned char len){
 	static unsigned int rgb = 0;
 	
-	switch(rgb % 3){
-		case _CL_RED:
-			red = midiMsg[3];
-			break;
-		case _CL_BLUE:
-			blue = midiMsg[3];
-			break;
-		case _CL_GREEN:
-			green = midiMsg[3];
-			break;
-		default:
-			red = midiMsg[3];
+	if (midiMsg[1] == 0xE3){
+		switch(midiMsg[2] % 3){
+			case _CL_RED:
+				red = midiMsg[3];
+				break;
+			case _CL_BLUE:
+				blue = midiMsg[3];
+				break;
+			case _CL_GREEN:
+				green = midiMsg[3];
+				break;
+			default:
+				red = midiMsg[3];
+		}
+		rgb++;
 	}
 	
-	rgb++;
+	
 }

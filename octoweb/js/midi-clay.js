@@ -101,6 +101,7 @@ function getDeviceTypeFromName(deviceName){
 	"Temp": "Output",
 	"Tilt": "Output",
 	"LED": "Input",
+	"RGB_LED": "Input",
 	"Buzzer": "Input"
 	};
 
@@ -115,14 +116,13 @@ function BlockObject(viewObj){
 	this.outConnections = {};
 	this.blockID = app.newBlockID();
 	this.type = "block";
-	this.displayName = "block";
+	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : "block";
 	this.value = 0;
 };
 BlockObjectClone = function () {};
 BlockObjectClone.prototype = BlockObject.prototype;
 
 BlockObject.prototype.deleteView = function(){
-	
 	console.log("deleting view!");	
 	g1 = this;
 
@@ -167,91 +167,35 @@ BlockObject.prototype.sendMsg = function(targetBlockID, msg){
 };
 
 function HwBlock(devName,viewObjInput){
-	
 	console.log("Creating new hardware block with name:" + devName);
 
 	var obj = this;
-	BlockObject.call(this,viewObjInput);
 	this.type = "hw";						 // object type	 
 	this.devName = devName; 	             // Assumes midi device name in format "button-5"
 	this.deviceType = devName.split("-")[0]; // Just the type part of the name "button"
 	this.deviceIDNum = devName.split("-")[1];// Just the numerical part of the name "5"
-	this.displayName = this.deviceType;      // What gets displayed in a block
 	this.data = "0"; 						 // Current state of device
 	this.deviceDirection = getDeviceTypeFromName(this.deviceType); // e.g. has Input or Output
+// 	this.displayName = this.deviceType;      // What gets displayed in a block
+	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : this.deviceType;
+	BlockObject.call(this,viewObjInput);
+	console.log("block ID:" + this.blockID);
+	
 	app.addNewHwBlock(this);
+	console.log("displayName: " + obj.displayName);
 	
 	// Create a default hardware view
-	if(!viewObjInput){
+	if((undefined === viewObjInput)){
 		
-   		var x = 50 + 400* Math.random();
-		var y = 100+ 400* Math.random();
+   		var x = 50 + 400 * Math.random();
+		var y = 100+ 400 * Math.random();
 		
 		var displayVal = obj.data ;
 		if(obj.deviceType =="Button" || obj.deviceType =="Buzzer")  displayVal = "OFF";
 		else displayVal = "0%";		
 		
-		obj.viewObj = drawHardwareBlock(obj.blockID, x , y , obj.deviceIDNum , obj.deviceType , displayVal);
+		this.viewObj = drawHardwareBlock(this.blockID, x , y , obj.deviceIDNum , obj.deviceType, obj.displayName , displayVal);
 	} 
-
-	// Called when the block state has changed - update data and view
-	this.update = function(fromBlockID,msg){
-		// console.log("Updating hardware block:" + obj.devName);
-
-		// Update data - hardware state
-		var newVal = msg[2];
-
-		// Update View		
-		
-		if(msg[0] == 144){ // If the message type is note on/off use string label instead of number
-			newVal = 100;
-			$("#sensorVal"+obj.deviceIDNum).text("ON");
-		}
-		else if (msg[0] == 128){
-			newVal = 0;
-			$("#sensorVal"+obj.deviceIDNum).text("OFF");		
-		}
-
-		// control change for pitch wheel
-		else if (msg[0] == 227 || msg[0] == 176 ){
-			var sensorPercent = Math.floor(100*msg[2]/127);
-			newVal = sensorPercent;
-			// special case for temperature
-			if(obj.devName =="Temp") {
-				var temperature = 25 + (sensorPercent%50); 
-				$("#sensorVal"+obj.deviceIDNum).text( temperature +"°C");
-			}
-			else {				
-				$("#sensorVal"+obj.deviceIDNum).text( sensorPercent +"%");
-			}
-		}
-
-		$("#sensorVal"+obj.deviceIDNum).val(newVal);
-
-		obj.data = newVal;
-	}
-
-	this.onReceiveMessage = function(fromBlockID,msg){
-		console.log("Hardware: " + obj.devName +" blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
-
-		// If we were the hardware the generated the message
-		if (obj.blockID == fromBlockID){
-			// console.log("Hardware: " + obj.devName + " message to self");
-			// process the message if needed here e.g. check valid message cleaning...
-		}
-		// If the message containes a new value update hardware block
-		if( msg) obj.update(fromBlockID,msg);			
-		
-		if(obj.deviceDirection == "Input"){ // If we have input e.g. buzzer
-			midi_out(obj.devName,[msg[0],msg[1],msg[2]]);
-		}
-		else if (obj.deviceDirection == "Output"){ // Sensor
-			obj.sendToAllOutputs(msg);	// Send to any connected output blocks
-		}
-		else{
-			console.log("Error: HwBlock should be an output or input device!");
-		}	
-	};
 	
 	this.sendToAllOutputs = function(msg){		
 		for (targetBlockID in obj.outConnections){
@@ -268,6 +212,66 @@ function HwBlock(devName,viewObjInput){
 HwBlock.prototype = new BlockObjectClone();
 HwBlock.prototype.constructor = HwBlock;
 
+HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("Hardware: " + this.devName +" blockID:" + this.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
+
+	// If we were the hardware the generated the message
+	if (this.blockID == fromBlockID){
+		// console.log("Hardware: " + obj.devName + " message to self");
+		// process the message if needed here e.g. check valid message cleaning...
+	}
+	
+	// If the message containes a new value update hardware block
+	if (msg) this.update(fromBlockID,msg);			
+	
+	if(this.deviceDirection == "Input"){ // If we have input e.g. buzzer
+		midi_out(this.devName,[msg[0],msg[1],msg[2]]);
+	}
+	else if (this.deviceDirection == "Output"){ // Sensor
+		this.sendToAllOutputs(msg);	// Send to any connected output blocks
+	}
+	else{
+		console.log("Error: HwBlock should be an output or input device!");
+	}	
+};
+
+// Called when the block state has changed - update data and view
+HwBlock.prototype.update = function(fromBlockID,msg){
+	obj = this;
+	// console.log("Updating hardware block:" + obj.devName);
+
+	// Update data - hardware state
+	var newVal = msg[2];
+
+	// Update View		
+	
+	if(msg[0] == 144){ // If the message type is note on/off use string label instead of number
+		newVal = 100;
+		$("#sensorVal"+obj.blockID).text("ON");
+	}
+	else if (msg[0] == 128){
+		newVal = 0;
+		$("#sensorVal"+obj.blockID).text("OFF");		
+	}
+
+	// control change for pitch wheel
+	else if (msg[0] == 227 || msg[0] == 176 ){
+		var sensorPercent = Math.floor(100*msg[2]/127);
+		newVal = sensorPercent;
+		// special case for temperature
+		if(obj.devName =="Temp") {
+			var temperature = 25 + (sensorPercent%50); 
+			$("#sensorVal"+obj.blockID).text( temperature +"°C");
+		}
+		else {				
+			$("#sensorVal"+obj.blockID).text( sensorPercent +"%");
+		}
+	}
+
+	$("#sensorVal"+obj.blockID).val(newVal);
+
+	obj.data = newVal;
+};
 
 HwBlockClone = function () {};
 HwBlockClone.prototype = HwBlock.prototype;
@@ -301,6 +305,122 @@ Buzzer.prototype.onReceiveMessage = function(fromBlockID,msg){
 	console.log("Buzzer on receive message");
 	HwBlock.prototype.onReceiveMessage.call(this, fromBlockID, msg);			
 };
+
+
+function RGB_LED_R(devName, RGB_LED){
+	console.log("creating RGB_LED_R");
+	var obj = this;
+	this.displayName = "RGB_LED-Red";
+	HwBlock.call(this,devName);
+	this.RGB_LED = RGB_LED;
+};
+
+RGB_LED_R.prototype = new HwBlockClone();
+RGB_LED_R.prototype.constructor = RGB_LED_R;
+
+RGB_LED_R.prototype.setColor = function(colorByte){
+		console.log("RGB_R set color " + colorByte);
+		this.RGB_LED.r = colorByte;
+};
+
+RGB_LED_R.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("RGB_LED_R on receive message");
+	this.setColor(msg[2]);
+	HwBlock.prototype.update.call(this, fromBlockID, msg);
+	this.RGB_LED.sendOutColors(msg);
+};
+
+function RGB_LED_G(devName, RGB_LED){
+	console.log("creating RGB_LED_R");
+	var obj = this;
+	this.displayName = "RGB_LED-Green";
+	HwBlock.call(this,devName);
+	this.RGB_LED = RGB_LED;
+};
+
+RGB_LED_G.prototype = new HwBlockClone();
+RGB_LED_G.prototype.constructor = RGB_LED_G;
+
+RGB_LED_G.prototype.setColor = function(colorByte){
+		console.log("RGB_R set color " + colorByte);
+		this.RGB_LED.g = colorByte;
+};
+
+RGB_LED_G.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("RGB_LED_R on receive message");
+	this.setColor(msg[2]);
+	HwBlock.prototype.update.call(this, fromBlockID, msg);
+	this.RGB_LED.sendOutColors(msg);
+};
+
+function RGB_LED_B(devName, RGB_LED){
+	console.log("creating RGB_LED_R");
+	var obj = this;
+	this.displayName = "RGB_LED-Blue";
+	HwBlock.call(this,devName);
+	this.RGB_LED = RGB_LED;
+};
+
+RGB_LED_B.prototype = new HwBlockClone();
+RGB_LED_B.prototype.constructor = RGB_LED_B;
+
+RGB_LED_B.prototype.setColor = function(colorByte){
+		console.log("RGB_R set color " + colorByte);
+		this.RGB_LED.b = colorByte;
+};
+
+RGB_LED_B.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("RGB_LED_R on receive message");
+	this.setColor(msg[2]);
+	HwBlock.prototype.update.call(this, fromBlockID, msg);
+	this.RGB_LED.sendOutColors(msg);
+};
+
+function RGB_LED(devName){
+	console.log("creating RGB_LED");
+	var obj = this;
+	this.devName = devName;
+	this.deviceDirection = "Input";
+	
+	this.r = 0;
+	this.g = 0;
+	this.b = 0;
+	
+	this.rgb_led_r = new RGB_LED_R(devName, obj);
+	this.rgb_led_g = new RGB_LED_G(devName, obj);
+	this.rgb_led_b = new RGB_LED_B(devName, obj);
+	
+	this.sendOutColors = function(msg){
+			var r = obj.r;
+			var g = obj.g;
+			var b = obj.b;
+			
+			console.log("RGB_LED Sending Out Colors: " + r +" " + g +" "+ b);
+			
+			var r_msg = [0,0,0];
+			var g_msg = [0,0,0];
+			var b_msg = [0,0,0];
+	
+			r_msg[0] = msg[0];
+			r_msg[1] = msg[1];
+			//r_msg[2] = this.r;
+			r_msg[1] = r;
+	
+			g_msg[0] = msg[0];
+			g_msg[1] = msg[1];
+			g_msg[2] = g;
+	
+			b_msg[0] = msg[0];
+			b_msg[1] = msg[1];
+			b_msg[2] = b;
+	
+			midi_out(obj.devName,[msg[0],0,this.r]);
+ 			midi_out(obj.devName,[msg[0],1,this.g]);
+ 			midi_out(obj.devName,[msg[0],2,this.b]);
+
+	};
+};
+
 
 
 function CodeBlock(x,y,viewObjInput){
@@ -696,14 +816,20 @@ function checkForMidiDevices(){
     	var currDeviceName = deviceList[i];
     	var foundBlockId = app.findBlockID(currDeviceName);
     	
-    	if ( !foundBlockId ) { // if no device yet created
+    	if (!foundBlockId ) { // if no device yet created
     		console.log("Found new midi device to connect to:" + currDeviceName );
     		
-    		var newHwBlock = new HwBlock(currDeviceName);
-
-    		if( newHwBlock.deviceDirection == "Input" ){// output
+    		if(currDeviceName.substring(0, currDeviceName.length - 2) == "RGB_LED"){
+    			var newHwBlock = new RGB_LED(currDeviceName);
+    		}
+    		else{
+    			var newHwBlock = new HwBlock(currDeviceName);
+    		}
+    		
+    		if(newHwBlock.deviceDirection == "Input" ){// output
     			app.Pool.OpenMidiOut(currDeviceName);
-    		}       		      		
+    		}      
+    		 		      		
     		// Always add new devices as possible midi inputs (so any device can receive MIDI messages )
    			app.Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){onNewMidiMsg(name,a);};}(deviceList[i]));        							        		
     	}
@@ -848,8 +974,8 @@ function updateConnections (info, shouldRemove){
 	var sourceName = app.blockObjects[sourceID].devName; // remove any underscores
 	var targetName = app.blockObjects[targetID].devName;
 	
-	// console.log("source name: " + sourceName + " sourceID: " + sourceID);
-	// console.log("target name: " + targetName + " targetID: " + targetID);
+	 console.log("source name: " + sourceName + " sourceID: " + sourceID);
+	 console.log("target name: " + targetName + " targetID: " + targetID);
 	
 	if (shouldRemove){
 		app.blockObjects[sourceID].removeOutputConnection(app.blockObjects[targetID]);

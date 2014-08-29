@@ -66,7 +66,7 @@ function circle2(){
     context.stroke();
 }
 
-function drawHardwareBlock(blockId, x,y, sensorid , sensorName, initialVal){
+function drawHardwareBlock(blockId, x,y, sensorid , sensorName, displayName, initialVal){
 	
 	if(!x) x = 400;
 	if(!y) y= 400;
@@ -81,15 +81,15 @@ function drawHardwareBlock(blockId, x,y, sensorid , sensorName, initialVal){
 
     // override th enode div ID to be sensor container
     // nodeDiv.id = sensorName+"-"+sensorid + "_container";
-    nodeDiv.id = "block-"+blockId;
+    nodeDiv.id = "block-"+ blockId;
 
 	$(textDiv).addClass("sensorValue")
-			  .attr("id","sensorVal" + sensorid)
+			  .attr("id","sensorVal" + blockId)
 			  .text(initialVal);
 
 	$(labelDiv).addClass("sensorLabel")
-			  .attr("id","sensorLabel" + sensorid)
-			  .text(sensorName);
+			  .attr("id","sensorLabel" + blockId)
+			  .text(displayName);
 
 
 	$(nodeDiv).addClass("sensorNodeContainer")

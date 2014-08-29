@@ -468,25 +468,23 @@ int main()
 
 		wdt_reset();
 		usbPoll();
- 		
 		
+		#ifdef INCLUDE_RGB_LED_FW
+		if (module_type == RGB_LED) {
+			rgb_led_main_loop();
+		}
+		#endif
+			
 		if (usbInterruptIsReady()) {
-	
-			#ifdef INCLUDE_RGB_LED_FW
- 			if (module_type == RGB_LED) {
-  				rgb_led_main_loop();
- 			}
+			#ifdef INCLUDE_KNOB_FW
+			if (module_type == KNOB) {
+				knob_main_loop(uADC);
+			}
 			#endif
 	
 			#ifdef INCLUDE_OUTPUT_FW
 			if (module_type == OUTPUT) {
  				output_main_loop();
-			}
-			#endif
-
-			#ifdef INCLUDE_KNOB_FW
-			if (module_type == KNOB) {
-				knob_main_loop(uADC);
 			}
 			#endif
 

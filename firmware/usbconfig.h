@@ -246,7 +246,7 @@ extern void hadUsbReset(void);
 #elif MODULE_TYPE==OUTPUT
 	#define  USB_CFG_DEVICE_ID       0xe4, 0x08 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==RGB_LED
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x01 /* = 0x05dc = 1500 */
+	#define  USB_CFG_DEVICE_ID       0xe4, 0x05 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==COMPASS
 	#define  USB_CFG_DEVICE_ID       0xe4, 0x02 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==ACCELEROMETER
@@ -305,7 +305,7 @@ extern void hadUsbReset(void);
 #	define USB_CFG_DEVICE_NAME_LEN 7
  
  #elif MODULE_TYPE==RGB_LED
- #	define USB_CFG_DEVICE_NAME     'R','G','B','_','L','E','D','-','1'
+ #	define USB_CFG_DEVICE_NAME     'R','G','B','_','L','E','D','-','5'
  #	define USB_CFG_DEVICE_NAME_LEN 9
  
 #elif MODULE_TYPE==COMPASS
