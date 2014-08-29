@@ -107,6 +107,24 @@ unsigned char I2C_Write(unsigned char c)
     //return 0;
 }
 
+
+// write a byte to the I2C slave device
+//
+unsigned char I2C_Write_No_Ack(unsigned char c)
+{
+	char i;
+    for (i = 0; i < 8; i++)
+    {
+        I2C_WriteBit(c & 128);
+
+        c <<= 1;
+    }
+
+    //return I2C_ReadBit();
+    return 0;
+}
+
+
 // I2C slave device addr is typically given as two hex numbers even
 // though it is only 7 bits.  Shift left 1 and leave last bit for read
 // or write bit

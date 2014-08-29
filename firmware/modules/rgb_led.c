@@ -27,12 +27,12 @@ void sendColor(unsigned char red, unsigned char green, unsigned char blue)
     if ((green & 0x40) == 0)    prefix|= 0b00000100;
     if ((red & 0x80) == 0)      prefix|= 0b00000010;
     if ((red & 0x40) == 0)      prefix|= 0b00000001;
-    I2C_Write(prefix);
+    I2C_Write_No_Ack(prefix);
         
     // Now must send the 3 colors
-    I2C_Write(blue);
-    I2C_Write(green);
-    I2C_Write(red);
+    I2C_Write_No_Ack(blue);
+    I2C_Write_No_Ack(green);
+    I2C_Write_No_Ack(red);
 }
 
 
@@ -40,17 +40,17 @@ void sendColor(unsigned char red, unsigned char green, unsigned char blue)
 void setColorRGB(unsigned char red, unsigned char green, unsigned char blue)
 {
     // Send data frame prefix (32x "0")
-    I2C_Write(0x00);
-    I2C_Write(0x00);
-    I2C_Write(0x00);
-    I2C_Write(0x00);
+    I2C_Write_No_Ack(0x00);
+    I2C_Write_No_Ack(0x00);
+    I2C_Write_No_Ack(0x00);
+    I2C_Write_No_Ack(0x00);
     
      
 	sendColor(red, green, blue);
 
     // Terminate data frame (32x "0")
-    I2C_Write(0x00);
-    I2C_Write(0x00);
-    I2C_Write(0x00);
-    I2C_Write(0x00);
+    I2C_Write_No_Ack(0x00);
+    I2C_Write_No_Ack(0x00);
+    I2C_Write_No_Ack(0x00);
+    I2C_Write_No_Ack(0x00);
 }
