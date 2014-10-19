@@ -54,8 +54,6 @@ function masterClayKeyDownHander(event){
 function deselectAllObjects(){ $(".selected").removeClass("selected");}
 
 function masterClayClickHander(event){
-
-
     var x = event.pageX;
     var y = event.pageY;
     if(World.printMouseClick) console.log("Got click at ( " + x + " , " + y + " )") ;
@@ -72,8 +70,8 @@ function masterClayClickHander(event){
     // Depending on what we clicked launch some other click handlers
 
     // Click on empty space is a click on the body of main html document
-    if (elemType == "html" || elemType == "body"){
-        gotClickInEmptySpace(event);        
+    if ($("#"+elem.id).hasClass("section")){
+        gotClickInWorkSpace(event);        
     }
 
     // if you clicked on an object set the selected property
@@ -101,7 +99,7 @@ function drawCodeBlock(id, x , y ,w ,h){
     var y = y - 30; //offsets for draggablediv
 
     // Wrapp div in draggable div
-    var container = createDraggableContainer(id,x,y);
+    var container = createDraggableContainer(x,y,id);
     var divElem = createDiv(0,0,w,h,true,"relative");// Creating a contentEditable div
     append(divElem,container);
     append(container);    
@@ -129,11 +127,10 @@ function drawCodeBlock(id, x , y ,w ,h){
     return divElem;
 }
 
-function createDraggableContainer(id,x,y){
+function createDraggableContainer(x,y,id){
 
     divElem = document.createElement("div");
-
-
+    
     divElem.style.position ="absolute";
     divElem.style.top = y +"px";
     divElem.style.left = x + "px";
@@ -141,8 +138,8 @@ function createDraggableContainer(id,x,y){
     // Add unique id to each canvas cell
     
     // var idString = "" + getUniqueId();
-    var idString = "block-" + id;
-    divElem.id = idString;
+     var idString = "block-" + id;
+     divElem.id = idString;
 
     divElem.classList.add("draggable");
     // $( divElem ).draggable({ cancel: ".editable" });
@@ -178,7 +175,7 @@ function lostCellFocus(event){
     
 }
 
-function gotClickInEmptySpace( event){
+function gotClickInWorkSpace( event){
 
     var x = event.pageX;
     var y = event.pageY;

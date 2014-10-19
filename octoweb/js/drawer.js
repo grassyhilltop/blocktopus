@@ -66,15 +66,27 @@ function circle2(){
     context.stroke();
 }
 
-function drawHardwareBlock(blockId, x,y, sensorid , sensorName, displayName, initialVal){
+function drawHardwareBlock(blockId, sensorid , sensorName, displayName, initialVal){
+	var section;
+// 	var app = new App();
+	var menu = document.getElementById("menu");
 	
-	if(!x) x = 400;
-	if(!y) y= 400;
 	if(!sensorName) sensorName= "sensor";
+	
+	if(app.getDeviceTypeFromName(sensorName)  == "Output"){ // Input
+		section = document.getElementById("section1");
+	}
+	else{
+		section = document.getElementById("section3");
+	}
+	var boundingBoxSection = section.getBoundingClientRect();
+	var boundingBoxMenu = section.getBoundingClientRect();
+	y = boundingBoxSection.top;
+	x = 200 + 200 * blockId;
 
     var radius = 100;
 	var circleContainer = circle(radius,"transparent");	
-	var nodeDiv = createDraggableContainer(x,y,50,50);
+	var nodeDiv = createDraggableContainer(x,y,1);
 	var textDiv = document.createElement("div");
 	var labelDiv = document.createElement("div");
 	
@@ -103,11 +115,11 @@ function drawHardwareBlock(blockId, x,y, sensorid , sensorName, displayName, ini
     //JSplumb add connectors
     // If is input just add one connector on top
     // if(sensorTypes[sensorName]  == 2){ // Input
-    if(getDeviceTypeFromName(sensorName)  == "Input"){ // Input
+    if(app.getDeviceTypeFromName(sensorName)  == "Input"){ // Input
         _addEndpoints( nodeDiv.id, [], ["TopCenter"]);
     }
     // else if(sensorTypes[sensorName]  == 1){ // Output
-    else if(getDeviceTypeFromName(sensorName)  == "Output"){ // Output
+    else if(app.getDeviceTypeFromName(sensorName)  == "Output"){ // Output
 
         _addEndpoints( nodeDiv.id, ["BottomCenter"], []);
     }
