@@ -127,13 +127,14 @@ function drawCodeBlock(id, x , y ,w ,h){
     return divElem;
 }
 
-function createDraggableContainer(x,y,id){
+function createDraggableContainer(x,y,id,color){
 
     divElem = document.createElement("div");
     
     divElem.style.position ="absolute";
     divElem.style.top = y +"px";
     divElem.style.left = x + "px";
+    divElem.style.backgroundColor = color;
 
     // Add unique id to each canvas cell
     
@@ -545,13 +546,13 @@ function createTable(numRows, numCols, hasHeader){
 
 }
 
-function createTextInput( id){
+function createTextInput(id){
     elem = createElement("input" , id);
     elem.type = "text";   
     return elem;
 }
 
-function createButton( label , id , actionFn){
+function createButton(label , id , actionFn){
     if(!label) label = "button";
 
     elem = createElement("input", id);

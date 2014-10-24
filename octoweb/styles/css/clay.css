@@ -339,12 +339,42 @@ svg{
     position: absolute;
     text-align: center;
     /*margin-top: 20px;*/
-    margin-top: 50px;
+    margin-top: 20px;
 }
+
+.sensorSlider{
+	width: 150px; 	
+    position: absolute;
+	text-align: center;
+	top: 110px;
+	margin-left: 25px;
+}
+.sensorButton {
+    height: 50px;
+    width: 50px;
+    border-radius: 50px;
+    border: 1px solid #000;
+    position: absolute;
+	text-align: center;
+	top: 95px;
+	left: 75px;
+}
+
+.sensorLED {
+    height: 50px;
+    width: 50px;
+    border-radius: 50px;
+    border: 1px solid #000;
+    position: absolute;
+	text-align: center;
+	top: 95px;
+	left: 75px;
+	background-color: yellow;
+}
+
 
 .sensorLabel{
 	width: 200px;
-
 	font-size: 25px;    	
     position: absolute;
 	text-align: center;

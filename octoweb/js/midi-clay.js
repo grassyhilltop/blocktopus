@@ -3,13 +3,13 @@ window.addEventListener("load",function () {
 });
 
 deviceTypes = {
-	"Knob": {"direction":"Output", "clickHandler": emuKnobClickHandler},
-	"Button": {"direction":"Output", "clickHandler": emuButtonClickHandler},
-	"Slider": {"direction":"Output"},
- 	"Light": {"direction":"Input"},
+	"Knob": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
+	"Button": {"direction":"Output", "addControlElem": emuButtonAddControlElem},
+	"Slider": {"direction":"Output","addControlElem": emuSliderAddControlElem},
+ 	"Light": {"direction":"Input",},
 // 	"Temp": {"direction":"Output"},
 // 	"Tilt": {"direction":"Output"},
-	"LED": {"direction":"Input"},
+	"LED": {"direction":"Input","addControlElem": emuLEDAddControlElem},
 	"RGB_LED": {"direction":"Input"},
 	"Buzzer": {"direction":"Input"}
 };
@@ -38,7 +38,7 @@ function App() {
 	this.addNewBlock = function (block) {
 		obj.blockObjects[block.blockID] = block;
 		// Update display names e.g. block1
-		obj.updateDisplayName(block.blockID);
+		//obj.updateDisplayName(block.blockID);
 	};
 	
 	this.updateDisplayName = function (blockID){
@@ -252,6 +252,7 @@ function HwBlock(devName){
 	this.deviceDirection = app.getDeviceTypeFromName(this.deviceType); // e.g. has Input or Output
 	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : this.deviceType;
 	BlockObject.call(this,undefined);
+
 	console.log("block ID:" + this.blockID);
 	console.log("displayName: " + obj.displayName);
 	
@@ -261,7 +262,7 @@ function HwBlock(devName){
 		if(obj.deviceType =="Button" || obj.deviceType =="Buzzer")  displayVal = "OFF";
 		else displayVal = "0%";		
 		
-		this.viewObj = drawHardwareBlock(this.blockID, obj.deviceIDNum , obj.deviceType, obj.displayName , displayVal);
+		this.viewObj = drawHardwareBlock(this, this.blockID, obj.deviceIDNum , obj.deviceType, obj.displayName , displayVal);
 	}
 };
 
@@ -278,7 +279,9 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	}
 	
 	// If the message containes a new value update hardware block
-	if (msg) this.update(fromBlockID,msg);			
+	if (msg) this.update(fromBlockID,msg);
+	
+	if(this.emuHardwareResponse) this.emuHardwareResponse(msg);
 	
 	if(this.deviceDirection == "Input"){ // If we have input e.g. buzzer
 		midi_out(this.devName,[msg[0],msg[1],msg[2]]);
@@ -343,18 +346,13 @@ RealHwBlockClone = function () {};
 RealHwBlockClone.prototype = RealHwBlock.prototype;
 
 function EmuHwBlock(devName){
-	console.log("creating Knob");
+	console.log("creating Emulated Hardware");
 	HwBlock.call(this,devName);
-	
-	var viewId = "block-"+ this.blockID;
-	console.log("view ID: " + viewId);
-	console.log("view ID: " + this.deviceType);
 	app.addNewEmuHwBlock(this);
+	
 	var devType = this.deviceType;
-	$("#"+viewId).bind("click", function(event) {
-		//TODO: add event handler for emulated hw block
-		deviceTypes[devType]["clickHandler"](event);
-	});
+	var controlID = deviceTypes[devType]["addControlElem"](this);
+	
 };
 
 EmuHwBlock.prototype = new HwBlockClone();
