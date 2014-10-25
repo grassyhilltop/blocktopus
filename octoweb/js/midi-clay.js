@@ -149,10 +149,17 @@ function Menu() {
  	
   	this.addToEmuHwList = function (blockID) {
  		$emuHwList = $("#emulatedList");
-		var $newEmuHwEntry = $("<li></li>");
-		$newEmuHwEntry.text(app.blockObjects[blockID].displayName);
-		$newEmuHwEntry.attr("id", "emu_entry"+blockID);
-		$emuHwList.append($newEmuHwEntry);
+ 		var hwEmuCreated = app.blockObjects[blockID].displayName;
+ 		var block = app.blockObjects[blockID];
+		var newEmuHwEntry = templates.renderEmuHwCreated({name:hwEmuCreated});
+		$emuHwList.append(newEmuHwEntry);
+		
+		//add event handler for click on button
+		var $newEmuHwEntry = $("#"+"hwEmuCreated"+hwEmuCreated);
+		$newEmuHwEntry.bind("click", function(event) {
+			$newEmuHwEntry.parent().remove();
+			app.removeEmuHwBlock(block.blockID);
+		});
  	};
  	
    	this.removeFromEmuHwList = function (blockID) {
