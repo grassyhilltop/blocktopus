@@ -7,12 +7,13 @@ drawer.defaultStrokeW = 2;
 // USING SVG
 //http://blog.blazingcloud.net/2010/09/17/svg-scripting-with-javascript-part-1-simple-circle/
 // returns an svg element - that needs to be appended to a div
-function circle( radius, color, strokeColor, strokeWidth ){
+function circle( radius, color, strokeColor, strokeWidth, opacity ){
 
     if ( ! radius) radius = 60;
     if ( ! color ) color = "grey"; // "#336699";
     if ( ! strokeColor ) strokeColor = "black";
     if ( ! strokeWidth ) strokeWidth = drawer.defaultStrokeW;
+    if ( ! opacity ) opacity = 1 ;
 
     // Create the container for the SVG
     var container = document.getElementById("svgContainer");
@@ -35,6 +36,7 @@ function circle( radius, color, strokeColor, strokeWidth ){
     // Set the width of the svg to fit around the circle
     mySvg.setAttribute("width", radius*2 + strokeWidth*2);
     mySvg.setAttribute("height", radius*2 + strokeWidth*2);
+    mySvg.setAttribute("opacity", opacity);
     // mySvg.setAttribute("top", "500");
     // mySvg.setAttribute("left", "500");
 
@@ -66,30 +68,87 @@ function circle2(){
     context.stroke();
 }
 
-function drawHardwareBlock(blockId, x,y, sensorid , sensorName, initialVal){
+function hardwareBlockAddSlider(block){
+	var sliderDiv = document.createElement("div");
+	$(sliderDiv).addClass("sensorSlider");
 	
-	if(!x) x = 400;
-	if(!y) y= 400;
+	$("#block-"+block.blockID).append(sliderDiv);
+
+	$(sliderDiv).slider({
+		slide: function( event, ui ) {
+			var msg = midiPitchMsg(ui.value);
+        	block.onReceiveMessage(block.blockID, msg);
+        }
+	});
+};
+
+function hardwareBlockAddButton(block){
+	var button = document.createElement("BUTTON");
+
+	$(button).addClass("sensorButton");
+	$("#block-"+block.blockID).append(button);
+
+	$(button).bind("click", function(event) {
+		var msg;
+		if(block.data === 100){
+			msg = midiOffMsg();
+		}else{
+			msg = midiOnMsg();
+		}
+		block.onReceiveMessage(block.blockID, msg);
+	});
+};
+
+function hardwareBlockAddLED(block){
+	var ledDiv = document.createElement("DIV");
+	$(ledDiv).addClass("sensorLED");
+	$("#block-"+block.blockID).append(ledDiv);
+	
+	block.emuHardwareResponse = function(msg) {
+		var value = convertMidiMsgToNumber(msg);
+		value = (value/100).toString();
+		console.log("new value :" +value);
+		ledDiv.style.opacity = value;
+	};
+};
+
+function drawHardwareBlock(block, blockId, sensorid , sensorName, displayName, initialVal){
+	var section;
+	var menu = document.getElementById("menu");
+	var color = block.deviceIDNum === "E" ? "#FDC68A" : "#7BCDC8";
+	var opacity = .25;
+	
 	if(!sensorName) sensorName= "sensor";
+	
+	if(app.getDeviceTypeFromName(sensorName)  == "Output"){ // Input
+		section = document.getElementById("section1");
+	}
+	else{
+		section = document.getElementById("section3");
+	}
+	var boundingBoxSection = section.getBoundingClientRect();
+	var boundingBoxMenu = section.getBoundingClientRect();
+	y = boundingBoxSection.top;
+	x = 200 + 200 * blockId;
 
     var radius = 100;
-	var circleContainer = circle(radius,"transparent");	
-	var nodeDiv = createDraggableContainer(x,y,50,50);
+	var circleContainer = circle(radius,color, undefined, undefined, opacity);	
+	var nodeDiv = createDraggableContainer(x,y,1);
 	var textDiv = document.createElement("div");
 	var labelDiv = document.createElement("div");
 	
 
     // override th enode div ID to be sensor container
     // nodeDiv.id = sensorName+"-"+sensorid + "_container";
-    nodeDiv.id = "block-"+blockId;
+    nodeDiv.id = "block-"+ blockId;
 
 	$(textDiv).addClass("sensorValue")
-			  .attr("id","sensorVal" + sensorid)
+			  .attr("id","sensorVal" + blockId)
 			  .text(initialVal);
 
 	$(labelDiv).addClass("sensorLabel")
-			  .attr("id","sensorLabel" + sensorid)
-			  .text(sensorName);
+			  .attr("id","sensorLabel" + blockId)
+			  .text(displayName);
 
 
 	$(nodeDiv).addClass("sensorNodeContainer")
@@ -103,11 +162,11 @@ function drawHardwareBlock(blockId, x,y, sensorid , sensorName, initialVal){
     //JSplumb add connectors
     // If is input just add one connector on top
     // if(sensorTypes[sensorName]  == 2){ // Input
-    if(getDeviceTypeFromName(sensorName)  == "Input"){ // Input
+    if(app.getDeviceTypeFromName(sensorName)  == "Input"){ // Input
         _addEndpoints( nodeDiv.id, [], ["TopCenter"]);
     }
     // else if(sensorTypes[sensorName]  == 1){ // Output
-    else if(getDeviceTypeFromName(sensorName)  == "Output"){ // Output
+    else if(app.getDeviceTypeFromName(sensorName)  == "Output"){ // Output
 
         _addEndpoints( nodeDiv.id, ["BottomCenter"], []);
     }

@@ -1,13 +1,25 @@
-window.addEventListener("load",setupMidi);
+window.addEventListener("load",function () {
+	app = new App();
+});
 
-var app = new App();
+deviceTypes = {
+	"Knob": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
+	"Button": {"direction":"Output", "addControlElem": emuButtonAddControlElem},
+	"Slider": {"direction":"Output","addControlElem": emuSliderAddControlElem},
+ 	"Light": {"direction":"Input",},
+// 	"Temp": {"direction":"Output"},
+// 	"Tilt": {"direction":"Output"},
+	"LED": {"direction":"Input","addControlElem": emuLEDAddControlElem},
+	"RGB_LED": {"direction":"Input"},
+	"Buzzer": {"direction":"Input"}
+};
 
 function App() {
 	var obj = this;
 	this.numBlocks = 0;
 	this.blockObjects = {};
 	this.blockTypeCounts = {};
-	this.hwObjects = {};
+	this.realHwObjects = {};
 
 	// Midi Pool variables
 	this.Pool;
@@ -19,17 +31,19 @@ function App() {
 		return obj.numBlocks++;
 	};
 	
+	this.getDeviceTypeFromName = function (deviceName){
+		return deviceTypes[deviceName]["direction"];
+	}
+	
 	this.addNewBlock = function (block) {
 		obj.blockObjects[block.blockID] = block;
-		
 		// Update display names e.g. block1
-		obj.updateDisplayName(block.blockID);
+		//obj.updateDisplayName(block.blockID);
 	};
 	
 	this.updateDisplayName = function (blockID){
-		
 		var currBlock = obj.blockObjects[blockID];
-
+		
 		var typeName ="";
 		if (currBlock.type == "hw")	typeName =  currBlock.deviceType;	
 		else typeName = currBlock.type; 	
@@ -45,11 +59,9 @@ function App() {
 	}
 
 	this.removeBlock = function (blockID) {
-
 		console.log("removing block with id: " + blockID );
 		
 		var blockToRemove = obj.blockObjects[blockID];
-
 		blockToRemove.deleteView();
 
 		var deviceType = blockToRemove.type;
@@ -61,28 +73,48 @@ function App() {
 		delete obj.blockObjects[blockID];
 	};
 
-	this.addNewHwBlock = function (hwBlock) {
+	this.addNewRealHwBlock = function (hwBlock) {
+		console.log("adding new Hw Block!");
 		obj.addNewBlock(hwBlock);
-		obj.hwObjects[hwBlock.blockID] = hwBlock;
+		obj.realHwObjects[hwBlock.blockID] = hwBlock;
+		this.menu.addToHwList(hwBlock.blockID);
 	};
 	
-	this.removeHwBlock = function (blockID) {
-
+	this.removeRealHwBlock = function (blockID) {
+		this.menu.removeFromHwList(blockID);
 		obj.removeBlock(blockID);
-		delete obj.hwObjects[blockID];
+		delete obj.realHwObjects[blockID];
+	};
+	
+	this.addNewEmuHwBlock = function (hwBlock) {
+		obj.addNewBlock(hwBlock);
+		this.menu.addToEmuHwList(hwBlock.blockID);
+	};
+	
+	this.removeEmuHwBlock = function (blockID) {
+		this.menu.removeFromEmuHwList(blockID);
+		obj.removeBlock(blockID);
 	};
 
-
-
 	this.findBlockID = function (devName){
-		for (blockID in obj.hwObjects){
-			if(obj.hwObjects[blockID].devName == devName){
+		for (blockID in obj.realHwObjects){
+			if(obj.realHwObjects[blockID].devName == devName){
 				return blockID;
 			}
 		}
 	};
 
 	// MIDI FUNCTIONS
+	this.setupMidi = function () {
+		console.log("Setting up midi");
+	
+		/// USING JAZZ PLUGING
+		this.setupMidiPool();
+
+		// Poll for new midi devices
+		this.midiDevicePollTimer = setInterval( checkForMidiDevices, 1000);
+
+	}
 
 	this.setupMidiPool = function (){
 		try{
@@ -90,22 +122,73 @@ function App() {
 		}
 		catch(err){ alert(err);}
 	}
+	
+	// Functions to call when the app is first opened
+		this.setupMidi();
+		this.menu = new Menu();
+		this.menu.addEmuHwBtns(deviceTypes);
+	//
 };
 
-function getDeviceTypeFromName(deviceName){
-	var deviceTypes = {
-	"Knob": "Output",
-	"Button": "Output",
-	"Slider": "Output",
-	"Light": "Input",
-	"Temp": "Output",
-	"Tilt": "Output",
-	"LED": "Input",
-	"Buzzer": "Input"
-	};
-
-	return deviceTypes[deviceName];
-}
+function Menu() {
+	var $menuDiv = $("#menu");
+	var $hwList = $("#hardwareList");
+	 
+ 	this.addToHwList = function (blockID) {
+ 		$hwList = $("#hardwareList");
+		var $newHwEntry = $("<li></li>");
+		$newHwEntry.text(app.blockObjects[blockID].displayName);
+		$newHwEntry.attr("id", "hw_entry"+blockID);
+		$hwList.append($newHwEntry);
+ 	};
+ 	
+  	this.removeFromHwList = function (blockID) {
+ 		$hwEntry = $("#hw_entry"+blockID);
+		$hwEntry.remove();
+ 	};
+ 	
+  	this.addToEmuHwList = function (blockID) {
+ 		$emuHwList = $("#emulatedList");
+ 		var hwEmuCreated = app.blockObjects[blockID].displayName;
+ 		var block = app.blockObjects[blockID];
+		var newEmuHwEntry = templates.renderEmuHwCreated({name:hwEmuCreated});
+		$emuHwList.append(newEmuHwEntry);
+		
+		//add event handler for click on button
+		var $newEmuHwEntry = $("#"+"hwEmuCreated"+hwEmuCreated);
+		$newEmuHwEntry.bind("click", function(event) {
+			$newEmuHwEntry.parent().remove();
+			app.removeEmuHwBlock(block.blockID);
+		});
+ 	};
+ 	
+   	this.removeFromEmuHwList = function (blockID) {
+ 		$emuHwEntry = $("#emu_entry"+blockID);
+		$emuHwEntry.remove();
+ 	};
+ 	
+ 	this.addEmuHwBtns = function(devices){
+ 		console.log("adding emulated hardware buttons");
+ 		$emuHwOptList = $("#emulationOptionsList");
+ 		
+ 		for (var key in devices){
+ 			//add html for button
+ 			var newEmuHwBtnHTML = templates.renderEmuHwBtn({name:key});
+ 			$emuHwOptList.append(newEmuHwBtnHTML);
+ 			
+ 			//add event handler for click on button
+ 			var newEmuHwBtnElem = $("#"+"hwEmuBtn"+key);
+ 			newEmuHwBtnElem.bind("click", function(event) {
+ 				var target = event.target;
+ 				var emuHwType = target.id.substr(8) + "-E";
+ 				console.log("new emulated hw :" + emuHwType + " clicked");
+ 				var newEmuHw = new EmuHwBlock(emuHwType, true);
+ 			});
+		};
+		
+ 	};
+ 	
+};
 
 function BlockObject(viewObj){
 	console.log("creating block object");
@@ -114,15 +197,14 @@ function BlockObject(viewObj){
 	this.inConnections = {};
 	this.outConnections = {};
 	this.blockID = app.newBlockID();
-	this.type = "block";
-	this.displayName = "block";
-	this.value = 0;
+	this.type = typeof this.type !== 'undefined' ? this.type : "block";
+	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : "block";
+	this.data = typeof this.data !== 'undefined' ? this.data : 0;
 };
 BlockObjectClone = function () {};
 BlockObjectClone.prototype = BlockObject.prototype;
 
 BlockObject.prototype.deleteView = function(){
-	
 	console.log("deleting view!");	
 	g1 = this;
 
@@ -166,141 +248,240 @@ BlockObject.prototype.sendMsg = function(targetBlockID, msg){
 	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
 };
 
-function HwBlock(devName,viewObjInput){
-	
+function HwBlock(devName){
 	console.log("Creating new hardware block with name:" + devName);
-
 	var obj = this;
-	BlockObject.call(this,viewObjInput);
-	this.type = "hw";						 // object type	 
+	this.type = "hw";						 // object type
 	this.devName = devName; 	             // Assumes midi device name in format "button-5"
 	this.deviceType = devName.split("-")[0]; // Just the type part of the name "button"
 	this.deviceIDNum = devName.split("-")[1];// Just the numerical part of the name "5"
-	this.displayName = this.deviceType;      // What gets displayed in a block
-	this.data = "0"; 						 // Current state of device
-	this.deviceDirection = getDeviceTypeFromName(this.deviceType); // e.g. has Input or Output
-	app.addNewHwBlock(this);
+	this.data = 0; 						 // Current state of device
+	this.deviceDirection = app.getDeviceTypeFromName(this.deviceType); // e.g. has Input or Output
+	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : this.deviceType;
+	BlockObject.call(this,undefined);
+
+	console.log("block ID:" + this.blockID);
+	console.log("displayName: " + obj.displayName);
 	
 	// Create a default hardware view
-	if(!viewObjInput){
-		
-   		var x = 50 + 400* Math.random();
-		var y = 100+ 400* Math.random();
-		
+	if((undefined === this.viewObj)){
 		var displayVal = obj.data ;
 		if(obj.deviceType =="Button" || obj.deviceType =="Buzzer")  displayVal = "OFF";
 		else displayVal = "0%";		
 		
-		obj.viewObj = drawHardwareBlock(obj.blockID, x , y , obj.deviceIDNum , obj.deviceType , displayVal);
-	} 
-
-	// Called when the block state has changed - update data and view
-	this.update = function(fromBlockID,msg){
-		// console.log("Updating hardware block:" + obj.devName);
-
-		// Update data - hardware state
-		var newVal = msg[2];
-
-		// Update View		
-		
-		if(msg[0] == 144){ // If the message type is note on/off use string label instead of number
-			newVal = 100;
-			$("#sensorVal"+obj.deviceIDNum).text("ON");
-		}
-		else if (msg[0] == 128){
-			newVal = 0;
-			$("#sensorVal"+obj.deviceIDNum).text("OFF");		
-		}
-
-		// control change for pitch wheel
-		else if (msg[0] == 227 || msg[0] == 176 ){
-			var sensorPercent = Math.floor(100*msg[2]/127);
-			newVal = sensorPercent;
-			// special case for temperature
-			if(obj.devName =="Temp") {
-				var temperature = 25 + (sensorPercent%50); 
-				$("#sensorVal"+obj.deviceIDNum).text( temperature +"°C");
-			}
-			else {				
-				$("#sensorVal"+obj.deviceIDNum).text( sensorPercent +"%");
-			}
-		}
-
-		$("#sensorVal"+obj.deviceIDNum).val(newVal);
-
-		obj.data = newVal;
+		this.viewObj = drawHardwareBlock(this, this.blockID, obj.deviceIDNum , obj.deviceType, obj.displayName , displayVal);
 	}
-
-	this.onReceiveMessage = function(fromBlockID,msg){
-		console.log("Hardware: " + obj.devName +" blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
-
-		// If we were the hardware the generated the message
-		if (obj.blockID == fromBlockID){
-			// console.log("Hardware: " + obj.devName + " message to self");
-			// process the message if needed here e.g. check valid message cleaning...
-		}
-		// If the message containes a new value update hardware block
-		if( msg) obj.update(fromBlockID,msg);			
-		
-		if(obj.deviceDirection == "Input"){ // If we have input e.g. buzzer
-			midi_out(obj.devName,[msg[0],msg[1],msg[2]]);
-		}
-		else if (obj.deviceDirection == "Output"){ // Sensor
-			obj.sendToAllOutputs(msg);	// Send to any connected output blocks
-		}
-		else{
-			console.log("Error: HwBlock should be an output or input device!");
-		}	
-	};
-	
-	this.sendToAllOutputs = function(msg){		
-		for (targetBlockID in obj.outConnections){
-			obj.sendMsg(targetBlockID, msg);
-		}
-	};
-	
-	this.sendMsg = function(targetBlockID, msg){
-		console.log( obj.devName + " sending message to block id: " + targetBlockID);
-		app.blockObjects[targetBlockID].onReceiveMessage(obj.blockID, msg);
-	};
 };
 
 HwBlock.prototype = new BlockObjectClone();
 HwBlock.prototype.constructor = HwBlock;
 
+HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("Hardware: " + this.devName +" blockID:" + this.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
+
+	// If we were the hardware the generated the message
+	if (this.blockID == fromBlockID){
+		// console.log("Hardware: " + obj.devName + " message to self");
+		// process the message if needed here e.g. check valid message cleaning...
+	}
+	
+	// If the message containes a new value update hardware block
+	if (msg) this.update(fromBlockID,msg);
+	
+	if(this.emuHardwareResponse) this.emuHardwareResponse(msg);
+	
+	if(this.deviceDirection == "Input"){ // If we have input e.g. buzzer
+		midi_out(this.devName,[msg[0],msg[1],msg[2]]);
+	}
+	else if (this.deviceDirection == "Output"){ // Sensor
+		this.sendToAllOutputs(msg);	// Send to any connected output blocks
+	}
+	else{
+		console.log("Error: HwBlock should be an output or input device!");
+	}	
+};
+
+// Called when the block state has changed - update data and view
+HwBlock.prototype.update = function(fromBlockID,msg){
+	obj = this;
+	// console.log("Updating hardware block:" + obj.devName);
+
+	// Update data - hardware state
+	var newVal = msg[2];
+	// Update View		
+	
+	if(msg[0] == 144){ // If the message type is note on/off use string label instead of number
+		newVal = 100;
+		$("#sensorVal"+obj.blockID).text("ON");
+	}
+	else if (msg[0] == 128){
+		newVal = 0;
+		$("#sensorVal"+obj.blockID).text("OFF");		
+	}
+
+	// control change for pitch wheel
+	else if (msg[0] == 227 || msg[0] == 176 ){
+		var sensorPercent = Math.floor(100*msg[2]/127);
+		newVal = sensorPercent;
+		// special case for temperature
+		if(obj.devName =="Temp") {
+			var temperature = 25 + (sensorPercent%50); 
+			$("#sensorVal"+obj.blockID).text( temperature +"°C");
+		}
+		else {				
+			$("#sensorVal"+obj.blockID).text( sensorPercent +"%");
+		}
+	}
+	$("#sensorVal"+obj.blockID).val(newVal);
+
+	obj.data = newVal;
+};
 
 HwBlockClone = function () {};
 HwBlockClone.prototype = HwBlock.prototype;
 
-function Knob(viewObj, devName){
-	var obj = this;
+function RealHwBlock(devName){
 	console.log("creating Knob");
-	HwBlock.call(this,viewObj,devName);
-	this.deviceDirection = "Output";
-
-};
-Knob.prototype = new HwBlockClone();
-Knob.prototype.constructor = Knob;
-
-Knob.prototype.onReceiveMessage = function(fromBlockID,msg){
-	console.log("Knob on receive message");
-	HwBlock.prototype.onReceiveMessage.call(this, fromBlockID, msg);				
+	HwBlock.call(this,devName);
+	app.addNewRealHwBlock(this);
 };
 
-function Buzzer(viewObj, devName){
-	console.log("creating buzzer");
+RealHwBlock.prototype = new HwBlockClone();
+RealHwBlock.prototype.constructor = RealHwBlock;
+
+RealHwBlockClone = function () {};
+RealHwBlockClone.prototype = RealHwBlock.prototype;
+
+function EmuHwBlock(devName){
+	console.log("creating Emulated Hardware");
+	HwBlock.call(this,devName);
+	app.addNewEmuHwBlock(this);
+	
+	var devType = this.deviceType;
+	var controlID = deviceTypes[devType]["addControlElem"](this);
+	
+};
+
+EmuHwBlock.prototype = new HwBlockClone();
+EmuHwBlock.prototype.constructor = EmuHwBlock;
+
+EmuHwBlockClone = function () {};
+EmuHwBlockClone.prototype = EmuHwBlock.prototype;
+
+function RGB_LED_R(devName, RGB_LED){
+	console.log("creating RGB_LED_R");
 	var obj = this;
-	HwBlock.call(this,viewObj,devName);
+	this.displayName = "RGB_LED-Red";
+	RealHwBlock.call(this,devName);
+	this.RGB_LED = RGB_LED;
+};
+
+RGB_LED_R.prototype = new RealHwBlockClone();
+RGB_LED_R.prototype.constructor = RGB_LED_R;
+
+RGB_LED_R.prototype.setColor = function(colorByte){
+		console.log("RGB_R set color " + colorByte);
+		this.RGB_LED.r = colorByte;
+};
+
+RGB_LED_R.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("RGB_LED_R on receive message");
+	this.setColor(msg[2]);
+	HwBlock.prototype.update.call(this, fromBlockID, msg);
+	this.RGB_LED.sendOutColors(msg);
+};
+
+function RGB_LED_G(devName, RGB_LED){
+	console.log("creating RGB_LED_R");
+	var obj = this;
+	this.displayName = "RGB_LED-Green";
+	RealHwBlock.call(this,devName);
+	this.RGB_LED = RGB_LED;
+};
+
+RGB_LED_G.prototype = new RealHwBlockClone();
+RGB_LED_G.prototype.constructor = RGB_LED_G;
+
+RGB_LED_G.prototype.setColor = function(colorByte){
+		console.log("RGB_R set color " + colorByte);
+		this.RGB_LED.g = colorByte;
+};
+
+RGB_LED_G.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("RGB_LED_R on receive message");
+	this.setColor(msg[2]);
+	HwBlock.prototype.update.call(this, fromBlockID, msg);
+	this.RGB_LED.sendOutColors(msg);
+};
+
+function RGB_LED_B(devName, RGB_LED){
+	console.log("creating RGB_LED_R");
+	var obj = this;
+	this.displayName = "RGB_LED-Blue";
+	RealHwBlock.call(this,devName);
+	this.RGB_LED = RGB_LED;
+};
+
+RGB_LED_B.prototype = new RealHwBlockClone();
+RGB_LED_B.prototype.constructor = RGB_LED_B;
+
+RGB_LED_B.prototype.setColor = function(colorByte){
+		console.log("RGB_R set color " + colorByte);
+		this.RGB_LED.b = colorByte;
+};
+
+RGB_LED_B.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("RGB_LED_R on receive message");
+	this.setColor(msg[2]);
+	HwBlock.prototype.update.call(this, fromBlockID, msg);
+	this.RGB_LED.sendOutColors(msg);
+};
+
+function RGB_LED(devName){
+	console.log("creating RGB_LED");
+	var obj = this;
+	this.devName = devName;
 	this.deviceDirection = "Input";
+	
+	this.r = 0;
+	this.g = 0;
+	this.b = 0;
+	
+	this.rgb_led_r = new RGB_LED_R(devName, obj);
+	this.rgb_led_g = new RGB_LED_G(devName, obj);
+	this.rgb_led_b = new RGB_LED_B(devName, obj);
+	
+	this.sendOutColors = function(msg){
+			var r = obj.r;
+			var g = obj.g;
+			var b = obj.b;
+			
+			console.log("RGB_LED Sending Out Colors: " + r +" " + g +" "+ b);
+			
+			var r_msg = [0,0,0];
+			var g_msg = [0,0,0];
+			var b_msg = [0,0,0];
+	
+			r_msg[0] = msg[0];
+			r_msg[1] = msg[1];
+			//r_msg[2] = this.r;
+			r_msg[1] = r;
+	
+			g_msg[0] = msg[0];
+			g_msg[1] = msg[1];
+			g_msg[2] = g;
+	
+			b_msg[0] = msg[0];
+			b_msg[1] = msg[1];
+			b_msg[2] = b;
+	
+			midi_out(obj.devName,[msg[0],0,this.r]);
+ 			midi_out(obj.devName,[msg[0],1,this.g]);
+ 			midi_out(obj.devName,[msg[0],2,this.b]);
+
+	};
 };
 
-Buzzer.prototype = new HwBlockClone();
-Buzzer.prototype.constructor = Buzzer;
-
-Buzzer.prototype.onReceiveMessage = function(fromBlockID,msg){
-	console.log("Buzzer on receive message");
-	HwBlock.prototype.onReceiveMessage.call(this, fromBlockID, msg);			
-};
 
 
 function CodeBlock(x,y,viewObjInput){
@@ -309,7 +490,7 @@ function CodeBlock(x,y,viewObjInput){
 	this.type="sw";
 	this.data = "0";
 	this.displayName = "input";      
-	this.sandbox   = new JSandbox();
+// 	this.sandbox   = new JSandbox();
 	this.result = 0;
 
 	app.addNewBlock(this);
@@ -371,8 +552,8 @@ function CodeBlock(x,y,viewObjInput){
 		var codeBlockJqueryObj = $("#block-"+obj.blockID);
 		// var sourceName = app.blockObjects[fromBlockID].devName;
 		// var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
-		// var result = this.evalCodeBlock();
-		var result = this.evalCodeBlockFromSandBox();
+		var result = this.evalCodeBlock();
+		// var result = this.evalCodeBlockFromSandBox();
 		
 		// Update output field with evaluated result
 		// todo...
@@ -629,19 +810,6 @@ CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
 	this.updateArgumentsView();			
 };
 
-
-
-function setupMidi () {
-	console.log("Setting up midi");
-	
-	/// USING JAZZ PLUGING
-	app.setupMidiPool();
-
-	// Poll for new midi devices
-	app.midiDevicePollTimer = setInterval( checkForMidiDevices, 1000);
-
-}
-
 // On receive of an midi message from a sensor
 function midi_out(name,msg){
 	console.log("Sending midi out to device name:" + name + " msg:" + msg);
@@ -652,16 +820,16 @@ function midi_out(name,msg){
 
 function play_all(){
 	var note=60;
- 	for(var i in app.hwObjects){ 		
- 		midi_out(app.hwObjects[i].devName,[144,note,0x7f]); 
+ 	for(var i in app.realHwObjects){ 		
+ 		midi_out(app.realHwObjects[i].devName,[144,note,0x7f]); 
  		note+=5;
  	}
 }
 
 function stop_all(){
 	var note=60;
-	for(var i in app.hwObjects){ 
-		midi_out(app.hwObjects[i].devName,[128,note,0]); 
+	for(var i in app.realHwObjects){ 
+		midi_out(app.realHwObjects[i].devName,[128,note,0]); 
 		note+=5;
 	}
 }
@@ -682,11 +850,11 @@ function checkForMidiDevices(){
 
 	// DISCONNECTED MODULES
 	// Detect on disconnection of a module - by checking that new device list contains all previously connected
-	for (var blockID in app.hwObjects){
-		var currDeviceName = app.hwObjects[blockID].devName;
+	for (var blockID in app.realHwObjects){
+		var currDeviceName = app.realHwObjects[blockID].devName;
 		// Is the hardware device still present in the midi list ?
 		if ( $.inArray(currDeviceName, deviceList) == -1){ // Returns -1 if A is not in B
-			app.removeHwBlock(blockID);				
+			app.removeRealHwBlock(blockID);				
 		}
 	}
 	
@@ -696,14 +864,20 @@ function checkForMidiDevices(){
     	var currDeviceName = deviceList[i];
     	var foundBlockId = app.findBlockID(currDeviceName);
     	
-    	if ( !foundBlockId ) { // if no device yet created
+    	if (!foundBlockId ) { // if no device yet created
     		console.log("Found new midi device to connect to:" + currDeviceName );
     		
-    		var newHwBlock = new HwBlock(currDeviceName);
-
-    		if( newHwBlock.deviceDirection == "Input" ){// output
+    		if(currDeviceName.substring(0, currDeviceName.length - 2) == "RGB_LED"){
+    			var newHwBlock = new RGB_LED(currDeviceName);
+    		}
+    		else{
+    			var newHwBlock = new RealHwBlock(currDeviceName);
+    		}
+    		
+    		if(newHwBlock.deviceDirection == "Input" ){// output
     			app.Pool.OpenMidiOut(currDeviceName);
-    		}       		      		
+    		}      
+    		 		      		
     		// Always add new devices as possible midi inputs (so any device can receive MIDI messages )
    			app.Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){onNewMidiMsg(name,a);};}(deviceList[i]));        							        		
     	}
@@ -848,8 +1022,8 @@ function updateConnections (info, shouldRemove){
 	var sourceName = app.blockObjects[sourceID].devName; // remove any underscores
 	var targetName = app.blockObjects[targetID].devName;
 	
-	// console.log("source name: " + sourceName + " sourceID: " + sourceID);
-	// console.log("target name: " + targetName + " targetID: " + targetID);
+	 console.log("source name: " + sourceName + " sourceID: " + sourceID);
+	 console.log("target name: " + targetName + " targetID: " + targetID);
 	
 	if (shouldRemove){
 		app.blockObjects[sourceID].removeOutputConnection(app.blockObjects[targetID]);
@@ -990,26 +1164,3 @@ function isAssignmentLine(line){
 	
 	return 	foundMatch;
 }
-
-// Returns a number between 0-100 from a standard midi message
-function convertMidiMsgToNumber(msg){
-	if(!msg || msg.length !=3) {
-		console.log("Error trying to convert invalid midi msg");
-		return;
-	}
-
-	if (msg[0] == 144 ) return 100; // note on
-	if( msg[0] == 128 ) return 0;	// note off
-	if (msg[0] == 227) {			// pitch change
-		var midiVal = msg[2]; //0-127
-		return Math.floor(100*midiVal/127)
-	}		
-}
-
-// Converts a number from 0-100 into a midi message
-function convertPercentToMidiMsg( num ){	
-	if (num == 100 ) return [144,60,69]; 			    // note on
-	else if( num == 0 ) return [128,60,69];	    // note off
-	else return  [227,0,Math.round(127*num/100)];   // continuous pitch change		
-}
-

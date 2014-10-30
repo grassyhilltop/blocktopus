@@ -1,8 +1,47 @@
+.boundary {
+	border: solid;
+	border-width: 1px;
+}
+
+.section {
+	height: 33%;
+}
+
+#menu {
+	height: 100%;
+	width: 200px;
+	float:left;
+	background-color: white;
+	border: solid;
+	border-color: green;
+}
+
+#workspace {
+	height: 100%;
+/* 
+	border: solid;
+	border-color: blue;
+ */
+	position:right;
+}
+
+#hardwareList {
+	border: solid;
+	border-color: red;
+}
 
 /* -------------------------- General Clay CSS  --------------------------*/
+html{
+	height: 100%; 
+	width: 100%; 
+	margin: 0;
+}
 
 body{
 	font-family: inconsolata;
+	height: 650px; 
+	width: 100%; 
+	margin: 0;
 }
 
 
@@ -300,12 +339,42 @@ svg{
     position: absolute;
     text-align: center;
     /*margin-top: 20px;*/
-    margin-top: 50px;
+    margin-top: 20px;
 }
+
+.sensorSlider{
+	width: 150px; 	
+    position: absolute;
+	text-align: center;
+	top: 110px;
+	margin-left: 25px;
+}
+.sensorButton {
+    height: 50px;
+    width: 50px;
+    border-radius: 50px;
+    border: 1px solid #000;
+    position: absolute;
+	text-align: center;
+	top: 95px;
+	left: 75px;
+}
+
+.sensorLED {
+    height: 50px;
+    width: 50px;
+    border-radius: 50px;
+    border: 1px solid #000;
+    position: absolute;
+	text-align: center;
+	top: 95px;
+	left: 75px;
+	background-color: yellow;
+}
+
 
 .sensorLabel{
 	width: 200px;
-
 	font-size: 25px;    	
     position: absolute;
 	text-align: center;

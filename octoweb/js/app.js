@@ -9,13 +9,11 @@ console.log("hello from application");
 //////////////////////////	INIT ON LOAD //////////////////////////
 
 $( document ).ready(function() {
-
-
+	
 	// Everywhere is draggable except content editable areas
 	// $( "div.draggable" ).draggable({ cancel: ".editable" });
 
 	//////////////////////////////////// Test code 
-
  });
 
 

@@ -293,6 +293,12 @@ void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 	}
 #endif
 
+#ifdef INCLUDE_RGB_LED_FW
+	if (module_type == RGB_LED){
+		rgb_led_usb_input_handler(midiMsg,len);
+	}
+#endif
+
 }
 
 /* ------------------------------------------------------------------------- */
@@ -467,25 +473,23 @@ int main()
 
 		wdt_reset();
 		usbPoll();
- 		
 		
+		#ifdef INCLUDE_RGB_LED_FW
+		if (module_type == RGB_LED) {
+			rgb_led_main_loop();
+		}
+		#endif
+			
 		if (usbInterruptIsReady()) {
-	
-			#ifdef INCLUDE_RGB_LED_FW
- 			if (module_type == RGB_LED) {
-  				rgb_led_main_loop();
- 			}
+			#ifdef INCLUDE_KNOB_FW
+			if (module_type == KNOB) {
+				knob_main_loop(uADC);
+			}
 			#endif
 	
 			#ifdef INCLUDE_OUTPUT_FW
 			if (module_type == OUTPUT) {
  				output_main_loop();
-			}
-			#endif
-
-			#ifdef INCLUDE_KNOB_FW
-			if (module_type == KNOB) {
-				knob_main_loop(uADC);
 			}
 			#endif
 
@@ -524,7 +528,6 @@ ISR(TIMER1_OVF_vect)
 	}else{
 		// blink();							// This causes module to not be identified sometimes??
 		// PORTB ^= _BV(STATUS_LED_PORT);	// Toggle LED - this works
-
 	}
 
 	// Reset timer 1 counter (Only necessary if timer 1 compare match interrupt instead of
