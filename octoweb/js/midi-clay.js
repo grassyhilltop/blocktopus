@@ -151,11 +151,12 @@ function Menu() {
  		$emuHwList = $("#emulatedList");
  		var hwEmuCreated = app.blockObjects[blockID].displayName;
  		var block = app.blockObjects[blockID];
-		var newEmuHwEntry = templates.renderEmuHwCreated({name:hwEmuCreated});
+ 		var id = blockID;
+		var newEmuHwEntry = templates.renderEmuHwCreated({id:id,name:hwEmuCreated});
 		$emuHwList.append(newEmuHwEntry);
 		
 		//add event handler for click on button
-		var $newEmuHwEntry = $("#"+"hwEmuCreated"+hwEmuCreated);
+		var $newEmuHwEntry = $("#"+"hwEmuCreated"+blockID);
 		$newEmuHwEntry.bind("click", function(event) {
 			$newEmuHwEntry.parent().remove();
 			app.removeEmuHwBlock(block.blockID);
