@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title> hello </title>
+<!--     // <script src="js/libraries/dom.jsPlumb-1.6.2-min.js"></script>   -->
+   <link rel="stylesheet" href="https://code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="https://code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+    <link rel="stylesheet" href="/stylesheets/css/clay.css">
+<!--     // <script src="js/clay.js"></script> -->
+<!-- 
+    <script src="js/libraries/jquery-1.11.1.js"></script>  
+    <script src="js/libraries/jquery-ui.js"></script>  
+ -->
+    <script type="text/javascript" src="/javascripts/libraries/jquery.jsPlumb-1.6.2-min.js"></script>  
+    <script type="text/javascript" src="/javascripts/libraries/midi.js"></script>
+    <script type="text/javascript" src="/javascripts/libraries/emulatedHwEventHandlers.js"></script>  
+
+    <style>
+
+    
+    .test{
+        position: absolute;
+        height: 50px;
+        width: 50px;
+        background-color: grey;
+    }
+
+    .hidden{ visibility: hidden;}
+    </style>
+
+</head>
+
+<body>
+	<script type="text/javascript"></script>
+	<div id="header"> 		
+		<h1 id="title"> Electric Octopus </h1>
+		<button onmousedown='play_all();' onmouseup='stop_all();'>Test note</button>
+	</div>
+	<div id="menu"> 
+		<h1>Add Emulated Hardware Devices</h1>
+		<ul id="emulationOptionsList"></ul>
+		<h1>Connected Hardware Devices</h1>
+		<ul id="hardwareList"></ul>
+		<h1>Emulated Hardware Devices</h1>
+		<ul id="emulatedList"></ul>
+	</div>
+	<div id="workspace"> 
+		<div class="section" id="section1"> </div>
+		<div class="boundary" id="b1"> </div>
+		<div class="section" id="section2"> </div>
+		<div class="boundary" id="b2"> </div>
+		<div class="section" id="section3"> </div>
+	</div>
+	
+	<!-- template to display button for emulated hardware devices -->
+	<script src="/javascripts/libraries/handlebars-v2.0.0.js"></script>
+	<script type="text/x-handlebars-template" id="emulated-hardware-button-template">
+		<li>{{this.name}}<a href="#" class="btn" id="hwEmuBtn{{this.name}}">&#9744;</a></li>
+	</script>
+	<script type="text/x-handlebars-template" id="emulated-hardware-created-template">
+		<li>{{this.name}}<a href="#" class="btn" id="hwEmuCreated{{this.id}}">&#9746;</a></li>
+	</script>
+	<script src="/javascripts/libraries/handlebarsTemplates.js"></script>
+	
+	<script src="/javascripts/creator.js"></script>
+    <script src="/javascripts/app.js"></script>
+    <script src="/javascripts/drawer.js"></script>
+    <script src="/javascripts/midi-clay.js"></script>
+	<link rel="jsandbox" href="/javascripts/libraries/eligrey-jsandbox-88dc252/src/jsandbox-worker.js" />
+	<script type="text/javascript" src="/javascripts/libraries/eligrey-jsandbox-88dc252/src/jsandbox.js"></script>
+</body>
+</html>
+       
+

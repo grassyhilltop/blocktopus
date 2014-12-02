@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+var debug = require('debug')('blocktopusServer');
+var app = require('../app');
+var midi = require('midi');
+
+
+var displayMidi = function() {
+  var input = new midi.input();
+  input.on('message', function(deltaTime, message) {
+    console.log('m:' + message + ' d:' + deltaTime);
+  });
+  console.log("Getting Midi Info \n");
+  var portCount = input.getPortCount();
+  console.log('Port Count : ' + portCount);
+  for(i=0;i<portCount;i++){
+    var portName =  input.getPortName(0);
+    console.log('Name on port 0: ' + portName);
+  }
+  setInterval(displayMidi, 3000);
+  input.closePort();
+};
+
+displayMidi();
+
+app.set('port', process.env.PORT || 3000);
+
+var server = app.listen(app.get('port'), function() {
+  debug('Express server listening on port ' + server.a
