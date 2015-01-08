@@ -1,4 +1,5 @@
-var midi = require('./midi');
+//the midi wrapper that we wrote on top of the node library
+var myMidi = require('./midi');
 
 var app = new App();
 
@@ -6,7 +7,7 @@ deviceTypes = {
 	"Knob": {"direction":"Output"},
 	"Button": {"direction":"Output"},
 	"Slider": {"direction":"Output"},
- 	"Light": {"direction":"Input",},
+ 	"Light": {"direction":"Input"},
 // 	"Temp": {"direction":"Output"},
 // 	"Tilt": {"direction":"Output"},
 	"LED": {"direction":"Input"},
@@ -117,10 +118,11 @@ function App() {
 	
 	// Functions to call when the app is first opened\
 		console.log("Setting up Midi Data");
-		midi.setupMidi(this);
+		myMidi.setupMidi(this);
 		//this.menu = new Menu();
 		//this.menu.addEmuHwBtns(deviceTypes);
 	//
+
 };
 
 
@@ -178,6 +180,9 @@ BlockObject.prototype.sendToAllOutputs = function(msg){
 	for (targetBlockID in this.outConnections){
 		this.sendMsg(targetBlockID, msg);
 	}
+	
+	//Test
+	//this.sendMsg(2,msg);
 };
 
 BlockObject.prototype.sendMsg = function(targetBlockID, msg){
@@ -230,7 +235,7 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	if(this.emuHardwareResponse) this.emuHardwareResponse(msg);
 	
 	if(this.deviceDirection == "Input"){ // If we have input e.g. buzzer
-		midi_out(this.devName,[msg[0],msg[1],msg[2]]);
+		myMidi.out(this.devName,[msg[0],msg[1],msg[2]]);
 	}
 	else if (this.deviceDirection == "Output"){ // Sensor
 		this.sendToAllOutputs(msg);	// Send to any connected output blocks
@@ -272,7 +277,6 @@ HwBlock.prototype.update = function(fromBlockID,msg){
 		}
 	}
 	//$("#sensorVal"+obj.blockID).val(newVal);
-
 
 	obj.data = newVal;
 };
@@ -415,10 +419,9 @@ function RGB_LED(devName){
 			b_msg[1] = msg[1];
 			b_msg[2] = b;
 	
-			midi_out(obj.devName,[msg[0],0,this.r]);
- 			midi_out(obj.devName,[msg[0],1,this.g]);
- 			midi_out(obj.devName,[msg[0],2,this.b]);
-
+			myMidi.out(obj.devName,[msg[0],0,this.r]);
+ 			myMidi.out(obj.devName,[msg[0],1,this.g]);
+ 			myMidi.out(obj.devName,[msg[0],2,this.b]);
 	};
 };
 

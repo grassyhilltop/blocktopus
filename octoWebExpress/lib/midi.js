@@ -1,3 +1,4 @@
+//node midi library
 var midi = require('midi');
 
 var global_input = new midi.input();
@@ -5,6 +6,18 @@ var global_input = new midi.input();
 exports.setupMidi = function(app) {
 	setInterval(function () { checkForMidiDevices(app); }, 1000);
 };
+
+exports.out = function(deviceName,msg){
+	var portNumber = getPortNumberFromDeviceName(deviceName);
+	console.log("sending message out to deviceName: " + deviceName + " portName: " + portNumber);
+	
+	if (portNumber != null){
+		var output = new midi.output();	
+		output.openPort(portNumber);
+		output.sendMessage([msg[0],msg[1],msg[2]]);
+		output.closePort();
+	}
+}
 
 var checkForMidiDevices = function(app){
 	var deviceList = getDeviceList();
@@ -30,7 +43,6 @@ var checkForMidiDevices = function(app){
     		console.log("Found new midi device to connect to:" + currDeviceName );
     		var input = new midi.input();
     		
-    		
     		if(currDeviceName.substring(0, currDeviceName.length - 2) == "RGB_LED"){
     			var newHwBlock = app.createNewRGBLED(currDeviceName);
     		}
@@ -38,9 +50,10 @@ var checkForMidiDevices = function(app){
     			var newHwBlock =  app.createNewRealHwBlock(currDeviceName);
     		}
     		
-    		if(newHwBlock.deviceDirection == "Input" ){// output
+    		//if(newHwBlock.deviceDirection == "Input" ){// output
     			//app.Pool.OpenMidiOut(currDeviceName);
-    		}      
+    		    	
+    		//}
     		 		      		
     		// Always add new devices as possible midi inputs (so any device can receive MIDI messages )
    			//app.Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){onNewMidiMsg(name,a);};}(deviceList[i]));        							        		
@@ -76,4 +89,15 @@ var getDeviceList = function() {
 	}
 	
 	return deviceList;
+}
+
+var getPortNumberFromDeviceName = function(portName) {
+	var deviceList = getDeviceList();
+	
+	for (var i = 0; i < deviceList.length; i++){
+		if (deviceList[i] == portName){
+			return i;
+		}
+	}
+	return null;
 }
