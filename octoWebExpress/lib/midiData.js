@@ -1,5 +1,6 @@
 //the midi wrapper that we wrote on top of the node library
 var myMidi = require('./midi');
+var mySocketIO = require('./mySocketIO');
 
 var app = new App();
 
@@ -113,16 +114,19 @@ function App() {
 			}
 		}
 	};
+	
+	this.getDeviceListForClient = function() {
+		var deviceList = [];
+		var length = this.realHwObjects.length;
+		for(var i in this.realHwObjects){ 
+			deviceList.push(this.realHwObjects[i].devName);
+		}
+		return deviceList;
+	};
 
 	// MIDI FUNCTIONS
-	
-	// Functions to call when the app is first opened\
-		console.log("Setting up Midi Data");
-		myMidi.setupMidi(this);
-		//this.menu = new Menu();
-		//this.menu.addEmuHwBtns(deviceTypes);
-	//
-
+	console.log("Setting up Midi Data");
+	myMidi.setupMidi(this);
 };
 
 
@@ -185,6 +189,10 @@ BlockObject.prototype.sendToAllOutputs = function(msg){
 	//this.sendMsg(2,msg);
 };
 
+BlockObject.prototype.onReceiveMessage = function(blockID, msg) {
+	//Should be done by objects further down the inheritance chain
+}
+
 BlockObject.prototype.sendMsg = function(targetBlockID, msg){
 	console.log("Sending message to " + targetBlockID + " from " + this.blockID);
 	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
@@ -204,17 +212,6 @@ function HwBlock(devName){
 
 	console.log("block ID:" + this.blockID);
 	console.log("displayName: " + obj.displayName);
-	
-	// Create a default hardware view
-	/*
-	if((undefined === this.viewObj)){
-		var displayVal = obj.data ;
-		if(obj.deviceType =="Button" || obj.deviceType =="Buzzer")  displayVal = "OFF";
-		else displayVal = "0%";		
-		
-		this.viewObj = drawHardwareBlock(this, this.blockID, obj.deviceIDNum , obj.deviceType, obj.displayName , displayVal);
-	}
-	*/
 };
 
 HwBlock.prototype = new BlockObjectClone();
@@ -222,7 +219,7 @@ HwBlock.prototype.constructor = HwBlock;
 
 HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	console.log("Hardware: " + this.devName +" blockID:" + this.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
-
+	
 	// If we were the hardware the generated the message
 	if (this.blockID == fromBlockID){
 		// console.log("Hardware: " + obj.devName + " message to self");
@@ -242,43 +239,12 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	}
 	else{
 		console.log("Error: HwBlock should be an output or input device!");
-	}	
+	}
 };
 
 // Called when the block state has changed - update data and view
 HwBlock.prototype.update = function(fromBlockID,msg){
-	obj = this;
-	// console.log("Updating hardware block:" + obj.devName);
-
-	// Update data - hardware state
-	var newVal = msg[2];
-	// Update View		
-	
-	if(msg[0] == 144){ // If the message type is note on/off use string label instead of number
-		newVal = 100;
-		//$("#sensorVal"+obj.blockID).text("ON");
-	}
-	else if (msg[0] == 128){
-		newVal = 0;
-		//$("#sensorVal"+obj.blockID).text("OFF");		
-	}
-
-	// control change for pitch wheel
-	else if (msg[0] == 227 || msg[0] == 176 ){
-		var sensorPercent = Math.floor(100*msg[2]/127);
-		newVal = sensorPercent;
-		// special case for temperature
-		if(obj.devName =="Temp") {
-			var temperature = 25 + (sensorPercent%50); 
-			//$("#sensorVal"+obj.blockID).text( temperature +"°C");
-		}
-		else {				
-			//$("#sensorVal"+obj.blockID).text( sensorPercent +"%");
-		}
-	}
-	//$("#sensorVal"+obj.blockID).val(newVal);
-
-	obj.data = newVal;
+	mySocketIO.sendMidiToClient(this.blockID, msg);
 };
 
 HwBlockClone = function () {};

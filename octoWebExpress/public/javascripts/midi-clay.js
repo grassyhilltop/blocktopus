@@ -1,5 +1,5 @@
 window.addEventListener("load",function () {
-	app = new App();
+	app = new ClientApp();
 });
 
 deviceTypes = {
@@ -14,19 +14,14 @@ deviceTypes = {
 	"Buzzer": {"direction":"Input"}
 };
 
-function App() {
+function ClientApp() {
 	var obj = this;
 	this.numBlocks = 0;
 	this.blockObjects = {};
 	this.blockTypeCounts = {};
 	this.realHwObjects = {};
-
-	// Midi Pool variables
-	this.Pool;
-	this.ins;
-	this.outs;
-	this.midiDevicePollTimer;
-
+	this.socket; 
+	
 	this.newBlockID = function () {
 		return obj.numBlocks++;
 	};
@@ -103,31 +98,95 @@ function App() {
 			}
 		}
 	};
-
+	
+	// Polling for midi devices
+	this.pollServerForMidiDevices = function () {
+		var callback = function(deviceList) {
+			if(deviceList){
+				// DISCONNECTED MODULES
+				// Detect on disconnection of a module - by checking that new device list contains all previously connected
+				for (var blockID in app.realHwObjects){
+					var currDeviceName = app.realHwObjects[blockID].devName;
+					// Is the hardware device still present in the midi list ?
+					if ( $.inArray(currDeviceName, deviceList) == -1){ // Returns -1 if A is not in B
+						app.removeRealHwBlock(blockID);				
+					}
+				}
+	
+				// NEW CONNECTED MODULES
+		
+				for(var i = 0; i < deviceList.length ; i ++ ){
+					var currDeviceName = deviceList[i];
+					var foundBlockId = app.findBlockID(currDeviceName);
+		
+					if (!foundBlockId) { // if no device yet created
+						console.log("Found new midi device to connect to:" + currDeviceName );
+			
+						if(currDeviceName.substring(0, currDeviceName.length - 2) == "RGB_LED"){
+							var newHwBlock = new RGB_LED(currDeviceName);
+						}
+						else{
+							var newHwBlock = new RealHwBlock(currDeviceName);
+						}
+			
+						if(newHwBlock.deviceDirection == "Input" ){// output
+							//app.Pool.OpenMidiOut(currDeviceName);
+						}      
+								
+						// Always add new devices as possible midi inputs (so any device can receive MIDI messages )
+						//app.Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){onNewMidiMsg(name,a);};}(deviceList[i]));        							        		
+					}
+				}
+			}
+		}
+		
+		
+		getDeviceListFromServer(callback);
+	}
+	
 	// MIDI FUNCTIONS
 	this.setupMidi = function () {
 		console.log("Setting up midi");
-	
-		/// USING JAZZ PLUGING
-		this.setupMidiPool();
-
 		// Poll for new midi devices
-		this.midiDevicePollTimer = setInterval( checkForMidiDevices, 1000);
-
-	}
-
-	this.setupMidiPool = function (){
-		try{
-			obj.Pool=new MidiPool;	 
-		}
-		catch(err){ alert(err);}
-	}
+		this.midiDevicePollTimer = setInterval(this.pollServerForMidiDevices, 2000);
+	};
+	
+	this.setupSocketIO = function ()  {
+		console.log("Setting up socket IO");
+		this.socket = io.connect();
+		
+		this.socket.on('message',function(data) {
+		   console.log(data.message);
+		});
+		
+		this.socket.on('midiMsg',function(data) {
+			console.log("data.blockID: " + data.blockID);
+			obj.blockObjects[data.blockID].onReceiveMessage(data.blockID,data.msg);
+		});
+	};
 	
 	// Functions to call when the app is first opened
-		this.setupMidi();
-		this.menu = new Menu();
-		this.menu.addEmuHwBtns(deviceTypes);
-	//
+	this.menu = new Menu();
+	this.menu.addEmuHwBtns(deviceTypes);
+	this.setupMidi();
+	this.setupSocketIO();
+};
+
+getDeviceListFromServer = function(callback) {
+	var DEVICES_URL = '/devices';
+	request = new XMLHttpRequest();
+	
+	request.addEventListener('load',function () {
+		if(request.status == 200){
+			var results = JSON.parse(request.responseText);
+			callback(results);
+		}else{
+			callback(null);
+		}
+	});
+
+	request.open('GET', DEVICES_URL, true);
+	request.send();    
 };
 
 function Menu() {
@@ -216,26 +275,56 @@ BlockObject.prototype.deleteView = function(){
 
 	// Remove the actual node
 	$(this.viewObj).remove();
-}
+};
+
+BlockObject.prototype.updateConnectionsOnServer = function(connectFrom, connectTo){
+	var CONNECTIONS_URL = "/connections";
+	var postArgs = JSON.stringify({connectFrom: connectFrom, connectTo: connectTo});
+    //var postArgs = JSON.stringify({number:1});
+    request = new XMLHttpRequest();
+    console.log("Post args: " + postArgs);
+	
+	request.open('POST', CONNECTIONS_URL);
+	request.setRequestHeader('Content-type', "application/json;charset=UTF-8");
+	request.send(postArgs);
+	console.log("sent update to connections");
+};
+
+BlockObject.prototype.removeConnectionsOnServer = function(connectFrom, connectTo){
+	var CONNECTIONS_URL = "/connections";
+	var postArgs = JSON.stringify({connectFrom: connectFrom, connectTo: connectTo});
+    //var postArgs = JSON.stringify({number:1});
+    request = new XMLHttpRequest();
+    console.log("Post args: " + postArgs);
+	
+	request.open('DELETE', CONNECTIONS_URL);
+	request.setRequestHeader('Content-type', "application/json;charset=UTF-8");
+	request.send(postArgs);
+	console.log("sent remove to connections");
+};
 
 BlockObject.prototype.removeOutputConnection = function (outputConnectionObj){
 	// console.log("removing output connection");
 	delete this.outConnections[outputConnectionObj.blockID];
+	this.removeConnectionsOnServer(this.blockID,outputConnectionObj.blockID);
 };
 
 BlockObject.prototype.addOutputConnection = function (outputConnectionObj){
 	// console.log("adding output connection from " + this.blockID + " to " + outputConnectionObj.blockID);
 	this.outConnections[outputConnectionObj.blockID] = outputConnectionObj;
+	this.updateConnectionsOnServer(this.blockID,outputConnectionObj.blockID);
 };
 
 BlockObject.prototype.removeInputConnection = function (inputConnectionObj){
 	// console.log("removing input connection");
 	delete this.inConnections[inputConnectionObj.blockID];
+	//this.removeConnectionsOnServer(inputConnectionObj.blockID,this.blockID);
 };
 
 BlockObject.prototype.addInputConnection = function (inputConnectionObj){
 	// console.log("adding input connection from " + inputConnectionObj.blockID + " to " + this.blockID );
 	this.inConnections[inputConnectionObj.blockID] = inputConnectionObj;
+	//this.updateConnectionsOnServer(inputConnectionObj.blockID,this.blockID);
 };
 
 BlockObject.prototype.sendToAllOutputs = function(msg){
@@ -293,13 +382,13 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	if(this.emuHardwareResponse) this.emuHardwareResponse(msg);
 	
 	if(this.deviceDirection == "Input"){ // If we have input e.g. buzzer
-		midi_out(this.devName,[msg[0],msg[1],msg[2]]);
+	//	midi_out(this.devName,[msg[0],msg[1],msg[2]]);
 	}
 	else if (this.deviceDirection == "Output"){ // Sensor
-		this.sendToAllOutputs(msg);	// Send to any connected output blocks
+	//	this.sendToAllOutputs(msg);	// Send to any connected output blocks
 	}
 	else{
-		console.log("Error: HwBlock should be an output or input device!");
+	//	console.log("Error: HwBlock should be an output or input device!");
 	}	
 };
 
@@ -346,6 +435,7 @@ function RealHwBlock(devName){
 	console.log("creating Knob");
 	HwBlock.call(this,devName);
 	app.addNewRealHwBlock(this);
+	
 };
 
 RealHwBlock.prototype = new HwBlockClone();
@@ -477,9 +567,9 @@ function RGB_LED(devName){
 			b_msg[1] = msg[1];
 			b_msg[2] = b;
 	
-			midi_out(obj.devName,[msg[0],0,this.r]);
- 			midi_out(obj.devName,[msg[0],1,this.g]);
- 			midi_out(obj.devName,[msg[0],2,this.b]);
+			//midi_out(obj.devName,[msg[0],0,this.r]);
+ 			//midi_out(obj.devName,[msg[0],1,this.g]);
+ 			//midi_out(obj.devName,[msg[0],2,this.b]);
 
 	};
 };
@@ -817,7 +907,7 @@ function midi_out(name,msg){
 	console.log("Sending midi out to device name:" + name + " msg:" + msg);
 
 	// Send the message out to the pool
-	app.Pool.MidiOut(name,msg);
+	//app.Pool.MidiOut(name,msg);
 }
 
 function play_all(){
@@ -836,56 +926,6 @@ function stop_all(){
 	}
 }
 
-// Polling for midi devices
-function checkForMidiDevices(){
-	
-	var deviceList = app.Pool.MidiInList();
-	
-	// For debugging show list of all detected midi devices in div
-	var newDeviceListStr = "Connected Devices:";
-	$("#deviceListDiv").text(newDeviceListStr);	
-	$("#deviceListDiv").append("<br/>");
-	for (var i = 0; i < deviceList.length; i++) {
-		var currDeviceName = deviceList[i];
-		$("#deviceListDiv").append(currDeviceName + "<br/>");	
-	};
-
-	// DISCONNECTED MODULES
-	// Detect on disconnection of a module - by checking that new device list contains all previously connected
-	for (var blockID in app.realHwObjects){
-		var currDeviceName = app.realHwObjects[blockID].devName;
-		// Is the hardware device still present in the midi list ?
-		if ( $.inArray(currDeviceName, deviceList) == -1){ // Returns -1 if A is not in B
-			app.removeRealHwBlock(blockID);				
-		}
-	}
-	
-	// NEW CONNECTED MODULES
-		
-    for(var i = 0; i < deviceList.length ; i ++ ){
-    	var currDeviceName = deviceList[i];
-    	var foundBlockId = app.findBlockID(currDeviceName);
-    	
-    	if (!foundBlockId ) { // if no device yet created
-    		console.log("Found new midi device to connect to:" + currDeviceName );
-    		
-    		if(currDeviceName.substring(0, currDeviceName.length - 2) == "RGB_LED"){
-    			var newHwBlock = new RGB_LED(currDeviceName);
-    		}
-    		else{
-    			var newHwBlock = new RealHwBlock(currDeviceName);
-    		}
-    		
-    		if(newHwBlock.deviceDirection == "Input" ){// output
-    			app.Pool.OpenMidiOut(currDeviceName);
-    		}      
-    		 		      		
-    		// Always add new devices as possible midi inputs (so any device can receive MIDI messages )
-   			app.Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){onNewMidiMsg(name,a);};}(deviceList[i]));        							        		
-    	}
-    }
-	
-}
 
 // Main MIDI Message callback. Whenever a new midi message comes in
 function onNewMidiMsg(deviceName, msg){

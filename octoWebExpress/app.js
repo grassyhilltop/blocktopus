@@ -10,7 +10,7 @@ var users = require('./routes/users');
 
 var app = express();
 
-var midData = require('./lib/midiData');
+var midiData = require('./lib/midiData');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
