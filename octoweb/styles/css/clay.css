@@ -3,17 +3,23 @@
 	border-width: 1px;
 }
 
+.thinBoundary{	
+	border-bottom: 1px solid lightgrey;
+	margin-left: 10px;
+	margin-right: 10px;
+}
 .section {
 	height: 33%;
 }
 
 #menu {
-	height: 100%;
+	height: 100%;	
 	width: 200px;
 	float:left;
-	background-color: white;
-	border: solid;
-	border-color: green;
+	background-color: #f7f7f7;
+	/*border: solid;*/
+	/*border-right: solid;*/
+	/*border-color: grey;*/
 }
 
 #workspace {
@@ -26,9 +32,99 @@
 }
 
 #hardwareList {
-	border: solid;
-	border-color: red;
+	/*border: solid;*/
+	/*border-color: red;*/
 }
+
+#headerbar{
+	background-color: black;
+	height: 35px;	
+}
+
+#titleText{
+	height:30px;	
+	/*background-color: red;*/
+	text-align:center;
+	font-size: 26px; 
+	font-family: pixelated;
+	font-family: isocpeur;
+	margin-top: 15px;
+	color: #7f7f7f
+}
+
+.sidebarHeaderText{
+	font-size: 10px; 
+	font-weight: bold;
+	color: #bfbfbf;
+	margin-left: 15px;
+	padding-top: 5px;
+}
+
+.sidebarHeaderText2{
+	font-size: 11px;
+	font-weight: bold; 
+	color: #bfbfbf;
+	margin-left: 25px;	
+}
+
+.sidebarHeaderText3{
+	font-size: 9px; 
+	color: #bfbfbf;
+	text-align:center;
+	margin-bottom: 0px;
+}
+
+#emulatedList,#emulationOptionsList{
+	font-size: 13px;
+	font-weight: bold; 
+    list-style-type: none;
+	line-height: 20px;
+	color:#a3a3a3;
+	margin-top: 0px;
+}
+
+.sibebarbtn:hover{
+	background-color: grey;
+	color: white;
+}
+
+.sidebarRemoveBtn{
+	float:right;
+	margin-right: 5px;
+	display: none;
+}
+
+.sibebarbtn:hover .sidebarRemoveBtn{
+  	display:block;
+}
+
+#hardwareList{
+	margin-top: 0px;
+	margin-bottom: 0px;
+}
+
+.hw_sidebar_entry{
+	font-size: 13px;
+	font-weight: bold; 
+    list-style-type: none;
+	line-height: 20px;
+	color:#3f3f3f;
+}
+
+@font-face {
+	  font-family: 'pixelated';
+	  src: url('../fonts/LCD_Solid.ttf') format('truetype');
+}	
+
+@font-face {
+	  font-family: 'isocpeur';
+	  src: url('../fonts/isocpeur.ttf') format('truetype');
+}	
+
+@font-face {
+	  font-family: 'inconsolata';
+	  src: url('../fonts/Inconsolata.otf') format('truetype');
+}	
 
 /* -------------------------- General Clay CSS  --------------------------*/
 html{
@@ -38,8 +134,10 @@ html{
 }
 
 body{
-	font-family: inconsolata;
-	height: 650px; 
+	font-family: Helvetica,monofont;
+	/*font-family: pixelated,Helvetica,monofont;*/
+	/*height: 650px; */
+	height: 100%;
 	width: 100%; 
 	margin: 0;
 }
@@ -131,13 +229,12 @@ textarea{
 
 
 .freeCellContainer:hover .deleteButton{
-	display:block;
+	display:block;	
 }
 
 .codeContainer{
 	/*background-color: red;*/
-	/*border:	solid 1px #e2e2e2;*/
-	
+	/*border:	solid 1px #e2e2e2;*/	
 	border:	solid 1px transparent;
 	position: absolute;
 	min-width: 400px;
@@ -251,7 +348,8 @@ table,th,td{
 div.editable.freeCell{
 	/*background-color: red;*/
 	/*border:	solid 1px transparent;*/
-	
+	font-family:inconsolata;
+
 	/*setting the min width nonzero prevent cursor disappering in empty div*/
 	min-width: 18px; 
 
@@ -335,11 +433,23 @@ svg{
     width: 200px;
 
 	/*font-size: 100px;*/
-	font-size: 75px;    
+	font-size: 65px;    
     position: absolute;
     text-align: center;
     /*margin-top: 20px;*/
-    margin-top: 20px;
+    margin-top: 30px;    
+   	color: #3f3f3f;
+   	/*font-family: pixelated;*/
+}
+
+.sensorLabel{
+	width: 200px;
+	font-size: 20px;    	
+    position: absolute;
+	text-align: center;
+	margin-top: 155px;
+	color: #3f3f3f;
+	/*font-family: pixelated;*/
 }
 
 .sensorSlider{
@@ -373,13 +483,6 @@ svg{
 }
 
 
-.sensorLabel{
-	width: 200px;
-	font-size: 25px;    	
-    position: absolute;
-	text-align: center;
-	margin-top: 140px;
-}
 
 /* -------------------------- JQUERY HELPERS   --------------------------*/
 
@@ -427,6 +530,13 @@ svg{
 	float:right;	
 }
 
+.white{
+	color:white;
+}
+
+.shadow{
+	box-shadow: 0px 2px 5px #bfbfbf;
+}
 /*.hidden{ visibility: hidden;}*/
 .hidden{ display: none;} /* hides completly without taking up space */
 
