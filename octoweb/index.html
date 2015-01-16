@@ -3,16 +3,12 @@
 <head>
     <meta charset="utf-8">
     <title> hello </title>
-<!--     // <script src="js/libraries/dom.jsPlumb-1.6.2-min.js"></script>   -->
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
-    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
-    <script src="https://code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+
     <link rel="stylesheet" href="styles/css/clay.css">
-<!--     // <script src="js/clay.js"></script> -->
-<!-- 
-    <script src="js/libraries/jquery-1.11.1.js"></script>  
+    <link rel="stylesheet" href="styles/css/jquery-ui.css">
+    <link rel="stylesheet" href="styles/css/font-awesome.css">
+    <script src="js/libraries/jquery-1.11.1.js"></script>      
     <script src="js/libraries/jquery-ui.js"></script>  
- -->
     <script src="js/libraries/jquery.jsPlumb-1.6.2-min.js"></script>  
     <script src="js/libraries/midi.js"></script>
     <script src="js/libraries/emulatedHwEventHandlers.js"></script>  
@@ -28,40 +24,59 @@
     }
 
     .hidden{ visibility: hidden;}
+    
     </style>
 
 </head>
 
 <body>
-	<script type="text/javascript"></script>
-	<div id="header"> 		
-		<h1 id="title"> Electric Octopus </h1>
-		<button onmousedown='play_all();' onmouseup='stop_all();'>Test note</button>
-	</div>
+	
+	<div id="headerbar"></div>
 	<div id="menu"> 
-		<h1>Add Emulated Hardware Devices</h1>
-		<ul id="emulationOptionsList"></ul>
-		<h1>Connected Hardware Devices</h1>
+		
+		<div id="titleText"> blOctopus </div>
+		
+	<div class="thinBoundary"> </div>
+
+		<p class="sidebarHeaderText">NEARBY BLOCTOPI</p>
+		<p class="sidebarHeaderText2"> ▼ My Computer</p>
+		<p class="sidebarHeaderText3"> PHYSICAL </p>
 		<ul id="hardwareList"></ul>
-		<h1>Emulated Hardware Devices</h1>
-		<ul id="emulatedList"></ul>
+		<p class="sidebarHeaderText3"> VIRTUAL </p>
+			<ul id="emulatedList"></ul>
+		
+	<div class="thinBoundary"> </div>
+
+		<p class="sidebarHeaderText"> <i class="fa fa-plus-square-o fa-lg"></i> ADD VIRTUAL POD</p>
+			<ul id="emulationOptionsList"></ul>
+	
 	</div>
+
 	<div id="workspace"> 
 		<div class="section" id="section1"> </div>
-		<div class="boundary" id="b1"> </div>
+		<!-- <div class="boundary" id="b1"> </div> -->
 		<div class="section" id="section2"> </div>
-		<div class="boundary" id="b2"> </div>
+		<!-- <div class="boundary" id="b2"> </div> -->
 		<div class="section" id="section3"> </div>
 	</div>
 	
 	<!-- template to display button for emulated hardware devices -->
 	<script src="js/libraries/handlebars-v2.0.0.js"></script>
 	<script type="text/x-handlebars-template" id="emulated-hardware-button-template">
-		<li>{{this.name}}<a href="#" class="btn" id="hwEmuBtn{{this.name}}">&#9744;</a></li>
+		<li class="sibebarbtn"  > <i id="hwEmuBtn{{this.name}}" class="fa fa-plus-circle fa-lg"></i> {{this.name}}</li>
 	</script>
 	<script type="text/x-handlebars-template" id="emulated-hardware-created-template">
-		<li>{{this.name}}<a href="#" class="btn" id="hwEmuCreated{{this.id}}">&#9746;</a></li>
+		<li class="sibebarbtn"> 
+			<i class="fa fa-square fa-lg white shadow"></i> {{this.name}} 
+			<div class="sidebarRemoveBtn" id="hwEmuCreated{{this.id}}">
+				<i class="fa fa-times-circle fa-lg"></i>
+			</div>
+		</li>
 	</script>
+	<script type="text/x-handlebars-template" id="hardware-button-template">
+		<li class="sibebarbtn" id="hwSideBarBtn{{this.name}}" > {{this.name}}</li>
+	</script>
+
 	<script src="js/libraries/handlebarsTemplates.js"></script>
 	
 	<script src="js/creator.js"></script>

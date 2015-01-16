@@ -136,9 +136,12 @@ function Menu() {
 	 
  	this.addToHwList = function (blockID) {
  		$hwList = $("#hardwareList");
+		// var $newHwEntry = $("<li></li>");
 		var $newHwEntry = $("<li></li>");
-		$newHwEntry.text(app.blockObjects[blockID].displayName);
+		$newHwEntry.append("<i class='fa fa-square fa-lg white shadow'></i>");
+		$newHwEntry.append(" "+ app.blockObjects[blockID].displayName);
 		$newHwEntry.attr("id", "hw_entry"+blockID);
+		$newHwEntry.attr("class", "hw_sidebar_entry");
 		$hwList.append($newHwEntry);
  	};
  	
