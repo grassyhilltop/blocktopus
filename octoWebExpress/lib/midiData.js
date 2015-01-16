@@ -1,4 +1,6 @@
-var midi = require('./midi');
+//the midi wrapper that we wrote on top of the node library
+var myMidi = require('./midi');
+var mySocketIO = require('./mySocketIO');
 
 var app = new App();
 
@@ -6,7 +8,7 @@ deviceTypes = {
 	"Knob": {"direction":"Output"},
 	"Button": {"direction":"Output"},
 	"Slider": {"direction":"Output"},
- 	"Light": {"direction":"Input",},
+ 	"Light": {"direction":"Input"},
 // 	"Temp": {"direction":"Output"},
 // 	"Tilt": {"direction":"Output"},
 	"LED": {"direction":"Input"},
@@ -112,15 +114,19 @@ function App() {
 			}
 		}
 	};
+	
+	this.getDeviceListForClient = function() {
+		var deviceList = [];
+		var length = this.realHwObjects.length;
+		for(var i in this.realHwObjects){ 
+			deviceList.push(this.realHwObjects[i].devName);
+		}
+		return deviceList;
+	};
 
 	// MIDI FUNCTIONS
-	
-	// Functions to call when the app is first opened\
-		console.log("Setting up Midi Data");
-		midi.setupMidi(this);
-		//this.menu = new Menu();
-		//this.menu.addEmuHwBtns(deviceTypes);
-	//
+	console.log("Setting up Midi Data");
+	myMidi.setupMidi(this);
 };
 
 
@@ -178,7 +184,14 @@ BlockObject.prototype.sendToAllOutputs = function(msg){
 	for (targetBlockID in this.outConnections){
 		this.sendMsg(targetBlockID, msg);
 	}
+	
+	//Test
+	//this.sendMsg(2,msg);
 };
+
+BlockObject.prototype.onReceiveMessage = function(blockID, msg) {
+	//Should be done by objects further down the inheritance chain
+}
 
 BlockObject.prototype.sendMsg = function(targetBlockID, msg){
 	console.log("Sending message to " + targetBlockID + " from " + this.blockID);
@@ -199,17 +212,6 @@ function HwBlock(devName){
 
 	console.log("block ID:" + this.blockID);
 	console.log("displayName: " + obj.displayName);
-	
-	// Create a default hardware view
-	/*
-	if((undefined === this.viewObj)){
-		var displayVal = obj.data ;
-		if(obj.deviceType =="Button" || obj.deviceType =="Buzzer")  displayVal = "OFF";
-		else displayVal = "0%";		
-		
-		this.viewObj = drawHardwareBlock(this, this.blockID, obj.deviceIDNum , obj.deviceType, obj.displayName , displayVal);
-	}
-	*/
 };
 
 HwBlock.prototype = new BlockObjectClone();
@@ -217,7 +219,7 @@ HwBlock.prototype.constructor = HwBlock;
 
 HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	console.log("Hardware: " + this.devName +" blockID:" + this.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
-
+	
 	// If we were the hardware the generated the message
 	if (this.blockID == fromBlockID){
 		// console.log("Hardware: " + obj.devName + " message to self");
@@ -230,51 +232,19 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	if(this.emuHardwareResponse) this.emuHardwareResponse(msg);
 	
 	if(this.deviceDirection == "Input"){ // If we have input e.g. buzzer
-		midi_out(this.devName,[msg[0],msg[1],msg[2]]);
+		myMidi.out(this.devName,[msg[0],msg[1],msg[2]]);
 	}
 	else if (this.deviceDirection == "Output"){ // Sensor
 		this.sendToAllOutputs(msg);	// Send to any connected output blocks
 	}
 	else{
 		console.log("Error: HwBlock should be an output or input device!");
-	}	
+	}
 };
 
 // Called when the block state has changed - update data and view
 HwBlock.prototype.update = function(fromBlockID,msg){
-	obj = this;
-	// console.log("Updating hardware block:" + obj.devName);
-
-	// Update data - hardware state
-	var newVal = msg[2];
-	// Update View		
-	
-	if(msg[0] == 144){ // If the message type is note on/off use string label instead of number
-		newVal = 100;
-		//$("#sensorVal"+obj.blockID).text("ON");
-	}
-	else if (msg[0] == 128){
-		newVal = 0;
-		//$("#sensorVal"+obj.blockID).text("OFF");		
-	}
-
-	// control change for pitch wheel
-	else if (msg[0] == 227 || msg[0] == 176 ){
-		var sensorPercent = Math.floor(100*msg[2]/127);
-		newVal = sensorPercent;
-		// special case for temperature
-		if(obj.devName =="Temp") {
-			var temperature = 25 + (sensorPercent%50); 
-			//$("#sensorVal"+obj.blockID).text( temperature +"°C");
-		}
-		else {				
-			//$("#sensorVal"+obj.blockID).text( sensorPercent +"%");
-		}
-	}
-	//$("#sensorVal"+obj.blockID).val(newVal);
-
-
-	obj.data = newVal;
+	mySocketIO.sendMidiToClient(this.blockID, msg);
 };
 
 HwBlockClone = function () {};
@@ -415,10 +385,9 @@ function RGB_LED(devName){
 			b_msg[1] = msg[1];
 			b_msg[2] = b;
 	
-			midi_out(obj.devName,[msg[0],0,this.r]);
- 			midi_out(obj.devName,[msg[0],1,this.g]);
- 			midi_out(obj.devName,[msg[0],2,this.b]);
-
+			myMidi.out(obj.devName,[msg[0],0,this.r]);
+ 			myMidi.out(obj.devName,[msg[0],1,this.g]);
+ 			myMidi.out(obj.devName,[msg[0],2,this.b]);
 	};
 };
 
