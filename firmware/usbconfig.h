@@ -242,7 +242,7 @@ extern void hadUsbReset(void);
 #if MODULE_TYPE==BUTTON
 	#define  USB_CFG_DEVICE_ID       0xe4, 0x04 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==KNOB
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x01 /* = 0x05dc = 1500 */
+	#define  USB_CFG_DEVICE_ID       0xe4, 0x21 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==OUTPUT
 	#define  USB_CFG_DEVICE_ID       0xe4, 0x08 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==RGB_LED
@@ -284,10 +284,10 @@ extern void hadUsbReset(void);
 
 // Knob
 #if MODULE_TYPE==KNOB
- // #	define USB_CFG_DEVICE_NAME     'K','n','o','b','-','3'
- // #	define USB_CFG_DEVICE_NAME_LEN 6
-#	define USB_CFG_DEVICE_NAME     'S','l','i','d','e','r','-','1'
-#	define USB_CFG_DEVICE_NAME_LEN 8
+    #	define USB_CFG_DEVICE_NAME     'K','n','o','b','-','2','1'
+    #	define USB_CFG_DEVICE_NAME_LEN 7
+//#	define USB_CFG_DEVICE_NAME     'S','l','i','d','e','r','-','1'
+//#	define USB_CFG_DEVICE_NAME_LEN 8
 
 // Button  2 of them
 #elif MODULE_TYPE==BUTTON
