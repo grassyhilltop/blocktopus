@@ -77,7 +77,8 @@ function hardwareBlockAddSlider(block){
 	$(sliderDiv).slider({
 		slide: function( event, ui ) {
 			var msg = midiPitchMsg(ui.value);
-        	block.onReceiveMessage(block.blockID, msg);
+        	//block.onReceiveMessage(block.blockID, msg);
+        	block.updateValueOnServer(msg);
         }
 	});
 };
@@ -95,7 +96,8 @@ function hardwareBlockAddButton(block){
 		}else{
 			msg = midiOnMsg();
 		}
-		block.onReceiveMessage(block.blockID, msg);
+		//block.onReceiveMessage(block.blockID, msg);
+		block.updateValueOnServer(msg);
 	});
 };
 

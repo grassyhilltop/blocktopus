@@ -99,48 +99,56 @@ function ClientApp() {
 		}
 	};
 	
+	this.hasBlock = function (queryID){
+		if(queryID in obj.blockObjects){
+			return true;
+		}else{
+			return false;
+		}
+	};
+	
+	this.getBlockObjects = function () {
+		return this.blockObjects;
+	};
+	
 	// Polling for midi devices
 	this.pollServerForMidiDevices = function () {
-		var callback = function(deviceList) {
-			if(deviceList){
+		var callback = function(blockList) {
+			if(blockList){
+			
 				// DISCONNECTED MODULES
 				// Detect on disconnection of a module - by checking that new device list contains all previously connected
-				for (var blockID in app.realHwObjects){
-					var currDeviceName = app.realHwObjects[blockID].devName;
+				for (var blockID in obj.blockObjects){
+				//	var currDeviceName = app.blockObjects[blockID].devName;
 					// Is the hardware device still present in the midi list ?
-					if ( $.inArray(currDeviceName, deviceList) == -1){ // Returns -1 if A is not in B
+					if (!(blockID in blockList)){ // Returns -1 if A is not in B
 						app.removeRealHwBlock(blockID);				
 					}
 				}
 	
 				// NEW CONNECTED MODULES
-		
-				for(var i = 0; i < deviceList.length ; i ++ ){
-					var currDeviceName = deviceList[i];
-					var foundBlockId = app.findBlockID(currDeviceName);
-		
+				for(var block in blockList){
+					var foundBlockId = obj.hasBlock(block);
 					if (!foundBlockId) { // if no device yet created
-						console.log("Found new midi device to connect to:" + currDeviceName );
-			
-						if(currDeviceName.substring(0, currDeviceName.length - 2) == "RGB_LED"){
-							var newHwBlock = new RGB_LED(currDeviceName);
-						}
-						else{
-							var newHwBlock = new RealHwBlock(currDeviceName);
-						}
-			
-						if(newHwBlock.deviceDirection == "Input" ){// output
-							//app.Pool.OpenMidiOut(currDeviceName);
-						}      
-								
-						// Always add new devices as possible midi inputs (so any device can receive MIDI messages )
-						//app.Pool.OpenMidiIn(currDeviceName,function(name){return function(t,a){onNewMidiMsg(name,a);};}(deviceList[i]));        							        		
+						console.log("Found new block:" + blockList[block]["devName"]);
+						//Real hardware blocks
+						if(blockList[block]["devIDNum"]=="E"){
+								var newHwBlock = new EmuHwBlock(blockList[block]["devName"],block);
+						}else{
+							if(blockList[block]["devName"].substring(0, blockList[block]["devName"].length - 2) == "RGB_LED"){
+								var newHwBlock = new RGB_LED(blockList[block]["devName"],block);
+							}
+							else{
+								var newHwBlock = new RealHwBlock(blockList[block]["devName"],block);
+							}
+					 	}
+						//TODO: emulated hardware blocks			        		
 					}
 				}
+			}else{
+				console.log("block list is null!");
 			}
 		}
-		
-		
 		getDeviceListFromServer(callback);
 	}
 	
@@ -190,14 +198,18 @@ getDeviceListFromServer = function(callback) {
 };
 
 function Menu() {
+	var obj = this;
 	var $menuDiv = $("#menu");
 	var $hwList = $("#hardwareList");
 	 
  	this.addToHwList = function (blockID) {
  		$hwList = $("#hardwareList");
 		var $newHwEntry = $("<li></li>");
-		$newHwEntry.text(app.blockObjects[blockID].displayName);
+		//$newHwEntry.text(app.blockObjects[blockID].displayName);
+		$newHwEntry.append("<i class='fa fa-square fa-lg white shadow'></i>");
 		$newHwEntry.attr("id", "hw_entry"+blockID);
+		$newHwEntry.append(" "+ app.blockObjects[blockID].displayName);
+		$newHwEntry.attr("class", "hw_sidebar_entry");
 		$hwList.append($newHwEntry);
  	};
  	
@@ -227,6 +239,18 @@ function Menu() {
 		$emuHwEntry.remove();
  	};
  	
+ 	this.sendNewEmuHwToServer = function (emuHwType) {
+ 		var NEW_EMU_HW_URL = "/newEmuHw";
+		var postArgs = JSON.stringify({emuHwType: emuHwType});
+		request = new XMLHttpRequest();
+		console.log("Post args: " + postArgs);
+	
+		request.open('POST', NEW_EMU_HW_URL);
+		request.setRequestHeader('Content-type', "application/json;charset=UTF-8");
+		request.send(postArgs);
+		console.log("sent update to new emu hw");
+ 	};
+ 	
  	this.addEmuHwBtns = function(devices){
  		console.log("adding emulated hardware buttons");
  		$emuHwOptList = $("#emulationOptionsList");
@@ -242,7 +266,8 @@ function Menu() {
  				var target = event.target;
  				var emuHwType = target.id.substr(8) + "-E";
  				console.log("new emulated hw :" + emuHwType + " clicked");
- 				var newEmuHw = new EmuHwBlock(emuHwType, true);
+ 				//var newEmuHw = new EmuHwBlock(emuHwType);
+ 				obj.sendNewEmuHwToServer(emuHwType);
  			});
 		};
 		
@@ -250,13 +275,13 @@ function Menu() {
  	
 };
 
-function BlockObject(viewObj){
+function BlockObject(viewObj,blockID){
 	console.log("creating block object");
 	var obj = this;
 	this.viewObj = viewObj;
 	this.inConnections = {};
 	this.outConnections = {};
-	this.blockID = app.newBlockID();
+	this.blockID = blockID;
 	this.type = typeof this.type !== 'undefined' ? this.type : "block";
 	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : "block";
 	this.data = typeof this.data !== 'undefined' ? this.data : 0;
@@ -339,7 +364,7 @@ BlockObject.prototype.sendMsg = function(targetBlockID, msg){
 	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
 };
 
-function HwBlock(devName){
+function HwBlock(devName,blockID){
 	console.log("Creating new hardware block with name:" + devName);
 	var obj = this;
 	this.type = "hw";						 // object type
@@ -349,7 +374,7 @@ function HwBlock(devName){
 	this.data = 0; 						 // Current state of device
 	this.deviceDirection = app.getDeviceTypeFromName(this.deviceType); // e.g. has Input or Output
 	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : this.deviceType;
-	BlockObject.call(this,undefined);
+	BlockObject.call(this,undefined,blockID);
 
 	console.log("block ID:" + this.blockID);
 	console.log("displayName: " + obj.displayName);
@@ -431,9 +456,9 @@ HwBlock.prototype.update = function(fromBlockID,msg){
 HwBlockClone = function () {};
 HwBlockClone.prototype = HwBlock.prototype;
 
-function RealHwBlock(devName){
+function RealHwBlock(devName,blockID){
 	console.log("creating Knob");
-	HwBlock.call(this,devName);
+	HwBlock.call(this,devName,blockID);
 	app.addNewRealHwBlock(this);
 	
 };
@@ -444,9 +469,9 @@ RealHwBlock.prototype.constructor = RealHwBlock;
 RealHwBlockClone = function () {};
 RealHwBlockClone.prototype = RealHwBlock.prototype;
 
-function EmuHwBlock(devName){
+function EmuHwBlock(devName,blockID){
 	console.log("creating Emulated Hardware");
-	HwBlock.call(this,devName);
+	HwBlock.call(this,devName,blockID);
 	app.addNewEmuHwBlock(this);
 	
 	var devType = this.deviceType;
@@ -456,6 +481,18 @@ function EmuHwBlock(devName){
 
 EmuHwBlock.prototype = new HwBlockClone();
 EmuHwBlock.prototype.constructor = EmuHwBlock;
+
+EmuHwBlock.prototype.updateValueOnServer = function(msg){
+	var UPDATE_HW_VAL_URL = "/updateEmuHwVal";
+	var postArgs = JSON.stringify({blockID: this.blockID, msg:[msg[0],msg[1],msg[2]]});
+	request = new XMLHttpRequest();
+	console.log("Post args: " + postArgs);
+
+	request.open('POST', UPDATE_HW_VAL_URL);
+	request.setRequestHeader('Content-type', "application/json;charset=UTF-8");
+	request.send(postArgs);
+	console.log("sent update to emu hw val");
+};
 
 EmuHwBlockClone = function () {};
 EmuHwBlockClone.prototype = EmuHwBlock.prototype;

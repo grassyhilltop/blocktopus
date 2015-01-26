@@ -12,8 +12,8 @@ router.get('/', function(req, res) {
 router.get('/devices', function (req, res) {
 	console.log("got request for hw devices");
 	
-	var deviceList = midiData.getDeviceListForClient();
-	res.json(deviceList);
+	var blockList = midiData.getBlockListForClient();
+	res.json(blockList);
 });
 
 router.post('/connections', function(req, res){
@@ -23,6 +23,21 @@ router.post('/connections', function(req, res){
 	
 	fromBlock.addOutputConnection(toBlock);
 	toBlock.addInputConnection(fromBlock);
+	res.json(1);
+});
+
+router.post('/newEmuHw', function(req, res){
+	console.log("NEW EMU HW UPDATE: " + req.body["emuHwType"]);
+	var emuHwType = req.body["emuHwType"];
+	midiData.createNewEmuHwBlock(emuHwType);
+	res.json(1);
+});
+
+router.post('/updateEmuHwVal', function(req, res){
+	console.log("EMU HW VALUE UPDATE: " + req.body["blockID"]);
+	var blockID = req.body["blockID"];
+	var msg = req.body["msg"];
+	midiData.blockObjects[blockID].onReceiveMessage(blockID,msg);
 	res.json(1);
 });
 

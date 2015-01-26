@@ -90,6 +90,10 @@ function App() {
 		return new RGB_LED(currDeviceName);
 	};
 	
+	this.createNewEmuHwBlock = function(emuHwType){
+		return new EmuHwBlock(emuHwType);
+	};
+	
 	this.removeRealHwBlock = function (blockID) {
 		//this.menu.removeFromHwList(blockID);
 		obj.removeBlock(blockID);
@@ -115,13 +119,21 @@ function App() {
 		}
 	};
 	
-	this.getDeviceListForClient = function() {
-		var deviceList = [];
-		var length = this.realHwObjects.length;
-		for(var i in this.realHwObjects){ 
-			deviceList.push(this.realHwObjects[i].devName);
+	this.getBlockListForClient = function() {
+		var blockList = {};
+
+		for(var block in obj.blockObjects){
+			//Emulated HW blocks and Real HW blocks
+			//console.log("adding block to list: " + block);
+			if(obj.blockObjects[block].type == "hw"){
+				blockList[block] = 
+					{"devName":obj.blockObjects[block].devName,
+					"devIDNum":obj.blockObjects[block].deviceIDNum}
+			}else{
+			//TODO: code blocks
+			}
 		}
-		return deviceList;
+		return blockList;
 	};
 
 	// MIDI FUNCTIONS
@@ -267,9 +279,8 @@ function EmuHwBlock(devName){
 	HwBlock.call(this,devName);
 	app.addNewEmuHwBlock(this);
 	
-	var devType = this.deviceType;
-	var controlID = deviceTypes[devType]["addControlElem"](this);
-	
+	//var devType = this.deviceType;
+	//var controlID = deviceTypes[devType]["addControlElem"](this);
 };
 
 EmuHwBlock.prototype = new HwBlockClone();
