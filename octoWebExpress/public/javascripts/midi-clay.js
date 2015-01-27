@@ -112,8 +112,8 @@ function ClientApp() {
 	};
 	
 	// Polling for midi devices
-	this.pollServerForMidiDevices = function () {
-		var callback = function(blockList) {
+	//this.pollServerForMidiDevices = function () {
+		this.updateBlockList = function(blockList) {
 			if(blockList){
 			
 				// DISCONNECTED MODULES
@@ -149,14 +149,15 @@ function ClientApp() {
 				console.log("block list is null!");
 			}
 		}
-		getDeviceListFromServer(callback);
-	}
+		//getDeviceListFromServer(callback);
+	//}
 	
 	// MIDI FUNCTIONS
 	this.setupMidi = function () {
 		console.log("Setting up midi");
 		// Poll for new midi devices
-		this.midiDevicePollTimer = setInterval(this.pollServerForMidiDevices, 2000);
+		//this.midiDevicePollTimer = setInterval(this.pollServerForMidiDevices, 2000);
+		getDeviceListFromServer(this.updateBlockList);
 	};
 	
 	this.setupSocketIO = function ()  {
@@ -170,6 +171,11 @@ function ClientApp() {
 		this.socket.on('midiMsg',function(data) {
 			console.log("data.blockID: " + data.blockID);
 			obj.blockObjects[data.blockID].onReceiveMessage(data.blockID,data.msg);
+		});
+		
+		this.socket.on('blockList',function(data) {
+			var blockList = data.blockList;
+			obj.updateBlockList(blockList);
 		});
 	};
 	

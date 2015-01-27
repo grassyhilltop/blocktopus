@@ -1,5 +1,6 @@
 //node midi library
 var midi = require('midi');
+var mySocketIO = require('./mySocketIO');
 
 var global_input = new midi.input();
 
@@ -21,6 +22,7 @@ exports.out = function(deviceName,msg){
 
 var checkForMidiDevices = function(app){
 	var deviceList = getDeviceList();
+	var changed = false;
 	
 	// DISCONNECTED MODULES
 	// Detect on disconnection of a module - by checking that new device list contains all previously connected
@@ -28,7 +30,7 @@ var checkForMidiDevices = function(app){
 		var currDeviceName = app.realHwObjects[blockID].devName;
 		// Is the hardware device still present in the midi list ?
 		if (deviceList.indexOf(currDeviceName) == -1){ // Returns -1 if A is not in B
-			app.removeRealHwBlock(blockID);				
+			app.removeRealHwBlock(blockID);		
 		}
 	}
 	

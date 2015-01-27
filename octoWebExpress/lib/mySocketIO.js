@@ -11,7 +11,7 @@ exports.sendMidiToClient = function(blockID,msg){
 	io.emit('midiMsg', {'msg': msg,'blockID':blockID});
 };
 
-exports.sendDeviceList = function(deviceList) {
-	io.emit('deviceList', {'deviceList':deviceList});
+exports.sendBlockListToClient = function(blockList) {
+	io.emit('blockList', {'blockList':blockList});
 };
 

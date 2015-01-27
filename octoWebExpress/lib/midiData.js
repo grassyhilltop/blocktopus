@@ -40,7 +40,8 @@ function App() {
 	this.addNewBlock = function (block) {
 		obj.blockObjects[block.blockID] = block;
 		// Update display names e.g. block1
-		//obj.updateDisplayName(block.blockID);
+		var blockList = this.getBlockListForClient();
+		mySocketIO.sendBlockListToClient(blockList);
 	};
 	
 	this.updateDisplayName = function (blockID){
@@ -73,6 +74,9 @@ function App() {
 		obj.blockTypeCounts[deviceType] = currBlockTypeCount - 1;
 
 		delete obj.blockObjects[blockID];
+		
+		var blockList = this.getBlockListForClient();
+		mySocketIO.sendBlockListToClient(blockList);
 	};
 
 	this.addNewRealHwBlock = function (hwBlock) {
@@ -152,6 +156,7 @@ function BlockObject(viewObj){
 	this.type = typeof this.type !== 'undefined' ? this.type : "block";
 	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : "block";
 	this.data = typeof this.data !== 'undefined' ? this.data : 0;
+
 };
 
 BlockObjectClone = function () {};
