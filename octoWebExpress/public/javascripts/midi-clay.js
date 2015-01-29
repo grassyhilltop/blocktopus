@@ -27,7 +27,11 @@ function ClientApp() {
 	};
 	
 	this.getDeviceTypeFromName = function (deviceName){
+		if(deviceName in deviceTypes){
 		return deviceTypes[deviceName]["direction"];
+		}else{
+			return null;
+		}
 	}
 	
 	this.addNewBlock = function (block) {
@@ -135,14 +139,17 @@ function ClientApp() {
 						if(blockList[block]["devIDNum"]=="E"){
 								var newHwBlock = new EmuHwBlock(blockList[block]["devName"],block);
 						}else{
-							if(blockList[block]["devName"].substring(0, blockList[block]["devName"].length - 2) == "RGB_LED"){
-								var newHwBlock = new RGB_LED(blockList[block]["devName"],block);
+							//check for weird midi device from edison
+							var deviceName = blockList[block]["devName"].split("-")[0];
+							if(obj.getDeviceTypeFromName(deviceName)){
+								if(blockList[block]["devName"].substring(0, blockList[block]["devName"].length - 2) == "RGB_LED"){
+									var newHwBlock = new RGB_LED(blockList[block]["devName"],block);
+								}
+								else{
+									var newHwBlock = new RealHwBlock(blockList[block]["devName"],block);
+								}
 							}
-							else{
-								var newHwBlock = new RealHwBlock(blockList[block]["devName"],block);
-							}
-					 	}
-						//TODO: emulated hardware blocks			        		
+					 	}			        		
 					}
 				}
 			}else{

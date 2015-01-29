@@ -34,7 +34,7 @@ function App() {
 	};
 	
 	this.getDeviceTypeFromName = function (deviceName){
-		if(deviceTypes[deviceName]["direction"]){
+		if(deviceName in deviceTypes){
 			return deviceTypes[deviceName]["direction"];
 		}
 		else{
