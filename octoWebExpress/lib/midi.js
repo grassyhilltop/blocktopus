@@ -2,6 +2,8 @@
 var midi = require('midi');
 var mySocketIO = require('./mySocketIO');
 
+var output = new midi.output();	
+
 var global_input = new midi.input();
 
 exports.setupMidi = function(app) {
@@ -13,7 +15,6 @@ exports.out = function(deviceName,msg){
 	console.log("sending message out to deviceName: " + deviceName + " portName: " + portNumber);
 	
 	if (portNumber != null){
-		var output = new midi.output();	
 		output.openPort(portNumber);
 		output.sendMessage([msg[0],msg[1],msg[2]]);
 		output.closePort();
