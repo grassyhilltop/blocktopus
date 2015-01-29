@@ -1,4 +1,4 @@
-blocktopus
+ blocktopus
 ==========
 
 Code in Firmware folder contains all the project files for implementing a V-USB MIDI device with an Attiny85 microcontroller.
