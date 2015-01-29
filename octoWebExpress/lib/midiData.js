@@ -34,7 +34,12 @@ function App() {
 	};
 	
 	this.getDeviceTypeFromName = function (deviceName){
-		return deviceTypes[deviceName]["direction"];
+		if(deviceTypes[deviceName]["direction"]){
+			return deviceTypes[deviceName]["direction"];
+		}
+		else{
+		 return  null;
+		 }
 	}
 	
 	this.addNewBlock = function (block) {
