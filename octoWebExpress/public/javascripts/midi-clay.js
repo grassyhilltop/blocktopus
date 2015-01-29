@@ -140,7 +140,8 @@ function ClientApp() {
 								var newHwBlock = new EmuHwBlock(blockList[block]["devName"],block);
 						}else{
 							//check for weird midi device from edison
-							if(obj.getDeviceTypeFromName(blockList[block]["devName"])){
+							var deviceName = blockList[block]["devName"].split("-")[0];
+							if(obj.getDeviceTypeFromName(deviceName)){
 								if(blockList[block]["devName"].substring(0, blockList[block]["devName"].length - 2) == "RGB_LED"){
 									var newHwBlock = new RGB_LED(blockList[block]["devName"],block);
 								}
