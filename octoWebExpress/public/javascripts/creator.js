@@ -29,7 +29,7 @@ function setupWorld(){
     // createCommandInput(); // Initally show a command input
 
     // If we click on the canvas create a textField
-    window.addEventListener("click", masterClayClickHander) ;    
+    //window.addEventListener("click", masterClayClickHander) ;    
     window.addEventListener("keydown", masterClayKeyDownHander) ;    
 }
 
@@ -122,7 +122,7 @@ function drawCodeBlock(id, x , y ,w ,h){
     var html = "<div class='deleteButton'></div>";
     $(container).append(html);
     // cblockID= function(){ app.removeBlock(blockID); }
-    $("#"+divId+">div.deleteButton").click( function(){ app.removeBlock(blockID); } );
+    $("#"+divId+">div.deleteButton").click( function(){ app.removeCodeBlockFromServer(blockID); } );
 
     return divElem;
 }
@@ -177,7 +177,6 @@ function lostCellFocus(event){
 }
 
 function gotClickInWorkSpace( event){
-
     var x = event.pageX;
     var y = event.pageY;
     // var freeCellElem = drawCodeBlock(x,y);
@@ -294,8 +293,9 @@ function gotClickInWorkSpace( event){
         }
 
     } 
-
 }
+
+
 // http://shebang.brandonmintern.com/foolproof-html-escaping-in-javascript/
 function unescapeHTML(inputString){
 

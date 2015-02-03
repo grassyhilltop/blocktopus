@@ -61,7 +61,7 @@ function ClientApp() {
 		console.log("removing block with id: " + blockID );
 		
 		var blockToRemove = obj.blockObjects[blockID];
-		blockToRemove.deleteView();
+		blockToRemove.Remove();
 
 		var deviceType = blockToRemove.type;
 		if (blockToRemove.type == "hw") deviceType = blockToRemove.deviceType;
@@ -134,22 +134,29 @@ function ClientApp() {
 				for(var block in blockList){
 					var foundBlockId = obj.hasBlock(block);
 					if (!foundBlockId) { // if no device yet created
-						console.log("Found new block:" + blockList[block]["devName"]);
-						//Real hardware blocks
-						if(blockList[block]["devIDNum"]=="E"){
-								var newHwBlock = new EmuHwBlock(blockList[block]["devName"],block);
+						//Software blocks
+						if(blockList[block]["type"] == "sw"){
+							var newSwBlock = new CodeBlock(block,blockList[block]["x"],blockList[block]["y"]);
+						//Hardware Blocks
 						}else{
-							//check for weird midi device from edison
-							var deviceName = blockList[block]["devName"].split("-")[0];
-							if(obj.getDeviceTypeFromName(deviceName)){
-								if(blockList[block]["devName"].substring(0, blockList[block]["devName"].length - 2) == "RGB_LED"){
-									var newHwBlock = new RGB_LED(blockList[block]["devName"],block);
-								}
-								else{
-									var newHwBlock = new RealHwBlock(blockList[block]["devName"],block);
+							console.log("Found new block:" + blockList[block]["devName"]);
+							//emulated Hw Devices
+							if(blockList[block]["devIDNum"]=="E"){
+									var newHwBlock = new EmuHwBlock(blockList[block]["devName"],block);
+							//Real Hw Devices
+							}else{
+								//check for weird midi device from edison
+								var deviceName = blockList[block]["devName"].split("-")[0];
+								if(obj.getDeviceTypeFromName(deviceName)){
+									if(blockList[block]["devName"].substring(0, blockList[block]["devName"].length - 2) == "RGB_LED"){
+										var newHwBlock = new RGB_LED(blockList[block]["devName"],block);
+									}
+									else{
+										var newHwBlock = new RealHwBlock(blockList[block]["devName"],block);
+									}
 								}
 							}
-					 	}			        		
+						}		        		
 					}
 				}
 			}else{
@@ -186,11 +193,77 @@ function ClientApp() {
 		});
 	};
 	
+	this.sendNewCodeBlockToServer = function (x,y) {
+		var NEW_CODE_BLOCK_URL = "/newCodeBlock";
+		var postArgs = JSON.stringify({x: x, y: y});
+		request = new XMLHttpRequest();
+		console.log("Post args: " + postArgs);
+	
+		request.open('POST', NEW_CODE_BLOCK_URL);
+		request.setRequestHeader('Content-type', "application/json;charset=UTF-8");
+		request.send(postArgs);
+	};
+	
+	this.removeCodeBlockFromServer = function (blockID){
+		var REMOVE_CODE_BLOCK_URL = "/removeCodeBlock";
+		var postArgs = JSON.stringify({blockID: blockID});
+		var obj = this;
+		request = new XMLHttpRequest();
+		console.log("Post args: " + postArgs);
+	
+		request.addEventListener('load',function () {
+			if(request.status == 200){
+				//var results = JSON.parse(request.responseText);
+				
+			}else{
+				console.log("error trying to remove emu hw block!");
+			}
+		});
+
+		request.open('POST', REMOVE_CODE_BLOCK_URL);
+		request.setRequestHeader('Content-type', "application/json;charset=UTF-8");
+		request.send(postArgs);
+	};
+	
+	this.masterClickHandler = function () {
+		var x = event.pageX;
+		var y = event.pageY;
+
+		// What did we click on ? 
+		var elem = event.target;
+	
+		var id = elem.id;                    
+		var elemType = elem.tagName.toLowerCase();
+		var elemParent =  elem.parentNode;
+		if(elemParent) var elemParentType = elemParent.tagName;
+		//console.log( "You Clicked a " + elemType + " with id: " + elem.id + " parent :" + elemParentType);
+
+		// Depending on what we clicked launch some other click handlers
+
+		// Click on empty workspace
+		if ($("#"+elem.id).hasClass("section")){
+			//Tell the server to create a code block
+			obj.sendNewCodeBlockToServer(x,y);
+		}
+
+		// if you clicked on an object set the selected property
+		else {
+			// If the type of object is inside freeHTMLContainer select its container
+			var freeContainer = $(elem).closest('.freeHTMLContainer');
+			$(freeContainer).toggleClass("selected");
+		}
+	};
+	
+	this.setupCodeBlocks = function () {
+		window.addEventListener("click", this.masterClickHandler); 
+	};
+	
 	// Functions to call when the app is first opened
 	this.menu = new Menu();
 	this.menu.addEmuHwBtns(deviceTypes);
 	this.setupMidi();
 	this.setupSocketIO();
+	this.setupCodeBlocks();
 };
 
 getDeviceListFromServer = function(callback) {
@@ -303,10 +376,8 @@ function BlockObject(viewObj,blockID){
 BlockObjectClone = function () {};
 BlockObjectClone.prototype = BlockObject.prototype;
 
-BlockObject.prototype.deleteView = function(){
+BlockObject.prototype.Remove = function(){
 	console.log("deleting view!");	
-	g1 = this;
-
 	// Clean up jsplumb connectors
 	jsPlumb.detachAllConnections(this.viewObj.id);
 	jsPlumb.removeAllEndpoints(this.viewObj.id); 
@@ -329,13 +400,13 @@ BlockObject.prototype.updateConnectionsOnServer = function(connectFrom, connectT
 };
 
 BlockObject.prototype.removeConnectionsOnServer = function(connectFrom, connectTo){
-	var CONNECTIONS_URL = "/connections";
+	var CONNECTIONS_URL = "/delConnection";
 	var postArgs = JSON.stringify({connectFrom: connectFrom, connectTo: connectTo});
     //var postArgs = JSON.stringify({number:1});
     request = new XMLHttpRequest();
     console.log("Post args: " + postArgs);
 	
-	request.open('DELETE', CONNECTIONS_URL);
+	request.open('POST', CONNECTIONS_URL);
 	request.setRequestHeader('Content-type', "application/json;charset=UTF-8");
 	request.send(postArgs);
 	console.log("sent remove to connections");
@@ -356,13 +427,13 @@ BlockObject.prototype.addOutputConnection = function (outputConnectionObj){
 BlockObject.prototype.removeInputConnection = function (inputConnectionObj){
 	// console.log("removing input connection");
 	delete this.inConnections[inputConnectionObj.blockID];
-	//this.removeConnectionsOnServer(inputConnectionObj.blockID,this.blockID);
+	this.removeConnectionsOnServer(inputConnectionObj.blockID,this.blockID);
 };
 
 BlockObject.prototype.addInputConnection = function (inputConnectionObj){
 	// console.log("adding input connection from " + inputConnectionObj.blockID + " to " + this.blockID );
 	this.inConnections[inputConnectionObj.blockID] = inputConnectionObj;
-	//this.updateConnectionsOnServer(inputConnectionObj.blockID,this.blockID);
+	this.updateConnectionsOnServer(inputConnectionObj.blockID,this.blockID);
 };
 
 BlockObject.prototype.sendToAllOutputs = function(msg){
@@ -507,6 +578,28 @@ EmuHwBlock.prototype.updateValueOnServer = function(msg){
 	console.log("sent update to emu hw val");
 };
 
+EmuHwBlock.prototype.Remove = function(){
+	var REMOVE_EMU_HW_URL = "/removeEmuHwBlock";
+	var postArgs = JSON.stringify({blockID: this.blockID});
+	var obj = this;
+	request = new XMLHttpRequest();
+	
+	request.addEventListener('load',function () {
+		if(request.status == 200){
+			//var results = JSON.parse(request.responseText);
+			
+			//Call the parent function to remove view, etc.
+			BlockObject.prototype.Remove.call(obj);
+		}else{
+			console.log("error trying to remove emu hw block!");
+		}
+	});
+
+	request.open('POST', REMOVE_EMU_HW_URL);
+	request.setRequestHeader('Content-type', "application/json;charset=UTF-8");
+	request.send(postArgs);
+};
+
 EmuHwBlockClone = function () {};
 EmuHwBlockClone.prototype = EmuHwBlock.prototype;
 
@@ -626,9 +719,9 @@ function RGB_LED(devName){
 
 
 
-function CodeBlock(x,y,viewObjInput){
+function CodeBlock(blockID,x,y,viewObjInput){
 	var obj = this;
-	BlockObject.call(this,viewObjInput);
+	BlockObject.call(this,viewObjInput,blockID);
 	this.type="sw";
 	this.data = "0";
 	this.displayName = "input";      
@@ -638,9 +731,7 @@ function CodeBlock(x,y,viewObjInput){
 	app.addNewBlock(this);
 
 	if(!viewObjInput){
-
 		var freeCellELem = drawCodeBlock(this.blockID,x,y);
-		
 		// parent element has unique container id .e.g. block-3 		
 		this.viewObj = freeCellELem.parentElement;  
 	}
