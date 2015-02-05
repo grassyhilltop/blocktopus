@@ -187,6 +187,17 @@ function ClientApp() {
 			obj.blockObjects[data.blockID].onReceiveMessage(data.blockID,data.msg);
 		});
 		
+		this.socket.on('midiMsg',function(data) {
+			console.log("data.blockID: " + data.blockID);
+			obj.blockObjects[data.blockID].onReceiveMessage(data.blockID,data.msg);
+		});
+		
+		this.socket.on('codeBlockVal',function(data) {
+			var blockID = data.blockID;
+			var val = data.val;
+			obj.blockObjects[data.blockID].updateOutputValue(val);
+		});
+		
 		this.socket.on('blockList',function(data) {
 			var blockList = data.blockList;
 			obj.updateBlockList(blockList);
@@ -736,6 +747,70 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		this.viewObj = freeCellELem.parentElement;  
 	}
 	
+	this.sendCodeToServer = function(text){
+		var NEW_CODE_BLOCK_TEXT_URL = "/newCodeBlockText";
+		var postArgs = JSON.stringify({blockID: obj.blockID, text: text});
+		request = new XMLHttpRequest();
+		console.log("Post args: " + postArgs);
+	
+		request.open('POST', NEW_CODE_BLOCK_TEXT_URL);
+		request.setRequestHeader('Content-type', "application/json;charset=UTF-8");
+		request.send(postArgs);
+	};
+	
+	this.executeCodeOnServer = function() {
+		var EXEC_CODE_BLOCK_URL = "/execCodeBlock";
+		var postArgs = JSON.stringify({blockID: obj.blockID});
+		request = new XMLHttpRequest();
+		console.log("Post args: " + postArgs);
+	
+		request.open('POST', EXEC_CODE_BLOCK_URL);
+		request.setRequestHeader('Content-type', "application/json;charset=UTF-8");
+		request.send(postArgs);
+	};
+	
+	//add event handler for click on button
+	var $codeWindow = $("#"+"codeWindow-"+blockID);
+	$codeWindow.bind("keyup", function(event) {
+		//var htmlString = $codeWindow.text();
+		
+		var codeBlockID = obj.blockID;
+		var codeBlockObj = app.blockObjects[codeBlockID];
+		var clobjectDiv = $("#block-"+codeBlockID);
+		
+		var elem = clobjectDiv.find(".freeCell");
+		var divs = elem.find('div');
+		var code = "";
+		
+		divs.each(function() {
+			if ($(this).hasClass("codeArgLine")){
+				var argElem = $(this).find(".codeArgInput");
+				var argName = $(this).find(".codeArgName");
+				code = code + argName.text() + " = " + argElem.val() + " ; ";
+			}else{
+				code = code + " " + $(this).text() + " ";
+			}
+		});
+		
+        //we want to make sure the window resizes correctly
+        jsPlumb.repaint($codeWindow.parent());
+		obj.sendCodeToServer(code);
+		//Special Key to Execute Code on Server?
+		if (event.keyCode == 13) {
+        	obj.executeCodeOnServer();
+    	}
+	});
+
+	this.updateOutputValue = function(outputValue) {
+		var codeBlockID = obj.blockID;
+		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
+		var outputValueElem = clobjectDiv.find(".returnValInput");
+		
+		if(outputValueElem) {
+			outputValueElem.val(outputValue);	
+		}
+	};
+
 	// Update software block from an incoming midi message , evaling code
 	this.update = function(fromBlockID,msg){
 		
@@ -743,9 +818,9 @@ function CodeBlock(blockID,x,y,viewObjInput){
 			console.log("Error in software block update... no message");
 			return;
 		}
-		var fromObj = app.blockObjects[fromBlockID];
-		var newVal = convertMidiMsgToNumber(msg);
-		var codeBoxElem = $("#block-"+obj.blockID);
+		//var fromObj = app.blockObjects[fromBlockID];
+		//var newVal = convertMidiMsgToNumber(msg);
+		//var codeBoxElem = $("#block-"+obj.blockID);
 		
 		// Update the view -----
 	

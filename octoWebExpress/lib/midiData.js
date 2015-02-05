@@ -181,7 +181,6 @@ function BlockObject(viewObj){
 	this.type = typeof this.type !== 'undefined' ? this.type : "block";
 	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : "block";
 	this.data = typeof this.data !== 'undefined' ? this.data : 0;
-
 };
 
 BlockObjectClone = function () {};
@@ -196,8 +195,7 @@ BlockObject.prototype.Remove = function(){
 	
 	for(block in this.inConnections){
 		this.inConnections[block].removeOutputConnection(this.blockID);
-	};
-		
+	};	
 	/*
 		g1 = this;
 		// Clean up jsplumb connectors
@@ -444,21 +442,50 @@ function CodeBlock(x,y){
 	var obj = this;
 	this.initX = x;
 	this.initY = y;
-	BlockObject.call(this,undefined);
 	this.type="sw";
 	this.data = "0";
-	this.displayName = "input";      
-// 	this.sandbox   = new JSandbox();
+	this.displayName = "input";
 	this.result = 0;
+	this.text = "";
+	BlockObject.call(this,undefined);
+// 	this.sandbox   = new JSandbox();
 
 	app.addNewSwBlock(this);
-
-	//if(!viewObjInput){
-		// var freeCellELem = drawCodeBlock(this.blockID,x,y);
-		// parent element has unique container id .e.g. block-3 		
-		//this.viewObj = freeCellELem.parentElement;  
-	//}
 	
+	this.updateCodeText = function (text) {
+		this.text = text;
+	};
+	
+	this.execCodeBlock = function () {
+	//TODO: try to return errors gracefully
+		var result = eval(this.text);
+		console.log("Results of Code block Execution: " + result);
+		return result;
+	};
+	
+	this.sendOutputValToClient = function (val) {
+		mySocketIO.sendOutputValToClient(obj.blockID, val);
+	};
+	
+	this.onReceiveMessage = function(fromBlockID,msg){
+		console.log("Software block with blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
+
+		if(!msg){
+			console.log("Error: tried to send a message to block with empty message");
+			return;
+		} 
+
+		// If the message containes a new value update block
+		result = obj.execCodeBlock(fromBlockID,msg);
+		
+		obj.sendOutputValToClient(result);			
+
+		// Send a new msg to any connected outputs
+		if(result != undefined ){
+			var newMsg = myMidi.convertPercentToMidiMsg(result);
+			obj.sendToAllOutputs(newMsg);
+		}
+	};
 /*
 	
 	// Update software block from an incoming midi message , evaling code
@@ -651,25 +678,6 @@ function CodeBlock(x,y){
 		return result;
 	};
 
-	this.onReceiveMessage = function(fromBlockID,msg){
-		console.log("Software block with blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
-
-		if(!msg){
-			console.log("Error: tried to send a message to block with empty message");
-			return;
-		} 
-
-		// If the message containes a new value update block
-		var result = obj.update(fromBlockID,msg);			
-
-		// Send a new msg to any connected outputs
-		if(result !=undefined ){
-			var newMsg = convertPercentToMidiMsg(result);
-			obj.sendToAllOutputs(newMsg);
-		}
-		
-	};
-
 	// ================================================
 	// CODE BLOCK - VIEW FUNCTIONS
 	// ================================================
@@ -755,9 +763,8 @@ CodeBlock.prototype.addInputConnection = function (outputConnectionObj){
 
 	BlockObject.prototype.addInputConnection.call(this,outputConnectionObj);
 
-	// console.log("Adding input to code block");
-	
-	this.updateArgumentsView();			
+	// console.log("Adding input to code block")
+	//this.updateArgumentsView();			
 };
 
 // When some object dissconnects from a code block
@@ -766,8 +773,7 @@ CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
 	BlockObject.prototype.removeInputConnection.call(this,outputConnectionObj);
 
 	// console.log("Removing input from code block");
-	
-	this.updateArgumentsView();			
+	//this.updateArgumentsView();			
 };
 
 module.exports = app;

@@ -42,6 +42,27 @@ router.post('/newCodeBlock', function(req, res){
 	res.json(1);
 });
 
+router.post('/newCodeBlockText', function(req, res){
+	console.log("NEW CODE BLOCK TEXT!");
+	var text = req.body["text"];
+	var blockID = Number(req.body["blockID"]);
+	var block = midiData.blockObjects[blockID];
+	
+	block.updateCodeText(text);
+	
+	res.json(1);
+});
+
+router.post('/execCodeBlock', function(req, res){
+	console.log("EXEC CODE BLOCK");
+	var blockID = Number(req.body["blockID"]);
+	var block = midiData.blockObjects[blockID];
+	
+	var results = block.execCodeBlock();
+	
+	res.json(1);
+});
+
 router.post('/removeCodeBlock', function(req, res){
 	console.log("REMOVE CODE BLOCK: " + req.body["blockID"]);
 	var blockID = Number(req.body["blockID"]);

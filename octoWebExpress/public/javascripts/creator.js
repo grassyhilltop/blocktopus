@@ -100,7 +100,7 @@ function drawCodeBlock(id, x , y ,w ,h){
 
     // Wrapp div in draggable div
     var container = createDraggableContainer(x,y,id);
-    var divElem = createDiv(0,0,w,h,true,"relative");// Creating a contentEditable div
+    var divElem = createCodeWindow(id,0,0,w,h,true,"relative");// Creating a contentEditable div
     append(divElem,container);
     append(container);    
     container.classList.add("freeCellContainer");
@@ -176,7 +176,7 @@ function lostCellFocus(event){
     
 }
 
-function gotClickInWorkSpace( event){
+function gotClickInWorkSpace(event){
     var x = event.pageX;
     var y = event.pageY;
     // var freeCellElem = drawCodeBlock(x,y);
@@ -185,9 +185,9 @@ function gotClickInWorkSpace( event){
     var codeBlockView = newCodeBlock.viewObj.children[0]; // The free cell inside the view
     
     codeBlockView.onkeyup = function(event){
-        
         // Key up resizes container so need to repaint
         jsPlumb.repaint(codeBlockView.parentElement);
+        
     }
 
     codeBlockView.onkeydown = function(event){
@@ -197,100 +197,6 @@ function gotClickInWorkSpace( event){
         jsPlumb.repaint(codeBlockView.parentElement);
         // jsPlumb.repaint(el, [ui])
         // jsPlumb.repaintEverything();
-
-        // onkeypress works with char codes e.g. event.charCode
-        // onkeydown works reliably with keyCodes e.g. event.keyCode
-        
-        var eventKeyCode = event.keyCode;
-        var eventChar = String.fromCharCode(eventKeyCode).toLowerCase(); 
-
-        if(World.printKeyboard){
-            console.log("" + eventChar + " was pressed (Key Code) : " + eventKeyCode ) ;
-        }
-
-        var resultText= "";
-  
-        // if you start holding command
-        if( eventKeyCode == stringToKeyCode("command")){
-            if(World.printKeyboard) console.log("holding command");
-        }
-
-        // If we press command and enter evaluate
-        if( eventKeyCode == stringToKeyCode("enter") && event.metaKey){
-            if(World.printKeyboard) console.log("enter plus + command pressed!!");
-            
-             var result =""
-
-            var textString = $(codeBlockView).text(); // cross platform get text
-            console.log("text to parse:" +textString);
-
-            // if the contents have html get them (Jquery escapes the found html)
-            // So we have to unescape it to have a pure HTML string again
-            // Todo: unescape HTML less hacky.(it won't unescape everything)
-            var htmlString = unescapeHTML($(codeBlockView).html()); 
-            console.log("html to parse:" +htmlString);
-            
-            // Just always parse the raw string
-            result = parseCommandInput(textString);
-
-            // // Alternative: If the html string looks like valid html e.g. with <tags> send that over
-            // if(htmlString.containsHTML()) {
-            //     result = parseCommandInput(htmlString);
-            //     // result = parseCommandInput(textString); // bug here to remove escaping
-            // }
-            // else{
-            //     result = parseCommandInput(textString);  
-            // } 
-
-
-            if(result){
-                
-                // if it a function run it
-                if (typeof(result) == "function"){
-                    var functionResult = result();
-                    
-                    // Got some HTML back - just draw it
-                    if(isHTMLElement(functionResult)){
-
-                        functionResult.style.position ="relative";
-                        $(codeBlockView).parent().removeClass("freeCellContainer");
-                        $(codeBlockView).parent().addClass("freeHTMLContainer");
-
-                        //js
-
-                        $(codeBlockView).replaceWith( functionResult);
-                        // append(functionResult,codeBlockView);
-                    }
-                } 
-                else if( typeof(result) == "object"){
-                    console.log("found object result");
-
-                    // result string is html
-                    if(result.type =="html"){
-                        console.log("replacing with html");
-                        $(codeBlockView).html(result);  
-                    }
-                    // Got some HTML back - just draw it
-                    if(isHTMLElement(result)){
-
-                        result.style.position ="relative";
-                        $(codeBlockView).parent().removeClass("freeCellContainer");
-                        $(codeBlockView).parent().addClass("freeHTMLContainer");
-
-                        //js
-
-                        $(codeBlockView).replaceWith( result);
-                        // append(functionResult,codeBlockView);
-                    }
-                }
-                else{ // got a result string - add it to the div
-                    // $(codeBlockView).append(result).show(); // append below
-                    $(codeBlockView).text(result); // replaces the div with the result
-                }
-                
-                
-            }
-        }
 
     } 
 }
@@ -576,9 +482,12 @@ function createTextArea(rows, cols, name){
 }
 
 // Creating a content editable div
-function createDiv(x,y,w,h,editable, position){
+function createCodeWindow(id,x,y,w,h,editable, position){
 
     divElem = document.createElement("div");
+    
+     var idString = "codeWindow-" + id;
+     divElem.id = idString;
 
     if(editable == true){
        divElem.setAttribute("contentEditable", true); 
