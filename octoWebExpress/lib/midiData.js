@@ -63,6 +63,7 @@ function App() {
 	
 	this.addNewBlock = function (block) {
 		obj.blockObjects[block.blockID] = block;
+		obj.updateDisplayName(block.blockID);
 		// Update display names e.g. block1
 		var blockList = this.getBlockListForClient();
 		mySocketIO.sendBlockListToClient(blockList);
@@ -240,6 +241,11 @@ BlockObject.prototype.onReceiveMessage = function(blockID, msg) {
 	//Should be done by objects further down the inheritance chain
 }
 
+BlockObject.prototype.update = function(fromBlockID, msg) {
+	//Should be done by objects further down the inheritance chain
+	this.data = myMidi.convertMidiMsgToNumber(msg);
+}
+
 BlockObject.prototype.sendMsg = function(targetBlockID, msg){
 	console.log("Sending message to " + targetBlockID + " from " + this.blockID);
 	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
@@ -273,7 +279,8 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 		// process the message if needed here e.g. check valid message cleaning...
 	}
 	
-	// If the message containes a new value update hardware block
+	// If the message containes a new value update hardware block view on server
+	// and update this block's current value
 	if (msg) this.update(fromBlockID,msg);
 	
 	if(this.emuHardwareResponse) this.emuHardwareResponse(msg);
@@ -291,6 +298,9 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 
 // Called when the block state has changed - update data and view
 HwBlock.prototype.update = function(fromBlockID,msg){
+	//Call parent function. This updates the blocks current value
+	BlockObject.prototype.update.call(this,fromBlockID, msg);
+	
 	mySocketIO.sendMidiToClient(this.blockID, msg);
 };
 
@@ -443,10 +453,11 @@ function CodeBlock(x,y){
 	this.initX = x;
 	this.initY = y;
 	this.type="sw";
-	this.data = "0";
+	this.data = 0;
 	this.displayName = "input";
 	this.result = 0;
 	this.text = "";
+	this.inputArgs = "";
 	BlockObject.call(this,undefined);
 // 	this.sandbox   = new JSandbox();
 
@@ -457,14 +468,33 @@ function CodeBlock(x,y){
 	};
 	
 	this.execCodeBlock = function () {
-	//TODO: try to return errors gracefully
-		var result = eval(this.text);
+		var code = "";
+		var inputBlockArg = "";
+		//go through all input connections and initialize their corresponding variables
+		for(blockID in this.inConnections){
+			inputBlockArg = ""
+			inputBlockArg += this.inConnections[blockID].displayName;
+			inputBlockArg += " = ";
+			inputBlockArg += this.inConnections[blockID].data;
+			inputBlockArg += ";";
+			
+			code += inputBlockArg;
+		};
+		
+		//add the code typed in the code block
+		code += this.text;
+		
+		console.log("Code to be Executed: ");
+		console.log(code);
+		
+		//TODO: try to return errors gracefully
+		var result = eval(code);
 		console.log("Results of Code block Execution: " + result);
 		return result;
 	};
 	
-	this.sendOutputValToClient = function (val) {
-		mySocketIO.sendOutputValToClient(obj.blockID, val);
+	this.sendOutputValToClient = function (fromBlockID,msg,val) {
+		mySocketIO.sendOutputValToClient(obj.blockID,val,fromBlockID,msg);
 	};
 	
 	this.onReceiveMessage = function(fromBlockID,msg){
@@ -476,9 +506,11 @@ function CodeBlock(x,y){
 		} 
 
 		// If the message containes a new value update block
-		result = obj.execCodeBlock(fromBlockID,msg);
+		result = obj.execCodeBlock(fromBlockID,msg);	
 		
-		obj.sendOutputValToClient(result);			
+		// If the message containes a new value update hardware block view on server
+		// and update this block's current value
+		this.update(fromBlockID,msg);	
 
 		// Send a new msg to any connected outputs
 		if(result != undefined ){
@@ -486,6 +518,7 @@ function CodeBlock(x,y){
 			obj.sendToAllOutputs(newMsg);
 		}
 	};
+	
 /*
 	
 	// Update software block from an incoming midi message , evaling code
@@ -682,75 +715,6 @@ function CodeBlock(x,y){
 	// CODE BLOCK - VIEW FUNCTIONS
 	// ================================================
 	
-	this.updateArgumentsView = function(){
-
-		// Update the code block views argument lines and output field
-		// according the what parents are connected		
-
-		// Setup view variables
-		var targetElem = $("#block-"+this.blockID);	  // Jquery obj of the code block view
-		var elem = targetElem.find(".freeCell");      // Editable div inside object
-		targetInputElems = elem.find(".codeArgInput");// Any existing argument divs
-		var numInConnections = Object.keys(this.inConnections).length; // Number of connected parents,  
-		
-		var linesToAdd = "";
-
-		// First clean up div - Delete all of the preexisintg argument lines
-		var argmentLines = $(this.viewObj).find(".codeArgLine");		
-		for (var i = 0; i < argmentLines.length; i++) {
-			var currTargetInputElem = argmentLines[i];
-			currTargetInputElem.remove();
-		}
-		
-		var existingDivider = $(this.viewObj).find(".dividerline");
-		if (existingDivider.length > 0 ) existingDivider[0].remove();
-
-		// Add a div for each input connection we have currently
-		for ( connectedObjID in this.inConnections ){
-			var currConnectedObj = app.blockObjects[connectedObjID];
-			
-			var currArgumentName ="input";                    // default name of the argument
-			var currConnectedObjVal = currConnectedObj.data;  // value of the argument x = 0
-			if (currConnectedObjVal ==undefined) currConnectedObjVal = "0";
-			
-			// Set custom argument name depending on if hardware or software
-			// if ( currConnectedObj.type == "sw" ){	
-			// 	// If connecting from a code block
-
-			// } 
-			// else if (currConnectedObj.type == "hw"){
-			// 	// If connecting from hardware
-			// 	currArgumentName = currConnectedObj.deviceType.toLowerCase();
-			// } 	
-
-			currArgumentName = currConnectedObj.displayName.toLowerCase();
-
-         	// Append a new variable name for each input
-			linesToAdd += "<div contenteditable ='false' class='codeArgLine'>" + "<span class='codeArgName'>"+ currArgumentName + 
-			"</span> = <input class='codeArgInput' value='" + currConnectedObjVal + "'></input> </div> ";		
-		}
-
-		// Append the lines to the elem
-		var originalHTML = elem.html();
-		var blankLine = "<div><br></div>";
-		var dividerline = "<div class='dividerline' contenteditable='false'></div>";
-		elem.html(linesToAdd + dividerline + originalHTML + blankLine);
-
-		// Update the output field
-		// js todo
-
-		var returnValElem = targetElem.find(".returnValInput");
-		var returnVal = "0"; // default return val 
-		if( returnValElem.length == 0 ){ // no output div element yet		
-			var lastLine = "<div class='returnValDiv' contenteditable='false'><input class='returnValInput' value='" + returnVal + "' readonly></input> </div> ";		
-			// elem.append(lastLine);	
-			targetElem.append(lastLine);	
-			// Set our new data		
-			this.data = returnVal;
-		}
-
-		jsPlumb.repaint(elem.parent());	// repaint anchors in case shifted	
-	}	
 */
 };
 
@@ -758,13 +722,21 @@ function CodeBlock(x,y){
 CodeBlock.prototype = new BlockObjectClone();
 CodeBlock.prototype.constructor = CodeBlock;
 
-// When some object connects to a code block
-CodeBlock.prototype.addInputConnection = function (outputConnectionObj){
+// Called when the block state has changed - update data and view
+CodeBlock.prototype.update = function(fromBlockID,msg){
+	//Call parent function. This updates the blocks current value
+	BlockObject.prototype.update.call(this,fromBlockID, msg);
+	
+	this.sendOutputValToClient(fromBlockID,msg,result);	
+};
 
-	BlockObject.prototype.addInputConnection.call(this,outputConnectionObj);
+// When some object connects to a code block
+CodeBlock.prototype.addInputConnection = function (inputConnectionObj){
+
+	BlockObject.prototype.addInputConnection.call(this,inputConnectionObj);
 
 	// console.log("Adding input to code block")
-	//this.updateArgumentsView();			
+	//this.updateInputArguments(inputConnectionObj);			
 };
 
 // When some object dissconnects from a code block
@@ -773,7 +745,7 @@ CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
 	BlockObject.prototype.removeInputConnection.call(this,outputConnectionObj);
 
 	// console.log("Removing input from code block");
-	//this.updateArgumentsView();			
+	//this.updateInputArguments();			
 };
 
 module.exports = app;

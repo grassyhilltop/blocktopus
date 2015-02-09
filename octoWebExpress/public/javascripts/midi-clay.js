@@ -40,8 +40,8 @@ function ClientApp() {
 		//obj.updateDisplayName(block.blockID);
 	};
 	
-	this.updateDisplayName = function (blockID){
-		var currBlock = obj.blockObjects[blockID];
+	this.updateDisplayName = function (blockObject){
+		var currBlock = blockObject;
 		
 		var typeName ="";
 		if (currBlock.type == "hw")	typeName =  currBlock.deviceType;	
@@ -195,7 +195,9 @@ function ClientApp() {
 		this.socket.on('codeBlockVal',function(data) {
 			var blockID = data.blockID;
 			var val = data.val;
-			obj.blockObjects[data.blockID].updateOutputValue(val);
+			var fromBlockID = data.fromBlockID;
+			var msg = data.msg;
+			obj.blockObjects[data.blockID].updateOutputValue(val,fromBlockID, msg);
 		});
 		
 		this.socket.on('blockList',function(data) {
@@ -381,7 +383,9 @@ function BlockObject(viewObj,blockID){
 	this.blockID = blockID;
 	this.type = typeof this.type !== 'undefined' ? this.type : "block";
 	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : "block";
+	
 	this.data = typeof this.data !== 'undefined' ? this.data : 0;
+	app.updateDisplayName(this);
 };
 
 BlockObjectClone = function () {};
@@ -555,7 +559,6 @@ function RealHwBlock(devName,blockID){
 	console.log("creating Knob");
 	HwBlock.call(this,devName,blockID);
 	app.addNewRealHwBlock(this);
-	
 };
 
 RealHwBlock.prototype = new HwBlockClone();
@@ -783,10 +786,11 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		var code = "";
 		
 		divs.each(function() {
+			//this is now done on the server
 			if ($(this).hasClass("codeArgLine")){
-				var argElem = $(this).find(".codeArgInput");
-				var argName = $(this).find(".codeArgName");
-				code = code + argName.text() + " = " + argElem.val() + " ; ";
+				//var argElem = $(this).find(".codeArgInput");
+				//var argName = $(this).find(".codeArgName");
+				//code = code + argName.text() + " = " + argElem.val() + " ; ";
 			}else{
 				code = code + " " + $(this).text() + " ";
 			}
@@ -797,17 +801,25 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		obj.sendCodeToServer(code);
 		//Special Key to Execute Code on Server?
 		if (event.keyCode == 13) {
-        	obj.executeCodeOnServer();
+        	//obj.executeCodeOnServer();
     	}
 	});
 
-	this.updateOutputValue = function(outputValue) {
+	this.updateOutputValue = function(outputValue,fromBlockID,msg) {
 		var codeBlockID = obj.blockID;
 		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
 		var outputValueElem = clobjectDiv.find(".returnValInput");
+		var newVal = convertMidiMsgToNumber(msg);
+		var inputVarTag = "#inputArg"+this.blockID+fromBlockID;
+		var inputVarElem = clobjectDiv.find(inputVarTag).find(".codeArgInput");
+		
+		console.log("InputVarTag: " + inputVarTag);
 		
 		if(outputValueElem) {
 			outputValueElem.val(outputValue);	
+		}
+		if(inputVarElem) {
+			inputVarElem.val(newVal);	
 		}
 	};
 
@@ -841,19 +853,6 @@ function CodeBlock(blockID,x,y,viewObjInput){
 			if (currName == displayName ){
 				argElems[i].value = newVal;	
 			} 
-
-			// if (fromObj.type == "hw"){
-			// 	var deviceName = fromObj.deviceType.toLowerCase();
-
-			// 	if (currName == deviceName){					
-			// 		argElems[i].value = newVal;					
-			// 	}	
-			// } else{
-			// 	if (currName == "input"){
-			// 		argElems[i].value = newVal;	
-			// 	}
-			// }
-			
 		};
 		
 		// Evaluate code block
@@ -1053,22 +1052,14 @@ function CodeBlock(blockID,x,y,viewObjInput){
 			
 			var currArgumentName ="input";                    // default name of the argument
 			var currConnectedObjVal = currConnectedObj.data;  // value of the argument x = 0
-			if (currConnectedObjVal ==undefined) currConnectedObjVal = "0";
-			
-			// Set custom argument name depending on if hardware or software
-			// if ( currConnectedObj.type == "sw" ){	
-			// 	// If connecting from a code block
+			if (currConnectedObjVal ==undefined) currConnectedObjVal = "0";	
 
-			// } 
-			// else if (currConnectedObj.type == "hw"){
-			// 	// If connecting from hardware
-			// 	currArgumentName = currConnectedObj.deviceType.toLowerCase();
-			// } 	
 
-			currArgumentName = currConnectedObj.displayName.toLowerCase();
+			//currArgumentName = currConnectedObj.displayName.toLowerCase();
+			currArgumentName = currConnectedObj.displayName;
 
          	// Append a new variable name for each input
-			linesToAdd += "<div contenteditable ='false' class='codeArgLine'>" + "<span class='codeArgName'>"+ currArgumentName + 
+			linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+connectedObjID+"'>" + "<span class='codeArgName'>"+ currArgumentName + 
 			"</span> = <input class='codeArgInput' value='" + currConnectedObjVal + "'></input> </div> ";		
 		}
 
@@ -1102,9 +1093,7 @@ CodeBlock.prototype.constructor = CodeBlock;
 CodeBlock.prototype.addInputConnection = function (outputConnectionObj){
 
 	BlockObject.prototype.addInputConnection.call(this,outputConnectionObj);
-
 	// console.log("Adding input to code block");
-	
 	this.updateArgumentsView();			
 };
 
