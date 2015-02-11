@@ -15,3 +15,6 @@ exports.sendBlockListToClient = function(blockList) {
 	io.emit('blockList', {'blockList':blockList});
 };
 
+exports.sendOutputValToClient = function(blockID,val,fromBlockID,msg){
+	io.emit('codeBlockVal', {'blockID':blockID,'val': val,'fromBlockID':fromBlockID,'msg':[msg[0],msg[1],msg[2]]});
+};

@@ -28,6 +28,25 @@ function App() {
 	this.ins;
 	this.outs;
 	this.midiDevicePollTimer;
+	
+	/* To interface with the rest of the app */
+	this.createNewRealHwBlock = function (currDeviceName) {
+		return new RealHwBlock(currDeviceName);
+	};
+	
+	this.createNewRGBLED = function (currDeviceName) {
+		return new RGB_LED(currDeviceName);
+	};
+	
+	this.createNewEmuHwBlock = function(emuHwType){
+		return new EmuHwBlock(emuHwType);
+	};
+	
+	this.createNewCodeBlock = function(x,y){
+		return new CodeBlock(x,y);
+	};
+	
+	/* To interface with the rest of the app */
 
 	this.newBlockID = function () {
 		return obj.numBlocks++;
@@ -44,6 +63,7 @@ function App() {
 	
 	this.addNewBlock = function (block) {
 		obj.blockObjects[block.blockID] = block;
+		obj.updateDisplayName(block.blockID);
 		// Update display names e.g. block1
 		var blockList = this.getBlockListForClient();
 		mySocketIO.sendBlockListToClient(blockList);
@@ -70,7 +90,7 @@ function App() {
 		console.log("removing block with id: " + blockID );
 		
 		var blockToRemove = obj.blockObjects[blockID];
-		blockToRemove.deleteView();
+		blockToRemove.Remove();
 
 		var deviceType = blockToRemove.type;
 		if (blockToRemove.type == "hw") deviceType = blockToRemove.deviceType;
@@ -90,18 +110,6 @@ function App() {
 		obj.realHwObjects[hwBlock.blockID] = hwBlock;
 		//this.menu.addToHwList(hwBlock.blockID);
 	};
-
-	this.createNewRealHwBlock = function (currDeviceName) {
-		return new RealHwBlock(currDeviceName);
-	};
-	
-	this.createNewRGBLED = function (currDeviceName) {
-		return new RGB_LED(currDeviceName);
-	};
-	
-	this.createNewEmuHwBlock = function(emuHwType){
-		return new EmuHwBlock(emuHwType);
-	};
 	
 	this.removeRealHwBlock = function (blockID) {
 		//this.menu.removeFromHwList(blockID);
@@ -114,11 +122,20 @@ function App() {
 		//this.menu.addToEmuHwList(hwBlock.blockID);
 	};
 	
+	this.addNewSwBlock = function (swBlock) {
+		obj.addNewBlock(swBlock);
+		//this.menu.addToEmuHwList(hwBlock.blockID);
+	};
+	
 	this.removeEmuHwBlock = function (blockID) {
 		//this.menu.removeFromEmuHwList(blockID);
 		obj.removeBlock(blockID);
 	};
-
+	
+	this.removeSwBlock = function (blockID) {
+		obj.removeBlock(blockID);
+	};
+	
 	this.findBlockID = function (devName){
 		console.log("Finding block id by device name");
 		for (blockID in obj.realHwObjects){
@@ -136,10 +153,14 @@ function App() {
 			//console.log("adding block to list: " + block);
 			if(obj.blockObjects[block].type == "hw"){
 				blockList[block] = 
-					{"devName":obj.blockObjects[block].devName,
+					{"type": "hw",
+					"devName":obj.blockObjects[block].devName,
 					"devIDNum":obj.blockObjects[block].deviceIDNum}
-			}else{
-			//TODO: code blocks
+			}else if(obj.blockObjects[block].type == "sw"){
+				blockList[block] = 
+					{"type": "sw",
+					"x":obj.blockObjects[block].initX,
+					 "y":obj.blockObjects[block].initY}
 			}
 		}
 		return blockList;
@@ -161,43 +182,48 @@ function BlockObject(viewObj){
 	this.type = typeof this.type !== 'undefined' ? this.type : "block";
 	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : "block";
 	this.data = typeof this.data !== 'undefined' ? this.data : 0;
-
 };
 
 BlockObjectClone = function () {};
 BlockObjectClone.prototype = BlockObject.prototype;
 
-BlockObject.prototype.deleteView = function(){
-	console.log("deleting view!");	
+BlockObject.prototype.Remove = function(){
+	console.log("deleting all connections");	
+	
+	for(block in this.outConnections){
+		this.outConnections[block].removeInputConnection(this.blockID);
+	};
+	
+	for(block in this.inConnections){
+		this.inConnections[block].removeOutputConnection(this.blockID);
+	};	
 	/*
 		g1 = this;
-
 		// Clean up jsplumb connectors
-		jsPlumb.detachAllConnections(this.viewObj.id);
-		jsPlumb.removeAllEndpoints(this.viewObj.id); 
-
 		// Remove the actual node
 		$(this.viewObj).remove();
+		jsPlumb.detachAllConnections(this.viewObj.id);
+		jsPlumb.removeAllEndpoints(this.viewObj.id); 
 	*/
 }
 
-BlockObject.prototype.removeOutputConnection = function (outputConnectionObj){
+BlockObject.prototype.removeOutputConnection = function (blockID){
 	// console.log("removing output connection");
-	delete this.outConnections[outputConnectionObj.blockID];
+	delete this.outConnections[blockID];
 };
 
 BlockObject.prototype.addOutputConnection = function (outputConnectionObj){
-	// console.log("adding output connection from " + this.blockID + " to " + outputConnectionObj.blockID);
+	 console.log("adding output connection from " + this.blockID + " to " + outputConnectionObj.blockID);
 	this.outConnections[outputConnectionObj.blockID] = outputConnectionObj;
 };
 
-BlockObject.prototype.removeInputConnection = function (inputConnectionObj){
+BlockObject.prototype.removeInputConnection = function (blockID){
 	// console.log("removing input connection");
-	delete this.inConnections[inputConnectionObj.blockID];
+	delete this.inConnections[blockID];
 };
 
 BlockObject.prototype.addInputConnection = function (inputConnectionObj){
-	// console.log("adding input connection from " + inputConnectionObj.blockID + " to " + this.blockID );
+	 console.log("adding input connection from " + inputConnectionObj.blockID + " to " + this.blockID );
 	this.inConnections[inputConnectionObj.blockID] = inputConnectionObj;
 };
 
@@ -213,6 +239,11 @@ BlockObject.prototype.sendToAllOutputs = function(msg){
 
 BlockObject.prototype.onReceiveMessage = function(blockID, msg) {
 	//Should be done by objects further down the inheritance chain
+}
+
+BlockObject.prototype.update = function(fromBlockID, msg) {
+	//Should be done by objects further down the inheritance chain
+	this.data = myMidi.convertMidiMsgToNumber(msg);
 }
 
 BlockObject.prototype.sendMsg = function(targetBlockID, msg){
@@ -248,7 +279,8 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 		// process the message if needed here e.g. check valid message cleaning...
 	}
 	
-	// If the message containes a new value update hardware block
+	// If the message containes a new value update hardware block view on server
+	// and update this block's current value
 	if (msg) this.update(fromBlockID,msg);
 	
 	if(this.emuHardwareResponse) this.emuHardwareResponse(msg);
@@ -266,6 +298,9 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 
 // Called when the block state has changed - update data and view
 HwBlock.prototype.update = function(fromBlockID,msg){
+	//Call parent function. This updates the blocks current value
+	BlockObject.prototype.update.call(this,fromBlockID, msg);
+	
 	mySocketIO.sendMidiToClient(this.blockID, msg);
 };
 
@@ -410,6 +445,307 @@ function RGB_LED(devName){
  			myMidi.out(obj.devName,[msg[0],1,this.g]);
  			myMidi.out(obj.devName,[msg[0],2,this.b]);
 	};
+};
+
+
+function CodeBlock(x,y){
+	var obj = this;
+	this.initX = x;
+	this.initY = y;
+	this.type="sw";
+	this.data = 0;
+	this.displayName = "input";
+	this.result = 0;
+	this.text = "";
+	this.inputArgs = "";
+	BlockObject.call(this,undefined);
+// 	this.sandbox   = new JSandbox();
+
+	app.addNewSwBlock(this);
+	
+	this.updateCodeText = function (text) {
+		this.text = text;
+	};
+	
+	this.execCodeBlock = function () {
+		var code = "";
+		var inputBlockArg = "";
+		//go through all input connections and initialize their corresponding variables
+		for(blockID in this.inConnections){
+			inputBlockArg = ""
+			inputBlockArg += this.inConnections[blockID].displayName;
+			inputBlockArg += " = ";
+			inputBlockArg += this.inConnections[blockID].data;
+			inputBlockArg += ";";
+			
+			code += inputBlockArg;
+		};
+		
+		//add the code typed in the code block
+		code += this.text;
+		
+		console.log("Code to be Executed: ");
+		console.log(code);
+		
+		//TODO: try to return errors gracefully
+		var result = eval(code);
+		console.log("Results of Code block Execution: " + result);
+		return result;
+	};
+	
+	this.sendOutputValToClient = function (fromBlockID,msg,val) {
+		mySocketIO.sendOutputValToClient(obj.blockID,val,fromBlockID,msg);
+	};
+	
+	this.onReceiveMessage = function(fromBlockID,msg){
+		console.log("Software block with blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
+
+		if(!msg){
+			console.log("Error: tried to send a message to block with empty message");
+			return;
+		} 
+
+		// If the message containes a new value update block
+		result = obj.execCodeBlock(fromBlockID,msg);	
+		
+		// If the message containes a new value update hardware block view on server
+		// and update this block's current value
+		this.update(fromBlockID,msg);	
+
+		// Send a new msg to any connected outputs
+		if(result != undefined ){
+			var newMsg = myMidi.convertPercentToMidiMsg(result);
+			obj.sendToAllOutputs(newMsg);
+		}
+	};
+	
+/*
+	
+	// Update software block from an incoming midi message , evaling code
+	this.update = function(fromBlockID,msg){
+		
+		if(!msg){
+			console.log("Error in software block update... no message");
+			return;
+		}
+		var fromObj = app.blockObjects[fromBlockID];
+		var newVal = convertMidiMsgToNumber(msg);
+		var codeBoxElem = $("#block-"+obj.blockID);
+		
+		// Update the view -----
+	
+		// Update input field data and view			
+		// codeBoxElem.find(".codeArgInput").val(newVal); 
+
+		// Update the existing code argument div that matches the name of the hardware
+		var argElems = codeBoxElem.find(".codeArgInput");
+		var argNames = codeBoxElem.find(".codeArgName");
+		
+		for (var i = 0; i < argNames.length; i++) {
+			var currName = argNames[i].innerHTML;
+			
+			// Using display name to find a match
+			var displayName = fromObj.displayName;
+			if (fromObj.type == "hw") displayName = displayName.toLowerCase();
+			
+			if (currName == displayName ){
+				argElems[i].value = newVal;	
+			} 
+
+			// if (fromObj.type == "hw"){
+			// 	var deviceName = fromObj.deviceType.toLowerCase();
+
+			// 	if (currName == deviceName){					
+			// 		argElems[i].value = newVal;					
+			// 	}	
+			// } else{
+			// 	if (currName == "input"){
+			// 		argElems[i].value = newVal;	
+			// 	}
+			// }
+			
+		};
+		
+		// Evaluate code block
+		var codeBlockJqueryObj = $("#block-"+obj.blockID);
+		// var sourceName = app.blockObjects[fromBlockID].devName;
+		// var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
+		var result = this.evalCodeBlock();
+		// var result = this.evalCodeBlockFromSandBox();
+		
+		// Update output field with evaluated result
+		// todo...
+		obj.data = result;
+
+		return result;
+	};
+	
+	this.evalCodeBlockFromSandBox = function () {
+		
+		var codeBlockID = this.blockID;
+	
+		var codeBlockObj = app.blockObjects[codeBlockID];
+		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
+	
+		var elem = clobjectDiv.find(".freeCell");
+		var inputValue = elem.find(".codeArgInput").val();
+		var outputValueElem = clobjectDiv.find(".returnValInput");
+		
+		var str = elem.html();
+		var divs = elem.find('div');
+		var code = "";
+		divs.each(function() {
+			if ($(this).hasClass("codeArgLine")){
+				var argElem = $(this).find(".codeArgInput");
+				var argName = $(this).find(".codeArgName");
+				code = code + argName.text() + " = " + argElem.val() + " ; ";
+			}else{
+				code = code + " " + $(this).text() + " ";
+			}
+		});
+		console.log("code "+code);
+		this.sandbox.eval(code, function (returnVal) {
+			console.log("ret " + returnVal);
+			obj.result = returnVal;
+		});
+		
+		console.log("evaled code box with results:" +this.result);
+
+		// todo place this in code box update
+		if(outputValueElem) {
+			outputValueElem.val(this.result);	
+		}
+
+		return this.result;
+	};
+	
+	this.evalCodeBlock = function(){
+		console.log("Evaling code block");
+		var codeBlockID = this.blockID;
+	
+		var codeBlockObj = app.blockObjects[codeBlockID];
+		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
+	
+		var elem = clobjectDiv.find(".freeCell");
+		var inputValue = elem.find(".codeArgInput").val();
+		var outputValueElem = clobjectDiv.find(".returnValInput");
+		
+		// Insert new lines around div tags so we can spilt into a line array
+		var str = elem.html().replace(/(<\/div>)|(<div>)|<div[^>]*>|(<br>)/g,"\n"); 
+	
+		str = unescapeHTML(str); // remove any unescaped chars e.g. & " ' < >
+		var lines = str.trim().split("\n"); // split string into array of lines
+
+		//remove empty lines
+		var trimmedlines = [];
+		for (var i = 0; i < lines.length; i++) {
+			if ( lines[i].trim() !="" && lines[i] !="<br>" ) trimmedlines.push(lines[i]);
+		};
+		lines = trimmedlines;
+
+		// Add a line for each input argument
+		var argElems = clobjectDiv.find(".codeArgInput");
+		var argNames = clobjectDiv.find(".codeArgName");
+	
+		for (var i = 0; i < argNames.length; i++) {
+			var currName = argNames[i].innerHTML;
+			var currVal = argElems[i].value;	
+
+			lines[i] = "var " + currName + " = " + currVal; // first line is an input variable	
+			
+		};
+	
+		// If there is no code to eval  just pass through the first input value	
+		var numInConnections = Object.keys(codeBlockObj.inConnections).length
+		// if(lines.length == 1){		
+		if(lines.length == numInConnections){		
+			outputValueElem.val(inputValue);
+			return inputValue;
+		}
+		
+		////////////////////////////////////
+		/// CODE GENERATION (line by line)
+		////////////////////////////////////
+		var lastAssignment;
+		var lastLine;
+		var codeStr= "function(){";
+		for (var i = 0; i < lines.length; i++) {
+			var line = lines[i];
+			if(!line) continue; // skip blank lines		
+		
+			console.log("currline is:" +line);
+		
+			// Check if current line is an assigment and store variable name for later
+			var lineAssignmnetMatch =  isAssignmentLine(line);
+			if(lineAssignmnetMatch) lastAssignment = lineAssignmnetMatch[1];
+
+			lastLine = line;
+			if(isValidLine(line)) line +=";" ; // add semicolon to each line
+
+			codeStr += line;
+		};
+	
+		// Add a return value line , with defaults:
+		// 1. Return last line if it is a valid expression
+		// 2. else return last variable assignment in code
+		if (lastLine) {
+			if(!isValidReturnValue(lastLine)){
+				lastLine = lastAssignment;
+			}
+			codeStr += "return (" + lastLine + ")";
+		}
+
+		g1 = lastAssignment;
+
+		codeStr +="}";
+		console.log("eval code str:"+codeStr);		
+
+		var result = tryEval(codeStr)();
+		console.log("evaled code box with results:" +result);
+
+		// todo place this in code box update
+		if(outputValueElem) {
+			outputValueElem.val(result);	
+		}
+
+		return result;
+	};
+
+	// ================================================
+	// CODE BLOCK - VIEW FUNCTIONS
+	// ================================================
+	
+*/
+};
+
+
+CodeBlock.prototype = new BlockObjectClone();
+CodeBlock.prototype.constructor = CodeBlock;
+
+// Called when the block state has changed - update data and view
+CodeBlock.prototype.update = function(fromBlockID,msg){
+	//Call parent function. This updates the blocks current value
+	BlockObject.prototype.update.call(this,fromBlockID, msg);
+	
+	this.sendOutputValToClient(fromBlockID,msg,result);	
+};
+
+// When some object connects to a code block
+CodeBlock.prototype.addInputConnection = function (inputConnectionObj){
+
+	BlockObject.prototype.addInputConnection.call(this,inputConnectionObj);
+
+	// console.log("Adding input to code block")
+	//this.updateInputArguments(inputConnectionObj);			
+};
+
+// When some object dissconnects from a code block
+CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
+
+	BlockObject.prototype.removeInputConnection.call(this,outputConnectionObj);
+
+	// console.log("Removing input from code block");
+	//this.updateInputArguments();			
 };
 
 module.exports = app;
