@@ -493,7 +493,13 @@ function CodeBlock(x,y){
 		console.log(code);
 		
 		//TODO: try to return errors gracefully
-		var result = eval(code);
+		try {
+			var result = eval(code);
+		} catch (e) {
+			if (e instanceof SyntaxError){
+				result = "ERROR: " + e.message;
+			}
+		}
 		console.log("Results of Code block Execution: " + result);
 		return result;
 	};
@@ -516,212 +522,14 @@ function CodeBlock(x,y){
 		
 		// If the message containes a new value update hardware block view on server
 		// and update this block's current value
-		this.update(fromBlockID,msg);	
+		this.update(fromBlockID,msg,result);	
 
 		// Send a new msg to any connected outputs
-		if(result != undefined ){
+		if(typeof result != undefined && typeof result != "string" ){
 			var newMsg = myMidi.convertPercentToMidiMsg(result);
 			obj.sendToAllOutputs(newMsg);
 		}
 	};
-	
-/*
-	
-	// Update software block from an incoming midi message , evaling code
-	this.update = function(fromBlockID,msg){
-		
-		if(!msg){
-			console.log("Error in software block update... no message");
-			return;
-		}
-		var fromObj = app.blockObjects[fromBlockID];
-		var newVal = convertMidiMsgToNumber(msg);
-		var codeBoxElem = $("#block-"+obj.blockID);
-		
-		// Update the view -----
-	
-		// Update input field data and view			
-		// codeBoxElem.find(".codeArgInput").val(newVal); 
-
-		// Update the existing code argument div that matches the name of the hardware
-		var argElems = codeBoxElem.find(".codeArgInput");
-		var argNames = codeBoxElem.find(".codeArgName");
-		
-		for (var i = 0; i < argNames.length; i++) {
-			var currName = argNames[i].innerHTML;
-			
-			// Using display name to find a match
-			var displayName = fromObj.displayName;
-			if (fromObj.type == "hw") displayName = displayName.toLowerCase();
-			
-			if (currName == displayName ){
-				argElems[i].value = newVal;	
-			} 
-
-			// if (fromObj.type == "hw"){
-			// 	var deviceName = fromObj.deviceType.toLowerCase();
-
-			// 	if (currName == deviceName){					
-			// 		argElems[i].value = newVal;					
-			// 	}	
-			// } else{
-			// 	if (currName == "input"){
-			// 		argElems[i].value = newVal;	
-			// 	}
-			// }
-			
-		};
-		
-		// Evaluate code block
-		var codeBlockJqueryObj = $("#block-"+obj.blockID);
-		// var sourceName = app.blockObjects[fromBlockID].devName;
-		// var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
-		var result = this.evalCodeBlock();
-		// var result = this.evalCodeBlockFromSandBox();
-		
-		// Update output field with evaluated result
-		// todo...
-		obj.data = result;
-
-		return result;
-	};
-	
-	this.evalCodeBlockFromSandBox = function () {
-		
-		var codeBlockID = this.blockID;
-	
-		var codeBlockObj = app.blockObjects[codeBlockID];
-		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
-	
-		var elem = clobjectDiv.find(".freeCell");
-		var inputValue = elem.find(".codeArgInput").val();
-		var outputValueElem = clobjectDiv.find(".returnValInput");
-		
-		var str = elem.html();
-		var divs = elem.find('div');
-		var code = "";
-		divs.each(function() {
-			if ($(this).hasClass("codeArgLine")){
-				var argElem = $(this).find(".codeArgInput");
-				var argName = $(this).find(".codeArgName");
-				code = code + argName.text() + " = " + argElem.val() + " ; ";
-			}else{
-				code = code + " " + $(this).text() + " ";
-			}
-		});
-		console.log("code "+code);
-		this.sandbox.eval(code, function (returnVal) {
-			console.log("ret " + returnVal);
-			obj.result = returnVal;
-		});
-		
-		console.log("evaled code box with results:" +this.result);
-
-		// todo place this in code box update
-		if(outputValueElem) {
-			outputValueElem.val(this.result);	
-		}
-
-		return this.result;
-	};
-	
-	this.evalCodeBlock = function(){
-		console.log("Evaling code block");
-		var codeBlockID = this.blockID;
-	
-		var codeBlockObj = app.blockObjects[codeBlockID];
-		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
-	
-		var elem = clobjectDiv.find(".freeCell");
-		var inputValue = elem.find(".codeArgInput").val();
-		var outputValueElem = clobjectDiv.find(".returnValInput");
-		
-		// Insert new lines around div tags so we can spilt into a line array
-		var str = elem.html().replace(/(<\/div>)|(<div>)|<div[^>]*>|(<br>)/g,"\n"); 
-	
-		str = unescapeHTML(str); // remove any unescaped chars e.g. & " ' < >
-		var lines = str.trim().split("\n"); // split string into array of lines
-
-		//remove empty lines
-		var trimmedlines = [];
-		for (var i = 0; i < lines.length; i++) {
-			if ( lines[i].trim() !="" && lines[i] !="<br>" ) trimmedlines.push(lines[i]);
-		};
-		lines = trimmedlines;
-
-		// Add a line for each input argument
-		var argElems = clobjectDiv.find(".codeArgInput");
-		var argNames = clobjectDiv.find(".codeArgName");
-	
-		for (var i = 0; i < argNames.length; i++) {
-			var currName = argNames[i].innerHTML;
-			var currVal = argElems[i].value;	
-
-			lines[i] = "var " + currName + " = " + currVal; // first line is an input variable	
-			
-		};
-	
-		// If there is no code to eval  just pass through the first input value	
-		var numInConnections = Object.keys(codeBlockObj.inConnections).length
-		// if(lines.length == 1){		
-		if(lines.length == numInConnections){		
-			outputValueElem.val(inputValue);
-			return inputValue;
-		}
-		
-		////////////////////////////////////
-		/// CODE GENERATION (line by line)
-		////////////////////////////////////
-		var lastAssignment;
-		var lastLine;
-		var codeStr= "function(){";
-		for (var i = 0; i < lines.length; i++) {
-			var line = lines[i];
-			if(!line) continue; // skip blank lines		
-		
-			console.log("currline is:" +line);
-		
-			// Check if current line is an assigment and store variable name for later
-			var lineAssignmnetMatch =  isAssignmentLine(line);
-			if(lineAssignmnetMatch) lastAssignment = lineAssignmnetMatch[1];
-
-			lastLine = line;
-			if(isValidLine(line)) line +=";" ; // add semicolon to each line
-
-			codeStr += line;
-		};
-	
-		// Add a return value line , with defaults:
-		// 1. Return last line if it is a valid expression
-		// 2. else return last variable assignment in code
-		if (lastLine) {
-			if(!isValidReturnValue(lastLine)){
-				lastLine = lastAssignment;
-			}
-			codeStr += "return (" + lastLine + ")";
-		}
-
-		g1 = lastAssignment;
-
-		codeStr +="}";
-		console.log("eval code str:"+codeStr);		
-
-		var result = tryEval(codeStr)();
-		console.log("evaled code box with results:" +result);
-
-		// todo place this in code box update
-		if(outputValueElem) {
-			outputValueElem.val(result);	
-		}
-
-		return result;
-	};
-
-	// ================================================
-	// CODE BLOCK - VIEW FUNCTIONS
-	// ================================================
-	
-*/
 };
 
 
@@ -729,29 +537,14 @@ CodeBlock.prototype = new BlockObjectClone();
 CodeBlock.prototype.constructor = CodeBlock;
 
 // Called when the block state has changed - update data and view
-CodeBlock.prototype.update = function(fromBlockID,msg){
+CodeBlock.prototype.update = function(fromBlockID,msg,result){
 	//Call parent function. This updates the blocks current value
 	BlockObject.prototype.update.call(this,fromBlockID, msg);
 	
+	//Send the block ID of the block the message came from
+	//send the message 
+	//send the result of the code execution
 	this.sendOutputValToClient(fromBlockID,msg,result);	
-};
-
-// When some object connects to a code block
-CodeBlock.prototype.addInputConnection = function (inputConnectionObj){
-
-	BlockObject.prototype.addInputConnection.call(this,inputConnectionObj);
-
-	// console.log("Adding input to code block")
-	//this.updateInputArguments(inputConnectionObj);			
-};
-
-// When some object dissconnects from a code block
-CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
-
-	BlockObject.prototype.removeInputConnection.call(this,outputConnectionObj);
-
-	// console.log("Removing input from code block");
-	//this.updateInputArguments();			
 };
 
 module.exports = app;
