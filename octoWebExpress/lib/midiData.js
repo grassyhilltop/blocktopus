@@ -113,6 +113,7 @@ function App() {
 	
 	this.removeRealHwBlock = function (blockID) {
 		//this.menu.removeFromHwList(blockID);
+		obj.blockObjects[blockID].port.closePort();
 		obj.removeBlock(blockID);
 		delete obj.realHwObjects[blockID];
 	};
@@ -309,6 +310,7 @@ HwBlockClone.prototype = HwBlock.prototype;
 
 function RealHwBlock(devName){
 	console.log("creating Knob");
+	this.port = undefined;
 	HwBlock.call(this,devName);
 	app.addNewRealHwBlock(this);
 };
@@ -458,6 +460,7 @@ function CodeBlock(x,y){
 	this.result = 0;
 	this.text = "";
 	this.inputArgs = "";
+	this.state = 0;
 	BlockObject.call(this,undefined);
 // 	this.sandbox   = new JSandbox();
 
@@ -480,6 +483,8 @@ function CodeBlock(x,y){
 			
 			code += inputBlockArg;
 		};
+		//add the current state of the code block
+		code += " State = " + this.state + ";";
 		
 		//add the code typed in the code block
 		code += this.text;
@@ -506,7 +511,8 @@ function CodeBlock(x,y){
 		} 
 
 		// If the message containes a new value update block
-		result = obj.execCodeBlock(fromBlockID,msg);	
+		result = obj.execCodeBlock(fromBlockID,msg);
+		this.state = result;
 		
 		// If the message containes a new value update hardware block view on server
 		// and update this block's current value

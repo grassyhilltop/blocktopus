@@ -107,7 +107,7 @@ function drawCodeBlock(id, x , y ,w ,h){
 
     divElem.classList.add("freeCell");
     divElem.focus();  
-    divElem.addEventListener("blur",lostCellFocus);
+    //divElem.addEventListener("blur",lostCellFocus);
 
     // jsplumb add anchors for wire connections
     _addEndpoints( container.id, ["BottomCenter"], ["TopCenter"]); 

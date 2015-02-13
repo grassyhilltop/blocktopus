@@ -812,6 +812,8 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		var newVal = convertMidiMsgToNumber(msg);
 		var inputVarTag = "#inputArg"+this.blockID+fromBlockID;
 		var inputVarElem = clobjectDiv.find(inputVarTag).find(".codeArgInput");
+		var stateVarTag = "#inputArg"+this.blockID+"STATE";
+		var stateVarElem = clobjectDiv.find(stateVarTag).find(".codeArgInput");
 		
 		console.log("InputVarTag: " + inputVarTag);
 		
@@ -820,6 +822,9 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		}
 		if(inputVarElem) {
 			inputVarElem.val(newVal);	
+		}
+		if(stateVarElem){
+			stateVarElem.val(outputValue);
 		}
 	};
 
@@ -1062,6 +1067,10 @@ function CodeBlock(blockID,x,y,viewObjInput){
 			linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+connectedObjID+"'>" + "<span class='codeArgName'>"+ currArgumentName + 
 			"</span> = <input class='codeArgInput' value='" + currConnectedObjVal + "'></input> </div> ";		
 		}
+		// Append a new variable name for state
+		linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+"STATE'>" + 
+		"<span class='codeArgName'>"+ "State" + 
+		"</span> = <input class='codeArgInput' value='" + "0" + "'></input> </div> ";	
 
 		// Append the lines to the elem
 		var originalHTML = elem.html();
