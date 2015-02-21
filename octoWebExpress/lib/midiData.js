@@ -73,7 +73,8 @@ function App() {
 		var currBlock = obj.blockObjects[blockID];
 		
 		var typeName ="";
-		if (currBlock.type == "hw")	typeName =  currBlock.deviceType;	
+		if (currBlock.type == "hw")	typeName =  currBlock.deviceType;
+		else if(currBlock.type == "sw") typeName = currBlock.displayName;
 		else typeName = currBlock.type; 	
 		
 		// increment the type count
@@ -503,33 +504,6 @@ function CodeBlock(x,y){
 		console.log("Results of Code block Execution: " + result);
 		return result;
 	};
-	
-	this.sendOutputValToClient = function (fromBlockID,msg,val) {
-		mySocketIO.sendOutputValToClient(obj.blockID,val,fromBlockID,msg);
-	};
-	
-	this.onReceiveMessage = function(fromBlockID,msg){
-		console.log("Software block with blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
-
-		if(!msg){
-			console.log("Error: tried to send a message to block with empty message");
-			return;
-		} 
-
-		// If the message containes a new value update block
-		result = obj.execCodeBlock(fromBlockID,msg);
-		this.state = result;
-		
-		// If the message containes a new value update hardware block view on server
-		// and update this block's current value
-		this.update(fromBlockID,msg,result);	
-
-		// Send a new msg to any connected outputs
-		if(typeof result != undefined && typeof result != "string" ){
-			var newMsg = myMidi.convertPercentToMidiMsg(result);
-			obj.sendToAllOutputs(newMsg);
-		}
-	};
 };
 
 
@@ -544,7 +518,32 @@ CodeBlock.prototype.update = function(fromBlockID,msg,result){
 	//Send the block ID of the block the message came from
 	//send the message 
 	//send the result of the code execution
-	this.sendOutputValToClient(fromBlockID,msg,result);	
+	mySocketIO.sendOutputValToClient(this.blockID,result,fromBlockID,msg);	
+};
+
+
+// Called when the block state has changed - update data and view
+CodeBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("Software block with blockID:" + this.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
+
+	if(!msg){
+		console.log("Error: tried to send a message to block with empty message");
+		return;
+	} 
+
+	// If the message containes a new value update block
+	result = this.execCodeBlock(fromBlockID,msg);
+	this.state = result;
+	
+	// If the message containes a new value update hardware block view on server
+	// and update this block's current value
+	this.update(fromBlockID,msg,result);	
+
+	// Send a new msg to any connected outputs
+	if(result != undefined){
+		var newMsg = myMidi.convertPercentToMidiMsg(result);
+		this.sendToAllOutputs(newMsg);
+	}
 };
 
 module.exports = app;

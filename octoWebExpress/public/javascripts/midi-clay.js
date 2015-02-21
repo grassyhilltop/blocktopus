@@ -45,7 +45,7 @@ function ClientApp() {
 		
 		var typeName ="";
 		if (currBlock.type == "hw")	typeName =  currBlock.deviceType;	
-		else typeName = currBlock.type; 	
+		else typeName = "input"; 	
 		
 		// increment the type count
 		var currBlockTypeCount = obj.blockTypeCounts[typeName];
@@ -735,10 +735,10 @@ function RGB_LED(devName){
 
 function CodeBlock(blockID,x,y,viewObjInput){
 	var obj = this;
-	BlockObject.call(this,viewObjInput,blockID);
+	this.displayName = "codeBlock"; 
 	this.type="sw";
+	BlockObject.call(this,viewObjInput,blockID);
 	this.data = "0";
-	this.displayName = "input";      
 // 	this.sandbox   = new JSandbox();
 	this.result = 0;
 
@@ -781,16 +781,14 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		var codeBlockObj = app.blockObjects[codeBlockID];
 		var clobjectDiv = $("#block-"+codeBlockID);
 		
-		var elem = clobjectDiv.find(".freeCell");
-		var divs = elem.find('div');
+		//var elem = clobjectDiv.find(".freeCell");
+		var elem = clobjectDiv.find("#codeWindow-"+obj.blockID);
+		var divs = elem.children('div');
 		var code = "";
 		
 		divs.each(function() {
-			//this is now done on the server
 			if ($(this).hasClass("codeArgLine")){
-				//var argElem = $(this).find(".codeArgInput");
-				//var argName = $(this).find(".codeArgName");
-				//code = code + argName.text() + " = " + argElem.val() + " ; ";
+				//Do nothing. This is now done on the server
 			}else{
 				code = code + " " + $(this).text() + " ";
 			}
@@ -809,13 +807,13 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		var codeBlockID = obj.blockID;
 		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
 		var outputValueElem = clobjectDiv.find(".returnValInput");
+		
 		var newVal = convertMidiMsgToNumber(msg);
 		var inputVarTag = "#inputArg"+this.blockID+fromBlockID;
 		var inputVarElem = clobjectDiv.find(inputVarTag).find(".codeArgInput");
+		
 		var stateVarTag = "#inputArg"+this.blockID+"STATE";
 		var stateVarElem = clobjectDiv.find(stateVarTag).find(".codeArgInput");
-		
-		console.log("InputVarTag: " + inputVarTag);
 		
 		if(outputValueElem) {
 			outputValueElem.val(outputValue);	
