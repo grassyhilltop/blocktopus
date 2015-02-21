@@ -533,16 +533,17 @@ CodeBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 
 	// If the message containes a new value update block
 	result = this.execCodeBlock(fromBlockID,msg);
-	this.state = result;
-	
-	// If the message containes a new value update hardware block view on server
-	// and update this block's current value
-	this.update(fromBlockID,msg,result);	
-
-	// Send a new msg to any connected outputs
-	if(result != undefined){
+	//if we get back a string we got an error from the eval
+	if(typeof(result) !== "string"){
+		this.state = result;
+		this.update(fromBlockID,msg,result);	
+		// If the message containes a new value update hardware block view on server
+		// and update this block's current value
 		var newMsg = myMidi.convertPercentToMidiMsg(result);
+		// Send a new msg to any connected outputs
 		this.sendToAllOutputs(newMsg);
+	}else{
+		mySocketIO.sendCodeBlockErrorToClient(this.blockID,result);
 	}
 };
 
