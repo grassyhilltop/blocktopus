@@ -457,7 +457,7 @@ function CodeBlock(x,y){
 	this.initY = y;
 	this.type="sw";
 	this.data = 0;
-	this.displayName = "input";
+	this.displayName = "CodeBlock";
 	this.result = 0;
 	this.text = "";
 	this.inputArgs = "";
@@ -513,7 +513,7 @@ CodeBlock.prototype.constructor = CodeBlock;
 // Called when the block state has changed - update data and view
 CodeBlock.prototype.update = function(fromBlockID,msg,result){
 	//Call parent function. This updates the blocks current value
-	BlockObject.prototype.update.call(this,fromBlockID, msg);
+	//BlockObject.prototype.update.call(this,fromBlockID, msg);
 	
 	//Send the block ID of the block the message came from
 	//send the message 
@@ -535,7 +535,8 @@ CodeBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	result = this.execCodeBlock(fromBlockID,msg);
 	//if we get back a string we got an error from the eval
 	if(typeof(result) !== "string"){
-		this.state = result;
+		this.state = this.data = result;
+		
 		this.update(fromBlockID,msg,result);	
 		// If the message containes a new value update hardware block view on server
 		// and update this block's current value
