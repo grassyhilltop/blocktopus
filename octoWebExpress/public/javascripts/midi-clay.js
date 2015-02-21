@@ -4,6 +4,7 @@ window.addEventListener("load",function () {
 
 deviceTypes = {
 	"Knob": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
+	"Timer": {"direction":"Output", "addControlElem": emuTimerAddControlElem},
 	"Button": {"direction":"Output", "addControlElem": emuButtonAddControlElem},
 	"Slider": {"direction":"Output","addControlElem": emuSliderAddControlElem},
  	"Light": {"direction":"Input",},
@@ -142,7 +143,11 @@ function ClientApp() {
 							console.log("Found new block:" + blockList[block]["devName"]);
 							//emulated Hw Devices
 							if(blockList[block]["devIDNum"]=="E"){
+								if(blockList[block]["devName"] == "Timer-E"){
+									var newEmuTimerBlock = new EmuTimerBlock(blockList[block]["devName"],block);
+								}else{
 									var newHwBlock = new EmuHwBlock(blockList[block]["devName"],block);
+								}
 							//Real Hw Devices
 							}else{
 								//check for weird midi device from edison
@@ -170,7 +175,7 @@ function ClientApp() {
 	this.setupMidi = function () {
 		console.log("Setting up midi");
 		// Poll for new midi devices
-		//this.midiDevicePollTimer = setInterval(this.pollServerForMidiDevices, 2000);
+		
 		getDeviceListFromServer(this.updateBlockList);
 	};
 	
@@ -210,6 +215,12 @@ function ClientApp() {
 		this.socket.on('blockList',function(data) {
 			var blockList = data.blockList;
 			obj.updateBlockList(blockList);
+		});
+		
+		this.socket.on('timerOutputChange',function(data) {
+			var blockID = data.blockID;
+			var logicLevel = data.logicLevel;
+			obj.blockObjects[blockID].displayLogicLevel(logicLevel);
 		});
 	};
 	
@@ -624,6 +635,21 @@ EmuHwBlock.prototype.Remove = function(){
 EmuHwBlockClone = function () {};
 EmuHwBlockClone.prototype = EmuHwBlock.prototype;
 
+function EmuTimerBlock(devName,blockID){
+	EmuHwBlock.call(this,devName,blockID);
+};
+
+EmuTimerBlock.prototype = new EmuHwBlockClone();
+EmuTimerBlock.prototype.constructor = EmuTimerBlock;
+
+EmuTimerBlock.prototype.displayLogicLevel = function(logicLevel){
+	//console.log("displaying logic level: " + logicLevel);
+	$("#outputWindow-"+this.blockID).val(logicLevel);
+};
+
+EmuTimerBlockClone = function () {};
+EmuTimerBlockClone.prototype = EmuHwBlock.prototype;
+
 function RGB_LED_R(devName, RGB_LED){
 	console.log("creating RGB_LED_R");
 	var obj = this;
@@ -737,7 +763,7 @@ function RGB_LED(devName){
 
 function CodeBlock(blockID,x,y,viewObjInput){
 	var obj = this;
-	this.displayName = "codeBlock"; 
+	this.displayName = "CodeBlock"; 
 	this.type="sw";
 	BlockObject.call(this,viewObjInput,blockID);
 	this.data = "0";
@@ -909,7 +935,8 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		var returnValElem = targetElem.find(".returnValInput");
 		var returnVal = "0"; // default return val 
 		if( returnValElem.length == 0 ){ // no output div element yet		
-			var lastLine = "<div class='returnValDiv' contenteditable='false'><input class='returnValInput' value='" + returnVal + "' readonly></input> </div> ";		
+			//var lastLine = "<div class='returnValDiv' contenteditable='false'><input class='returnValInput' value='" + returnVal + "' readonly></input> </div> ";		
+			var lastLine = templates.renderOutputDisplayWindow({returnVal:returnVal,blockID:obj.blockID});
 			// elem.append(lastLine);	
 			targetElem.append(lastLine);	
 			// Set our new data		
@@ -920,6 +947,7 @@ function CodeBlock(blockID,x,y,viewObjInput){
 	}	
 
 };
+
 CodeBlock.prototype = new BlockObjectClone();
 CodeBlock.prototype.constructor = CodeBlock;
 

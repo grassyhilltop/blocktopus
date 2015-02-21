@@ -22,3 +22,7 @@ exports.sendOutputValToClient = function(blockID,val,fromBlockID,msg){
 exports.sendCodeBlockErrorToClient = function(blockID,error){
 	io.emit('codeBlockErr', {'blockID':blockID,'error': error});
 };
+
+exports.sendTimerOutputToClient = function(blockID,logicLevel){
+	io.emit('timerOutputChange', {'blockID':blockID,'logicLevel': logicLevel});
+}

@@ -63,6 +63,11 @@
 	<script type="text/x-handlebars-template" id="hardware-button-template">
 		<li class="sibebarbtn" id="hwSideBarBtn{{this.name}}" > {{this.name}}</li>
 	</script>
+	<script type="text/x-handlebars-template" id="outputDisplayWindow">
+		 <div class="returnValDiv" contenteditable="false">
+			<input class="returnValInput {{this.ofClass}}"  id="outputWindow-{{this.blockID}}" value="{{this.returnVal}}" readonly></input>
+		 </div> 
+	</script>
 
 	<script src="javascripts/libraries/handlebarsTemplates.js"></script>
 	

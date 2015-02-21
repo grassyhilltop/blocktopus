@@ -7,6 +7,7 @@ var app = new App();
 deviceTypes = {
 	"Knob": {"direction":"Output"},
 	"Button": {"direction":"Output"},
+	"Timer": {"direction":"Output"},
 	"Slider": {"direction":"Output"},
  	"Light": {"direction":"Input"},
 // 	"Temp": {"direction":"Output"},
@@ -39,7 +40,11 @@ function App() {
 	};
 	
 	this.createNewEmuHwBlock = function(emuHwType){
-		return new EmuHwBlock(emuHwType);
+		if("Timer" == emuHwType.split("-")[0]){
+			return new EmuTimerBlock(emuHwType);
+		}else{
+			return new EmuHwBlock(emuHwType);
+		}
 	};
 	
 	this.createNewCodeBlock = function(x,y){
@@ -326,9 +331,6 @@ function EmuHwBlock(devName){
 	console.log("creating Emulated Hardware");
 	HwBlock.call(this,devName);
 	app.addNewEmuHwBlock(this);
-	
-	//var devType = this.deviceType;
-	//var controlID = deviceTypes[devType]["addControlElem"](this);
 };
 
 EmuHwBlock.prototype = new HwBlockClone();
@@ -336,6 +338,65 @@ EmuHwBlock.prototype.constructor = EmuHwBlock;
 
 EmuHwBlockClone = function () {};
 EmuHwBlockClone.prototype = EmuHwBlock.prototype;
+
+function EmuTimerBlock(devName){
+	this.intervalFunc  = undefined;
+	this.numMillis = 100;
+	this.logicLevel = 0;
+	HwBlock.call(this,devName);
+	app.addNewEmuHwBlock(this);
+};
+
+EmuTimerBlock.prototype = new EmuHwBlockClone();
+EmuTimerBlock.prototype.constructor = EmuTimerBlock;
+
+EmuTimerBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
+	var obj = this;
+	console.log("Timer on receive message");
+	
+	//We actually don't want to send this value out
+	//We just want to update our existing value
+	//EmuHwBlock.prototype.onReceiveMessage.call(this, fromBlockID, msg);
+	
+	//update value and sent it out to client to update view
+	EmuHwBlock.prototype.update.call(this,fromBlockID,msg);
+	
+	var intervalInMillis = 100 - myMidi.convertMidiMsgToNumber(msg);
+	
+	if(intervalInMillis !== 0){
+		var interval = intervalInMillis*this.numMillis;
+	
+		//console.log("New interval: " + interval);
+		var newIntervalFunc = function () {
+			//console.log("Interval: " + interval);
+			//need to make our data value equal to our logic level before we send 
+			// a message to outputs
+			obj.data = obj.logicLevel;
+			var logicLevelMsg = myMidi.convertPercentToMidiMsg(obj.logicLevel);
+			mySocketIO.sendTimerOutputToClient(obj.blockID,obj.logicLevel);
+			obj.sendToAllOutputs(logicLevelMsg);
+			if(obj.logicLevel === 100){
+				obj.logicLevel = 0;
+			}else{
+				obj.logicLevel = 100;
+			}
+		}
+	
+		//first time this is called we dont need to stop the recurring function
+		if(this.intervalFunc === undefined){
+			this.intervalFunc = setInterval(newIntervalFunc,interval);
+		}else{
+			//stop last timer pulse
+			clearInterval(this.intervalFunc);
+			//begin new pulse with new value
+			this.intervalFunc = setInterval(newIntervalFunc,interval);
+		}
+	}
+	
+};
+
+EmuTimerBlockClone = function () {};
+EmuTimerBlockClone.prototype = EmuHwBlock.prototype;
 
 function RGB_LED_R(devName, RGB_LED){
 	console.log("creating RGB_LED_R");
