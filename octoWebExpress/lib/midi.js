@@ -74,7 +74,6 @@ var checkForMidiDevices = function(app){
 	
 	
 	// NEW CONNECTED MODULES
-		
     for(var i = 0; i < deviceList.length ; i ++ ){
     	var currDeviceName = deviceList[i];
     	var foundBlockId = app.findBlockID(currDeviceName);
@@ -100,7 +99,7 @@ var checkForMidiDevices = function(app){
     		input.on('message', function(name){return function(deltaTime, message) {
 			  	onNewMidiMsg(app, name , message);
 			};}(deviceList[i]));
-			
+			newHwBlock.port = input;
     		input.openPort(i);
     	}
     }

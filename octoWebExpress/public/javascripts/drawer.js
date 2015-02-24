@@ -83,6 +83,13 @@ function hardwareBlockAddSlider(block){
 	});
 };
 
+function hardwareBlockAddOutputWindow(block){
+	var outputWindow = templates.renderOutputDisplayWindow({returnVal:0,blockID:block.blockID,ofClass:"outputWindow"});
+	outputWindow.id = "outputWindow-"+block.blockID;
+	
+	$("#block-"+block.blockID).append(outputWindow);
+};
+
 function hardwareBlockAddButton(block){
 	var button = document.createElement("BUTTON");
 

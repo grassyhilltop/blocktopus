@@ -5,6 +5,11 @@ var emuSliderAddControlElem = function (block) {
 	hardwareBlockAddSlider(block);
 }; 
 
+var emuTimerAddControlElem = function (block) {
+	hardwareBlockAddSlider(block);
+	hardwareBlockAddOutputWindow(block);
+}; 
+
 var emuButtonAddControlElem = function (block) {
 	hardwareBlockAddButton(block);
 };

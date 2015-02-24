@@ -4,6 +4,7 @@ window.addEventListener("load",function () {
 
 deviceTypes = {
 	"Knob": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
+	"Timer": {"direction":"Output", "addControlElem": emuTimerAddControlElem},
 	"Button": {"direction":"Output", "addControlElem": emuButtonAddControlElem},
 	"Slider": {"direction":"Output","addControlElem": emuSliderAddControlElem},
  	"Light": {"direction":"Input",},
@@ -45,7 +46,7 @@ function ClientApp() {
 		
 		var typeName ="";
 		if (currBlock.type == "hw")	typeName =  currBlock.deviceType;	
-		else typeName = currBlock.type; 	
+		else typeName = "input"; 	
 		
 		// increment the type count
 		var currBlockTypeCount = obj.blockTypeCounts[typeName];
@@ -142,7 +143,11 @@ function ClientApp() {
 							console.log("Found new block:" + blockList[block]["devName"]);
 							//emulated Hw Devices
 							if(blockList[block]["devIDNum"]=="E"){
+								if(blockList[block]["devName"] == "Timer-E"){
+									var newEmuTimerBlock = new EmuTimerBlock(blockList[block]["devName"],block);
+								}else{
 									var newHwBlock = new EmuHwBlock(blockList[block]["devName"],block);
+								}
 							//Real Hw Devices
 							}else{
 								//check for weird midi device from edison
@@ -170,7 +175,7 @@ function ClientApp() {
 	this.setupMidi = function () {
 		console.log("Setting up midi");
 		// Poll for new midi devices
-		//this.midiDevicePollTimer = setInterval(this.pollServerForMidiDevices, 2000);
+		
 		getDeviceListFromServer(this.updateBlockList);
 	};
 	
@@ -200,9 +205,22 @@ function ClientApp() {
 			obj.blockObjects[data.blockID].updateOutputValue(val,fromBlockID, msg);
 		});
 		
+		this.socket.on('codeBlockErr',function(data){
+			var blockID = data.blockID;
+			var error = data.error;
+			console.log("ERROR: in executing code in block : " + error);
+			obj.blockObjects[blockID].displayError(error);
+		});
+		
 		this.socket.on('blockList',function(data) {
 			var blockList = data.blockList;
 			obj.updateBlockList(blockList);
+		});
+		
+		this.socket.on('timerOutputChange',function(data) {
+			var blockID = data.blockID;
+			var logicLevel = data.logicLevel;
+			obj.blockObjects[blockID].displayLogicLevel(logicLevel);
 		});
 	};
 	
@@ -617,6 +635,21 @@ EmuHwBlock.prototype.Remove = function(){
 EmuHwBlockClone = function () {};
 EmuHwBlockClone.prototype = EmuHwBlock.prototype;
 
+function EmuTimerBlock(devName,blockID){
+	EmuHwBlock.call(this,devName,blockID);
+};
+
+EmuTimerBlock.prototype = new EmuHwBlockClone();
+EmuTimerBlock.prototype.constructor = EmuTimerBlock;
+
+EmuTimerBlock.prototype.displayLogicLevel = function(logicLevel){
+	//console.log("displaying logic level: " + logicLevel);
+	$("#outputWindow-"+this.blockID).val(logicLevel);
+};
+
+EmuTimerBlockClone = function () {};
+EmuTimerBlockClone.prototype = EmuHwBlock.prototype;
+
 function RGB_LED_R(devName, RGB_LED){
 	console.log("creating RGB_LED_R");
 	var obj = this;
@@ -723,11 +756,6 @@ function RGB_LED(devName){
 			b_msg[0] = msg[0];
 			b_msg[1] = msg[1];
 			b_msg[2] = b;
-	
-			//midi_out(obj.devName,[msg[0],0,this.r]);
- 			//midi_out(obj.devName,[msg[0],1,this.g]);
- 			//midi_out(obj.devName,[msg[0],2,this.b]);
-
 	};
 };
 
@@ -735,10 +763,10 @@ function RGB_LED(devName){
 
 function CodeBlock(blockID,x,y,viewObjInput){
 	var obj = this;
-	BlockObject.call(this,viewObjInput,blockID);
+	this.displayName = "CodeBlock"; 
 	this.type="sw";
+	BlockObject.call(this,viewObjInput,blockID);
 	this.data = "0";
-	this.displayName = "input";      
 // 	this.sandbox   = new JSandbox();
 	this.result = 0;
 
@@ -747,7 +775,7 @@ function CodeBlock(blockID,x,y,viewObjInput){
 	if(!viewObjInput){
 		var freeCellELem = drawCodeBlock(this.blockID,x,y);
 		// parent element has unique container id .e.g. block-3 		
-		this.viewObj = freeCellELem.parentElement;  
+		this.viewObj = freeCellELem.parentElement;
 	}
 	
 	this.sendCodeToServer = function(text){
@@ -781,16 +809,14 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		var codeBlockObj = app.blockObjects[codeBlockID];
 		var clobjectDiv = $("#block-"+codeBlockID);
 		
-		var elem = clobjectDiv.find(".freeCell");
-		var divs = elem.find('div');
+		//var elem = clobjectDiv.find(".freeCell");
+		var elem = clobjectDiv.find("#codeWindow-"+obj.blockID);
+		var divs = elem.children('div');
 		var code = "";
 		
 		divs.each(function() {
-			//this is now done on the server
 			if ($(this).hasClass("codeArgLine")){
-				//var argElem = $(this).find(".codeArgInput");
-				//var argName = $(this).find(".codeArgName");
-				//code = code + argName.text() + " = " + argElem.val() + " ; ";
+				//Do nothing. This is now done on the server
 			}else{
 				code = code + " " + $(this).text() + " ";
 			}
@@ -809,11 +835,13 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		var codeBlockID = obj.blockID;
 		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
 		var outputValueElem = clobjectDiv.find(".returnValInput");
+		
 		var newVal = convertMidiMsgToNumber(msg);
 		var inputVarTag = "#inputArg"+this.blockID+fromBlockID;
 		var inputVarElem = clobjectDiv.find(inputVarTag).find(".codeArgInput");
 		
-		console.log("InputVarTag: " + inputVarTag);
+		var stateVarTag = "#inputArg"+this.blockID+"STATE";
+		var stateVarElem = clobjectDiv.find(stateVarTag).find(".codeArgInput");
 		
 		if(outputValueElem) {
 			outputValueElem.val(outputValue);	
@@ -821,183 +849,11 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		if(inputVarElem) {
 			inputVarElem.val(newVal);	
 		}
-	};
-
-	// Update software block from an incoming midi message , evaling code
-	this.update = function(fromBlockID,msg){
-		
-		if(!msg){
-			console.log("Error in software block update... no message");
-			return;
+		if(stateVarElem){
+			stateVarElem.val(outputValue);
 		}
-		//var fromObj = app.blockObjects[fromBlockID];
-		//var newVal = convertMidiMsgToNumber(msg);
-		//var codeBoxElem = $("#block-"+obj.blockID);
-		
-		// Update the view -----
-	
-		// Update input field data and view			
-		// codeBoxElem.find(".codeArgInput").val(newVal); 
-
-		// Update the existing code argument div that matches the name of the hardware
-		var argElems = codeBoxElem.find(".codeArgInput");
-		var argNames = codeBoxElem.find(".codeArgName");
-		
-		for (var i = 0; i < argNames.length; i++) {
-			var currName = argNames[i].innerHTML;
-			
-			// Using display name to find a match
-			var displayName = fromObj.displayName;
-			if (fromObj.type == "hw") displayName = displayName.toLowerCase();
-			
-			if (currName == displayName ){
-				argElems[i].value = newVal;	
-			} 
-		};
-		
-		// Evaluate code block
-		var codeBlockJqueryObj = $("#block-"+obj.blockID);
-		// var sourceName = app.blockObjects[fromBlockID].devName;
-		// var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
-		var result = this.evalCodeBlock();
-		// var result = this.evalCodeBlockFromSandBox();
-		
-		// Update output field with evaluated result
-		// todo...
-		obj.data = result;
-
-		return result;
-	};
-	
-	this.evalCodeBlockFromSandBox = function () {
-		
-		var codeBlockID = this.blockID;
-	
-		var codeBlockObj = app.blockObjects[codeBlockID];
-		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
-	
-		var elem = clobjectDiv.find(".freeCell");
-		var inputValue = elem.find(".codeArgInput").val();
-		var outputValueElem = clobjectDiv.find(".returnValInput");
-		
-		var str = elem.html();
-		var divs = elem.find('div');
-		var code = "";
-		divs.each(function() {
-			if ($(this).hasClass("codeArgLine")){
-				var argElem = $(this).find(".codeArgInput");
-				var argName = $(this).find(".codeArgName");
-				code = code + argName.text() + " = " + argElem.val() + " ; ";
-			}else{
-				code = code + " " + $(this).text() + " ";
-			}
-		});
-		console.log("code "+code);
-		this.sandbox.eval(code, function (returnVal) {
-			console.log("ret " + returnVal);
-			obj.result = returnVal;
-		});
-		
-		console.log("evaled code box with results:" +this.result);
-
-		// todo place this in code box update
-		if(outputValueElem) {
-			outputValueElem.val(this.result);	
-		}
-
-		return this.result;
-	};
-	
-	this.evalCodeBlock = function(){
-		console.log("Evaling code block");
-		var codeBlockID = this.blockID;
-	
-		var codeBlockObj = app.blockObjects[codeBlockID];
-		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
-	
-		var elem = clobjectDiv.find(".freeCell");
-		var inputValue = elem.find(".codeArgInput").val();
-		var outputValueElem = clobjectDiv.find(".returnValInput");
-		
-		// Insert new lines around div tags so we can spilt into a line array
-		var str = elem.html().replace(/(<\/div>)|(<div>)|<div[^>]*>|(<br>)/g,"\n"); 
-	
-		str = unescapeHTML(str); // remove any unescaped chars e.g. & " ' < >
-		var lines = str.trim().split("\n"); // split string into array of lines
-
-		//remove empty lines
-		var trimmedlines = [];
-		for (var i = 0; i < lines.length; i++) {
-			if ( lines[i].trim() !="" && lines[i] !="<br>" ) trimmedlines.push(lines[i]);
-		};
-		lines = trimmedlines;
-
-		// Add a line for each input argument
-		var argElems = clobjectDiv.find(".codeArgInput");
-		var argNames = clobjectDiv.find(".codeArgName");
-	
-		for (var i = 0; i < argNames.length; i++) {
-			var currName = argNames[i].innerHTML;
-			var currVal = argElems[i].value;	
-
-			lines[i] = "var " + currName + " = " + currVal; // first line is an input variable	
-			
-		};
-	
-		// If there is no code to eval  just pass through the first input value	
-		var numInConnections = Object.keys(codeBlockObj.inConnections).length
-		// if(lines.length == 1){		
-		if(lines.length == numInConnections){		
-			outputValueElem.val(inputValue);
-			return inputValue;
-		}
-		
-		////////////////////////////////////
-		/// CODE GENERATION (line by line)
-		////////////////////////////////////
-		var lastAssignment;
-		var lastLine;
-		var codeStr= "function(){";
-		for (var i = 0; i < lines.length; i++) {
-			var line = lines[i];
-			if(!line) continue; // skip blank lines		
-		
-			console.log("currline is:" +line);
-		
-			// Check if current line is an assigment and store variable name for later
-			var lineAssignmnetMatch =  isAssignmentLine(line);
-			if(lineAssignmnetMatch) lastAssignment = lineAssignmnetMatch[1];
-
-			lastLine = line;
-			if(isValidLine(line)) line +=";" ; // add semicolon to each line
-
-			codeStr += line;
-		};
-	
-		// Add a return value line , with defaults:
-		// 1. Return last line if it is a valid expression
-		// 2. else return last variable assignment in code
-		if (lastLine) {
-			if(!isValidReturnValue(lastLine)){
-				lastLine = lastAssignment;
-			}
-			codeStr += "return (" + lastLine + ")";
-		}
-
-		g1 = lastAssignment;
-
-		codeStr +="}";
-		console.log("eval code str:"+codeStr);		
-
-		var result = tryEval(codeStr)();
-		console.log("evaled code box with results:" +result);
-
-		// todo place this in code box update
-		if(outputValueElem) {
-			outputValueElem.val(result);	
-		}
-
-		return result;
+		$("#block-"+this.blockID).animate({backgroundColor: 'green'}, {duration:10})
+		$("#block-"+this.blockID).animate({backgroundColor: 'white'}, {duration:1});
 	};
 
 	this.onReceiveMessage = function(fromBlockID,msg){
@@ -1062,6 +918,10 @@ function CodeBlock(blockID,x,y,viewObjInput){
 			linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+connectedObjID+"'>" + "<span class='codeArgName'>"+ currArgumentName + 
 			"</span> = <input class='codeArgInput' value='" + currConnectedObjVal + "'></input> </div> ";		
 		}
+		// Append a new variable name for state
+		linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+"STATE'>" + 
+		"<span class='codeArgName'>"+ "State" + 
+		"</span> = <input class='codeArgInput' value='" + "0" + "'></input> </div> ";	
 
 		// Append the lines to the elem
 		var originalHTML = elem.html();
@@ -1075,7 +935,8 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		var returnValElem = targetElem.find(".returnValInput");
 		var returnVal = "0"; // default return val 
 		if( returnValElem.length == 0 ){ // no output div element yet		
-			var lastLine = "<div class='returnValDiv' contenteditable='false'><input class='returnValInput' value='" + returnVal + "' readonly></input> </div> ";		
+			//var lastLine = "<div class='returnValDiv' contenteditable='false'><input class='returnValInput' value='" + returnVal + "' readonly></input> </div> ";		
+			var lastLine = templates.renderOutputDisplayWindow({returnVal:returnVal,blockID:obj.blockID});
 			// elem.append(lastLine);	
 			targetElem.append(lastLine);	
 			// Set our new data		
@@ -1086,6 +947,7 @@ function CodeBlock(blockID,x,y,viewObjInput){
 	}	
 
 };
+
 CodeBlock.prototype = new BlockObjectClone();
 CodeBlock.prototype.constructor = CodeBlock;
 
@@ -1097,6 +959,14 @@ CodeBlock.prototype.addInputConnection = function (outputConnectionObj){
 	this.updateArgumentsView();			
 };
 
+// When some object connects to a code block
+CodeBlock.prototype.displayError = function (error){
+	//$("#block-"+this.blockID).css("background-color","red");
+	$("#block-"+this.blockID).animate({backgroundColor: 'red'}, {duration:10})
+	$("#block-"+this.blockID).animate({backgroundColor: 'white'}, {duration:1});
+};
+
+
 // When some object dissconnects from a code block
 CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
 
@@ -1107,151 +977,6 @@ CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
 	this.updateArgumentsView();			
 };
 
-// On receive of an midi message from a sensor
-function midi_out(name,msg){
-	console.log("Sending midi out to device name:" + name + " msg:" + msg);
-
-	// Send the message out to the pool
-	//app.Pool.MidiOut(name,msg);
-}
-
-function play_all(){
-	var note=60;
- 	for(var i in app.realHwObjects){ 		
- 		midi_out(app.realHwObjects[i].devName,[144,note,0x7f]); 
- 		note+=5;
- 	}
-}
-
-function stop_all(){
-	var note=60;
-	for(var i in app.realHwObjects){ 
-		midi_out(app.realHwObjects[i].devName,[128,note,0]); 
-		note+=5;
-	}
-}
-
-
-// Main MIDI Message callback. Whenever a new midi message comes in
-function onNewMidiMsg(deviceName, msg){
-	// console.log("New midi msg generated by: " + deviceName);
-	
-	// When a device generates a message just send it to its self (hardware block)
-	var blockID = app.findBlockID(deviceName);
-	var block = app.blockObjects[blockID];
-	block.onReceiveMessage(blockID,msg);
-}
-
-// MIDI pool object that dynamically creates new instances of the plugin for each
-// Midi device
-function MidiPool(){
- var place;
- var arr=[];
- var inputs={};
- var outputs={};
- if(arguments.length){
-  if(arguments[0].isJazz){
-   place=arguments[0].parentNode;
-   arr[0]={plugin:arguments[0]};
-  }
-  else{
-   try{ // if this is a good location to create plugins
-    var tmp=create_plugin(arguments[0]);
-    arr[0]={plugin:tmp};
-    place=arguments[0];
-   }
-   catch(err){}
-  }
- }
- if(place===undefined){ // otherwise create plugins at where the current script is
-  var scripts=document.getElementsByTagName('script');
-  place=scripts[scripts.length-1].parentNode;
- }
- if(!arr.length) arr[0]={plugin:create_plugin(place)};
-
- // Comment out so midi messages pass though even when browswer doesn't have focus
- // if(navigator.appName=='Microsoft Internet Explorer'){ document.onfocusin=onFocusIE; document.onfocusout=onBlurIE;}
- // else{ window.onfocus=connectMidi; window.onblur=disconnectMidi;}
-
- function create_plugin(where){
-  var obj=document.createElement('object');
-  obj.classid="CLSID:1ACE1618-1C7D-4561-AEE1-34842AA85E90";
-  if(!obj.isJazz) obj.type="audio/x-jazz";
-  obj.style.visibility='hidden';
-  obj.style.width='0px'; obj.style.height='0px';
-  where.appendChild(obj);
-  if(obj.isJazz) return obj;
-  where.removeChild(obj);
-  throw "Cannot create Jazz-Plugin";
- }
-
- function connectMidi(){
-  try{
-   for(i=0;i<arr.length;i++){
-    if(arr[i].in){
-     if(arr[i].func) arr[i].plugin.MidiInOpen(arr[i].in,arr[i].func);
-     else arr[i].plugin.MidiInOpen(arr[i].in);
-    }
-    if(i && arr[i].out) arr[i].plugin.MidiOutOpen(arr[i].out);
-   }
-  }
-  
- 	catch(err){
-  		// res.innerHTML=res.innerHTML+' ERR: '+err;
- 	}
- }
-
- function disconnectMidi(){
-  try{
-   for(i=0;i<arr.length;i++){
-    if(arr[i].in) arr[i].plugin.MidiInClose();
-    if(i && arr[i].out) arr[i].plugin.MidiOutClose(); // don't close the default out
-   }
-  }
-  catch(err){}
- }
- function onFocusIE(){
-  active_element=document.activeElement;
-  connectMidi();
- }
- var active_element;
- function onBlurIE(){
-  if(active_element!=document.activeElement){ active_element=document.activeElement; return;}
-  disconnectMidi();
- }
-
- this.MidiOutList=function(){ return arr[0].plugin.MidiOutList();}
- this.MidiInList=function(){ return arr[0].plugin.MidiInList();}
- this.MidiOut=function(name,msg){ if(outputs[name]) outputs[name].plugin.MidiOutLong(msg);}
- this.ClearMidiIn=function(name){ if(inputs[name]) inputs[name].plugin.ClearMidiIn();}
- this.QueryMidiIn=function(name){ if(inputs[name]) return inputs[name].plugin.QueryMidiIn();}
- 
- this.OpenMidiOut=function(name){
-  if(outputs[name]) return;
-  var i;
-  for(i=0;i<arr.length;i++) if(!arr[i].out) break;
-  if(i==arr.length){
-   arr[i]={plugin:create_plugin(place)};
-  }
-  arr[i].out=name;
-  arr[i].plugin.MidiOutOpen(name);
-  outputs[name]=arr[i];
- }
-
- this.OpenMidiIn=function(name,func){
-  if(!inputs[name]){
-   var i;
-   for(i=0;i<arr.length;i++) if(!arr[i].in) break;
-   if(i==arr.length){
-    arr[i]={plugin:create_plugin(place)};
-   }
-   arr[i].in=name;
-   inputs[name]=arr[i];
-  }
-  if(func) inputs[name].plugin.MidiInOpen(name,func); else inputs[name].plugin.MidiInOpen(name);
-  inputs[name].func=func;
- }
-}
 
 //////////  MIDI Connections - jsplumb callback on change of any connection
 function updateConnections (info, shouldRemove){
@@ -1279,135 +1004,4 @@ function updateConnections (info, shouldRemove){
 		app.blockObjects[sourceID].addOutputConnection(app.blockObjects[targetID]);
 		app.blockObjects[targetID].addInputConnection(app.blockObjects[sourceID]);
 	}		
-}
-
-
-// Code to evaluate text boxes
-function evalCodeBlock( codeBlockID,sourceID){
-	return 0;
-	console.log("Evaling code block");
-	
-	var codeBlockObj = app.blockObjects[codeBlockID];
-	var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
-	
-	var elem = clobjectDiv.find(".freeCell");
-	var inputValue = elem.find(".codeArgInput").val();
-	var outputValueElem = clobjectDiv.find(".returnValInput");
-		
-	// Insert new lines around div tags so we can spilt into a line array
-	var str = elem.html().replace(/(<\/div>)|(<div>)|<div[^>]*>|(<br>)/g,"\n"); 
-	
-	str = unescapeHTML(str); // remove any unescaped chars e.g. & " ' < >
-	var lines = str.trim().split("\n"); // split string into array of lines
-
-	//remove empty lines
-	var trimmedlines = [];
-	for (var i = 0; i < lines.length; i++) {
-		if ( lines[i].trim() !="" && lines[i] !="<br>" ) trimmedlines.push(lines[i]);
-	};
-	lines = trimmedlines;
-
-	// Add a line for each input argument
-	var argElems = clobjectDiv.find(".codeArgInput");
-	var argNames = clobjectDiv.find(".codeArgName");
-	
-	for (var i = 0; i < argNames.length; i++) {
-		var currName = argNames[i].innerHTML;
-		var currVal = argElems[i].value;	
-
-		lines[i] = "var " + currName + " = " + currVal; // first line is an input variable	
-			
-	};
-	
-	// If there is no code to eval  just pass through the first input value	
-	var numInConnections = Object.keys(codeBlockObj.inConnections).length
-	// if(lines.length == 1){		
-	if(lines.length == numInConnections){		
-		outputValueElem.val(inputValue);
-		return inputValue;
-	}
-		
-	////////////////////////////////////
-	/// CODE GENERATION (line by line)
-	////////////////////////////////////
-	var lastAssignment;
-	var lastLine;
-	var codeStr= "function(){";
-	for (var i = 0; i < lines.length; i++) {
-		var line = lines[i];
-		if(!line) continue; // skip blank lines		
-		
-		console.log("currline is:" +line);
-		
-		// Check if current line is an assigment and store variable name for later
-		var lineAssignmnetMatch =  isAssignmentLine(line);
-		if(lineAssignmnetMatch) lastAssignment = lineAssignmnetMatch[1];
-
-		lastLine = line;
-		if(isValidLine(line)) line +=";" ; // add semicolon to each line
-
-		codeStr += line;
-	};
-	
-	// Add a return value line , with defaults:
-	// 1. Return last line if it is a valid expression
-	// 2. else return last variable assignment in code
-	if (lastLine) {
-		if(!isValidReturnValue(lastLine)){
-			lastLine = lastAssignment;
-		}
-		codeStr += "return (" + lastLine + ")";
-	}
-
-	codeStr +="}";
-	console.log("eval code str:"+codeStr);		
-
-	var result = tryEval(codeStr)();
-	console.log("evaled code box with results:" +result);
-
-	// todo place this in code box update
-	if(outputValueElem) {
-		outputValueElem.val(result);	
-	}
-
-	return result;
-}
-
-// Checks if the string is a valid javascript expression 
-// i.e. a full statement 
-function isValidLine(line){
-	if(! line 
-		|| line.match("{[^}]*$") // open ended block ( { not closed ) e.g. if () { ...
-		|| line.match("^\s*}\s*$") // close bracket hanging out by itself
-		|| line.match("^\s*{\s*$") // open bracket hanging out by itself
-		// || line.match("^\s*(if|else)") // starts with keyword ( with arbitrary spaces)
-	){return false }
-	else {
-	 return true;
-	}
-}
-
-// Checks if statement can be returned in an eval
-// Assignments , and lines with keywords cannot be returned by javascript syntax
-function isValidReturnValue(line){
-
-	if(! line 
-		|| line.match("^\s*(if|else|var)") // starts with keyword ( with arbitrary spaces)
-		|| line.match("^\s*}\s*$") // close bracket hanging out by itself
-		|| line.match("=") // has assignment 
-	){return false }
-	else {
-	 return true;
-	}
-}
-
-// Is the line an assigment
-function isAssignmentLine(line){
-
-	if(! line ) return false;
-
-	// is X = Y , not X == Y
-	var foundMatch = line.match(/(\w+)[^=]?=[^=]?(\w+)/);
-	
-	return 	foundMatch;
 }

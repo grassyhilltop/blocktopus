@@ -7,6 +7,7 @@ var app = new App();
 deviceTypes = {
 	"Knob": {"direction":"Output"},
 	"Button": {"direction":"Output"},
+	"Timer": {"direction":"Output"},
 	"Slider": {"direction":"Output"},
  	"Light": {"direction":"Input"},
 // 	"Temp": {"direction":"Output"},
@@ -39,7 +40,11 @@ function App() {
 	};
 	
 	this.createNewEmuHwBlock = function(emuHwType){
-		return new EmuHwBlock(emuHwType);
+		if("Timer" == emuHwType.split("-")[0]){
+			return new EmuTimerBlock(emuHwType);
+		}else{
+			return new EmuHwBlock(emuHwType);
+		}
 	};
 	
 	this.createNewCodeBlock = function(x,y){
@@ -73,7 +78,8 @@ function App() {
 		var currBlock = obj.blockObjects[blockID];
 		
 		var typeName ="";
-		if (currBlock.type == "hw")	typeName =  currBlock.deviceType;	
+		if (currBlock.type == "hw")	typeName =  currBlock.deviceType;
+		else if(currBlock.type == "sw") typeName = currBlock.displayName;
 		else typeName = currBlock.type; 	
 		
 		// increment the type count
@@ -113,6 +119,7 @@ function App() {
 	
 	this.removeRealHwBlock = function (blockID) {
 		//this.menu.removeFromHwList(blockID);
+		obj.blockObjects[blockID].port.closePort();
 		obj.removeBlock(blockID);
 		delete obj.realHwObjects[blockID];
 	};
@@ -309,6 +316,7 @@ HwBlockClone.prototype = HwBlock.prototype;
 
 function RealHwBlock(devName){
 	console.log("creating Knob");
+	this.port = undefined;
 	HwBlock.call(this,devName);
 	app.addNewRealHwBlock(this);
 };
@@ -323,9 +331,6 @@ function EmuHwBlock(devName){
 	console.log("creating Emulated Hardware");
 	HwBlock.call(this,devName);
 	app.addNewEmuHwBlock(this);
-	
-	//var devType = this.deviceType;
-	//var controlID = deviceTypes[devType]["addControlElem"](this);
 };
 
 EmuHwBlock.prototype = new HwBlockClone();
@@ -333,6 +338,65 @@ EmuHwBlock.prototype.constructor = EmuHwBlock;
 
 EmuHwBlockClone = function () {};
 EmuHwBlockClone.prototype = EmuHwBlock.prototype;
+
+function EmuTimerBlock(devName){
+	this.intervalFunc  = undefined;
+	this.numMillis = 100;
+	this.logicLevel = 0;
+	HwBlock.call(this,devName);
+	app.addNewEmuHwBlock(this);
+};
+
+EmuTimerBlock.prototype = new EmuHwBlockClone();
+EmuTimerBlock.prototype.constructor = EmuTimerBlock;
+
+EmuTimerBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
+	var obj = this;
+	console.log("Timer on receive message");
+	
+	//We actually don't want to send this value out
+	//We just want to update our existing value
+	//EmuHwBlock.prototype.onReceiveMessage.call(this, fromBlockID, msg);
+	
+	//update value and sent it out to client to update view
+	EmuHwBlock.prototype.update.call(this,fromBlockID,msg);
+	
+	var intervalInMillis = 100 - myMidi.convertMidiMsgToNumber(msg);
+	
+	if(intervalInMillis !== 0){
+		var interval = intervalInMillis*this.numMillis;
+	
+		//console.log("New interval: " + interval);
+		var newIntervalFunc = function () {
+			//console.log("Interval: " + interval);
+			//need to make our data value equal to our logic level before we send 
+			// a message to outputs
+			obj.data = obj.logicLevel;
+			var logicLevelMsg = myMidi.convertPercentToMidiMsg(obj.logicLevel);
+			mySocketIO.sendTimerOutputToClient(obj.blockID,obj.logicLevel);
+			obj.sendToAllOutputs(logicLevelMsg);
+			if(obj.logicLevel === 100){
+				obj.logicLevel = 0;
+			}else{
+				obj.logicLevel = 100;
+			}
+		}
+	
+		//first time this is called we dont need to stop the recurring function
+		if(this.intervalFunc === undefined){
+			this.intervalFunc = setInterval(newIntervalFunc,interval);
+		}else{
+			//stop last timer pulse
+			clearInterval(this.intervalFunc);
+			//begin new pulse with new value
+			this.intervalFunc = setInterval(newIntervalFunc,interval);
+		}
+	}
+	
+};
+
+EmuTimerBlockClone = function () {};
+EmuTimerBlockClone.prototype = EmuHwBlock.prototype;
 
 function RGB_LED_R(devName, RGB_LED){
 	console.log("creating RGB_LED_R");
@@ -454,10 +518,11 @@ function CodeBlock(x,y){
 	this.initY = y;
 	this.type="sw";
 	this.data = 0;
-	this.displayName = "input";
+	this.displayName = "CodeBlock";
 	this.result = 0;
 	this.text = "";
 	this.inputArgs = "";
+	this.state = 0;
 	BlockObject.call(this,undefined);
 // 	this.sandbox   = new JSandbox();
 
@@ -480,6 +545,8 @@ function CodeBlock(x,y){
 			
 			code += inputBlockArg;
 		};
+		//add the current state of the code block
+		code += " State = " + this.state + ";";
 		
 		//add the code typed in the code block
 		code += this.text;
@@ -488,234 +555,16 @@ function CodeBlock(x,y){
 		console.log(code);
 		
 		//TODO: try to return errors gracefully
-		var result = eval(code);
+		try {
+			var result = eval(code);
+		} catch (e) {
+			if (e instanceof SyntaxError){
+				result = "ERROR: " + e.message;
+			}
+		}
 		console.log("Results of Code block Execution: " + result);
 		return result;
 	};
-	
-	this.sendOutputValToClient = function (fromBlockID,msg,val) {
-		mySocketIO.sendOutputValToClient(obj.blockID,val,fromBlockID,msg);
-	};
-	
-	this.onReceiveMessage = function(fromBlockID,msg){
-		console.log("Software block with blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
-
-		if(!msg){
-			console.log("Error: tried to send a message to block with empty message");
-			return;
-		} 
-
-		// If the message containes a new value update block
-		result = obj.execCodeBlock(fromBlockID,msg);	
-		
-		// If the message containes a new value update hardware block view on server
-		// and update this block's current value
-		this.update(fromBlockID,msg);	
-
-		// Send a new msg to any connected outputs
-		if(result != undefined ){
-			var newMsg = myMidi.convertPercentToMidiMsg(result);
-			obj.sendToAllOutputs(newMsg);
-		}
-	};
-	
-/*
-	
-	// Update software block from an incoming midi message , evaling code
-	this.update = function(fromBlockID,msg){
-		
-		if(!msg){
-			console.log("Error in software block update... no message");
-			return;
-		}
-		var fromObj = app.blockObjects[fromBlockID];
-		var newVal = convertMidiMsgToNumber(msg);
-		var codeBoxElem = $("#block-"+obj.blockID);
-		
-		// Update the view -----
-	
-		// Update input field data and view			
-		// codeBoxElem.find(".codeArgInput").val(newVal); 
-
-		// Update the existing code argument div that matches the name of the hardware
-		var argElems = codeBoxElem.find(".codeArgInput");
-		var argNames = codeBoxElem.find(".codeArgName");
-		
-		for (var i = 0; i < argNames.length; i++) {
-			var currName = argNames[i].innerHTML;
-			
-			// Using display name to find a match
-			var displayName = fromObj.displayName;
-			if (fromObj.type == "hw") displayName = displayName.toLowerCase();
-			
-			if (currName == displayName ){
-				argElems[i].value = newVal;	
-			} 
-
-			// if (fromObj.type == "hw"){
-			// 	var deviceName = fromObj.deviceType.toLowerCase();
-
-			// 	if (currName == deviceName){					
-			// 		argElems[i].value = newVal;					
-			// 	}	
-			// } else{
-			// 	if (currName == "input"){
-			// 		argElems[i].value = newVal;	
-			// 	}
-			// }
-			
-		};
-		
-		// Evaluate code block
-		var codeBlockJqueryObj = $("#block-"+obj.blockID);
-		// var sourceName = app.blockObjects[fromBlockID].devName;
-		// var result = evalCodeBlock(codeBlockJqueryObj,fromBlockID);
-		var result = this.evalCodeBlock();
-		// var result = this.evalCodeBlockFromSandBox();
-		
-		// Update output field with evaluated result
-		// todo...
-		obj.data = result;
-
-		return result;
-	};
-	
-	this.evalCodeBlockFromSandBox = function () {
-		
-		var codeBlockID = this.blockID;
-	
-		var codeBlockObj = app.blockObjects[codeBlockID];
-		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
-	
-		var elem = clobjectDiv.find(".freeCell");
-		var inputValue = elem.find(".codeArgInput").val();
-		var outputValueElem = clobjectDiv.find(".returnValInput");
-		
-		var str = elem.html();
-		var divs = elem.find('div');
-		var code = "";
-		divs.each(function() {
-			if ($(this).hasClass("codeArgLine")){
-				var argElem = $(this).find(".codeArgInput");
-				var argName = $(this).find(".codeArgName");
-				code = code + argName.text() + " = " + argElem.val() + " ; ";
-			}else{
-				code = code + " " + $(this).text() + " ";
-			}
-		});
-		console.log("code "+code);
-		this.sandbox.eval(code, function (returnVal) {
-			console.log("ret " + returnVal);
-			obj.result = returnVal;
-		});
-		
-		console.log("evaled code box with results:" +this.result);
-
-		// todo place this in code box update
-		if(outputValueElem) {
-			outputValueElem.val(this.result);	
-		}
-
-		return this.result;
-	};
-	
-	this.evalCodeBlock = function(){
-		console.log("Evaling code block");
-		var codeBlockID = this.blockID;
-	
-		var codeBlockObj = app.blockObjects[codeBlockID];
-		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
-	
-		var elem = clobjectDiv.find(".freeCell");
-		var inputValue = elem.find(".codeArgInput").val();
-		var outputValueElem = clobjectDiv.find(".returnValInput");
-		
-		// Insert new lines around div tags so we can spilt into a line array
-		var str = elem.html().replace(/(<\/div>)|(<div>)|<div[^>]*>|(<br>)/g,"\n"); 
-	
-		str = unescapeHTML(str); // remove any unescaped chars e.g. & " ' < >
-		var lines = str.trim().split("\n"); // split string into array of lines
-
-		//remove empty lines
-		var trimmedlines = [];
-		for (var i = 0; i < lines.length; i++) {
-			if ( lines[i].trim() !="" && lines[i] !="<br>" ) trimmedlines.push(lines[i]);
-		};
-		lines = trimmedlines;
-
-		// Add a line for each input argument
-		var argElems = clobjectDiv.find(".codeArgInput");
-		var argNames = clobjectDiv.find(".codeArgName");
-	
-		for (var i = 0; i < argNames.length; i++) {
-			var currName = argNames[i].innerHTML;
-			var currVal = argElems[i].value;	
-
-			lines[i] = "var " + currName + " = " + currVal; // first line is an input variable	
-			
-		};
-	
-		// If there is no code to eval  just pass through the first input value	
-		var numInConnections = Object.keys(codeBlockObj.inConnections).length
-		// if(lines.length == 1){		
-		if(lines.length == numInConnections){		
-			outputValueElem.val(inputValue);
-			return inputValue;
-		}
-		
-		////////////////////////////////////
-		/// CODE GENERATION (line by line)
-		////////////////////////////////////
-		var lastAssignment;
-		var lastLine;
-		var codeStr= "function(){";
-		for (var i = 0; i < lines.length; i++) {
-			var line = lines[i];
-			if(!line) continue; // skip blank lines		
-		
-			console.log("currline is:" +line);
-		
-			// Check if current line is an assigment and store variable name for later
-			var lineAssignmnetMatch =  isAssignmentLine(line);
-			if(lineAssignmnetMatch) lastAssignment = lineAssignmnetMatch[1];
-
-			lastLine = line;
-			if(isValidLine(line)) line +=";" ; // add semicolon to each line
-
-			codeStr += line;
-		};
-	
-		// Add a return value line , with defaults:
-		// 1. Return last line if it is a valid expression
-		// 2. else return last variable assignment in code
-		if (lastLine) {
-			if(!isValidReturnValue(lastLine)){
-				lastLine = lastAssignment;
-			}
-			codeStr += "return (" + lastLine + ")";
-		}
-
-		g1 = lastAssignment;
-
-		codeStr +="}";
-		console.log("eval code str:"+codeStr);		
-
-		var result = tryEval(codeStr)();
-		console.log("evaled code box with results:" +result);
-
-		// todo place this in code box update
-		if(outputValueElem) {
-			outputValueElem.val(result);	
-		}
-
-		return result;
-	};
-
-	// ================================================
-	// CODE BLOCK - VIEW FUNCTIONS
-	// ================================================
-	
-*/
 };
 
 
@@ -723,29 +572,41 @@ CodeBlock.prototype = new BlockObjectClone();
 CodeBlock.prototype.constructor = CodeBlock;
 
 // Called when the block state has changed - update data and view
-CodeBlock.prototype.update = function(fromBlockID,msg){
+CodeBlock.prototype.update = function(fromBlockID,msg,result){
 	//Call parent function. This updates the blocks current value
-	BlockObject.prototype.update.call(this,fromBlockID, msg);
+	//BlockObject.prototype.update.call(this,fromBlockID, msg);
 	
-	this.sendOutputValToClient(fromBlockID,msg,result);	
+	//Send the block ID of the block the message came from
+	//send the message 
+	//send the result of the code execution
+	mySocketIO.sendOutputValToClient(this.blockID,result,fromBlockID,msg);	
 };
 
-// When some object connects to a code block
-CodeBlock.prototype.addInputConnection = function (inputConnectionObj){
 
-	BlockObject.prototype.addInputConnection.call(this,inputConnectionObj);
+// Called when the block state has changed - update data and view
+CodeBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
+	console.log("Software block with blockID:" + this.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
 
-	// console.log("Adding input to code block")
-	//this.updateInputArguments(inputConnectionObj);			
-};
+	if(!msg){
+		console.log("Error: tried to send a message to block with empty message");
+		return;
+	} 
 
-// When some object dissconnects from a code block
-CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
-
-	BlockObject.prototype.removeInputConnection.call(this,outputConnectionObj);
-
-	// console.log("Removing input from code block");
-	//this.updateInputArguments();			
+	// If the message containes a new value update block
+	result = this.execCodeBlock(fromBlockID,msg);
+	//if we get back a string we got an error from the eval
+	if(typeof(result) !== "string"){
+		this.state = this.data = result;
+		
+		this.update(fromBlockID,msg,result);	
+		// If the message containes a new value update hardware block view on server
+		// and update this block's current value
+		var newMsg = myMidi.convertPercentToMidiMsg(result);
+		// Send a new msg to any connected outputs
+		this.sendToAllOutputs(newMsg);
+	}else{
+		mySocketIO.sendCodeBlockErrorToClient(this.blockID,result);
+	}
 };
 
 module.exports = app;

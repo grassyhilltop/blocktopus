@@ -459,6 +459,12 @@ svg{
 	top: 110px;
 	margin-left: 25px;
 }
+.outputWindow{ 	
+    position: absolute;
+	text-align: center;
+	margin-top: 160px;
+	left: 80px;
+}
 .sensorButton {
     height: 50px;
     width: 50px;
