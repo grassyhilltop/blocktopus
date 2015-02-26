@@ -77,7 +77,7 @@ function hardwareBlockAddSlider(block){
 	$(sliderDiv).slider({
 		slide: function( event, ui ) {
 			var msg = midiPitchMsg(ui.value);
-        	//block.onReceiveMessage(block.blockID, msg);
+        	
         	block.updateValueOnServer(msg);
         }
 	});
@@ -138,7 +138,7 @@ function drawHardwareBlock(block, blockId, sensorid , sensorName, displayName, i
 	var boundingBoxSection = section.getBoundingClientRect();
 	var boundingBoxMenu = section.getBoundingClientRect();
 	y = boundingBoxSection.top;
-	x = 200 + 200 * blockId;
+	x = 200 + (200 * blockId) % 1000;
 
     var radius = 100;
 	var circleContainer = circle(radius,color, undefined, undefined, opacity);	
