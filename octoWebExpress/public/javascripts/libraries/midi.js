@@ -22,7 +22,7 @@ function convertPercentToMidiMsg( num ){
 
 // Converts a number from 0-100 into a midi message
 function midiPitchMsg( num ){	
-	 return  [227,0,Math.round(127*num/100)];   // continuous pitch change		
+	 return  [227,0,Math.round(127*(num/100))];   // continuous pitch change		
 }
 
 // Converts a number from 0-100 into a midi message

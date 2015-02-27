@@ -162,12 +162,14 @@ function App() {
 				blockList[block] = 
 					{"type": "hw",
 					"devName":obj.blockObjects[block].devName,
-					"devIDNum":obj.blockObjects[block].deviceIDNum}
+					"devIDNum":obj.blockObjects[block].deviceIDNum,
+					"outConnections":Object.keys(obj.blockObjects[block].outConnections)}
 			}else if(obj.blockObjects[block].type == "sw"){
 				blockList[block] = 
 					{"type": "sw",
 					"x":obj.blockObjects[block].initX,
-					 "y":obj.blockObjects[block].initY}
+					 "y":obj.blockObjects[block].initY,
+					 "text":obj.blockObjects[block].text}
 			}
 		}
 		return blockList;
@@ -360,26 +362,26 @@ EmuTimerBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	
 	//update value and sent it out to client to update view
 	EmuHwBlock.prototype.update.call(this,fromBlockID,msg);
+	var numSeconds = Math.round(myMidi.convertMidiMsgToNumber(msg))/10;
+	var numSecondsMidi = myMidi.convertPercentToMidiMsg(numSeconds);
+	obj.sendToAllOutputs(numSecondsMidi);
 	
-	var intervalInMillis = 100 - myMidi.convertMidiMsgToNumber(msg);
-	
-	if(intervalInMillis !== 0){
+	var intervalInMillis = myMidi.convertMidiMsgToNumber(msg);
+	if(intervalInMillis != 0){
 		var interval = intervalInMillis*this.numMillis;
 	
 		//console.log("New interval: " + interval);
 		var newIntervalFunc = function () {
-			//console.log("Interval: " + interval);
-			//need to make our data value equal to our logic level before we send 
-			// a message to outputs
-			obj.data = obj.logicLevel;
-			var logicLevelMsg = myMidi.convertPercentToMidiMsg(obj.logicLevel);
-			mySocketIO.sendTimerOutputToClient(obj.blockID,obj.logicLevel);
-			obj.sendToAllOutputs(logicLevelMsg);
+			var numSeconds = Math.round(myMidi.convertMidiMsgToNumber(msg))/10;
+			var numSecondsMidi = myMidi.convertPercentToMidiMsg(numSeconds);
+			obj.sendToAllOutputs(numSecondsMidi);
+			
 			if(obj.logicLevel === 100){
 				obj.logicLevel = 0;
 			}else{
 				obj.logicLevel = 100;
 			}
+			
 		}
 	
 		//first time this is called we dont need to stop the recurring function
@@ -391,6 +393,9 @@ EmuTimerBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 			//begin new pulse with new value
 			this.intervalFunc = setInterval(newIntervalFunc,interval);
 		}
+	}else{
+	   clearInterval(this.intervalFunc);
+	   this.intervalFunc = undefined;
 	}
 	
 };

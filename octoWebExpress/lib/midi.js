@@ -32,7 +32,7 @@ exports.convertMidiMsgToNumber = function (msg){
 	if( msg[0] == 128 ) return 0;	// note off
 	if (msg[0] == 227) {			// pitch change
 		var midiVal = msg[2]; //0-127
-		return Math.floor(100*midiVal/127)
+		return Math.round(100*(midiVal/127))
 	}		
 }
 
@@ -40,12 +40,12 @@ exports.convertMidiMsgToNumber = function (msg){
 exports.convertPercentToMidiMsg = function ( num ){	
 	if (num == 100 ) return [144,60,69]; 			    // note on
 	else if( num == 0 ) return [128,60,69];	    // note off
-	else return  [227,0,Math.round(127*num/100)];   // continuous pitch change		
+	else return  [227,0,Math.round(127*(num/100))];   // continuous pitch change		
 }
 
 // Converts a number from 0-100 into a midi message
 exports.midiPitchMsg = function ( num ){	
-	 return  [227,0,Math.round(127*num/100)];   // continuous pitch change		
+	 return  [227,0,Math.round(127*(num/100))];   // continuous pitch change		
 }
 
 // Converts a number from 0-100 into a midi message

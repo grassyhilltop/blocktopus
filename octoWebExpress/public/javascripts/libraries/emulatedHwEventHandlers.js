@@ -7,7 +7,8 @@ var emuSliderAddControlElem = function (block) {
 
 var emuTimerAddControlElem = function (block) {
 	hardwareBlockAddSlider(block);
-	hardwareBlockAddOutputWindow(block);
+	//Don't want and extra box
+	//hardwareBlockAddOutputWindow(block);
 }; 
 
 var emuButtonAddControlElem = function (block) {

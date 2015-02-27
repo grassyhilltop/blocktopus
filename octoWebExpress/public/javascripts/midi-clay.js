@@ -137,7 +137,7 @@ function ClientApp() {
 					if (!foundBlockId) { // if no device yet created
 						//Software blocks
 						if(blockList[block]["type"] == "sw"){
-							var newSwBlock = new CodeBlock(block,blockList[block]["x"],blockList[block]["y"]);
+							var newSwBlock = new CodeBlock(block,blockList[block]["x"],blockList[block]["y"],blockList[block]["text"]);
 						//Hardware Blocks
 						}else{
 							console.log("Found new block:" + blockList[block]["devName"]);
@@ -161,7 +161,13 @@ function ClientApp() {
 									}
 								}
 							}
-						}		        		
+						}
+						//add jsplumb connections
+						console.log(blockList[block]["outConnections"]);
+						for (outConnection in blockList[block]["outConnections"]){
+							//console.log("FROM: " + "block-"+block + "TO: " + "block-"+outConnection);
+							//jsPlumb.connect({source:"block-"+block, target:"block-"+outConnection});
+						}	
 					}
 				}
 			}else{
@@ -215,12 +221,6 @@ function ClientApp() {
 		this.socket.on('blockList',function(data) {
 			var blockList = data.blockList;
 			obj.updateBlockList(blockList);
-		});
-		
-		this.socket.on('timerOutputChange',function(data) {
-			var blockID = data.blockID;
-			var logicLevel = data.logicLevel;
-			obj.blockObjects[blockID].displayLogicLevel(logicLevel);
 		});
 	};
 	
@@ -500,6 +500,7 @@ function HwBlock(devName,blockID){
 	if((undefined === this.viewObj)){
 		var displayVal = obj.data ;
 		if(obj.deviceType =="Button" || obj.deviceType =="Buzzer")  displayVal = "OFF";
+		else if(obj.deviceType =="Timer") displayVal = "OFF";
 		else displayVal = "0%";		
 		
 		this.viewObj = drawHardwareBlock(this, this.blockID, obj.deviceIDNum , obj.deviceType, obj.displayName , displayVal);
@@ -554,7 +555,7 @@ HwBlock.prototype.update = function(fromBlockID,msg){
 
 	// control change for pitch wheel
 	else if (msg[0] == 227 || msg[0] == 176 ){
-		var sensorPercent = Math.floor(100*msg[2]/127);
+		var sensorPercent = Math.round(100*msg[2]/127);
 		newVal = sensorPercent;
 		// special case for temperature
 		if(obj.devName =="Temp") {
@@ -642,9 +643,38 @@ function EmuTimerBlock(devName,blockID){
 EmuTimerBlock.prototype = new EmuHwBlockClone();
 EmuTimerBlock.prototype.constructor = EmuTimerBlock;
 
-EmuTimerBlock.prototype.displayLogicLevel = function(logicLevel){
-	//console.log("displaying logic level: " + logicLevel);
-	$("#outputWindow-"+this.blockID).val(logicLevel);
+
+
+// Called when the block state has changed - update data and view
+EmuTimerBlock.prototype.update = function(fromBlockID,msg){
+	obj = this;
+	// console.log("Updating hardware block:" + obj.devName);
+
+	// Update data - hardware state
+	var newVal = msg[2];
+	// Update View		
+	
+	if(msg[0] == 144){ // If the message type is note on/off use string label instead of number
+		newVal = 100;
+		$("#sensorVal"+obj.blockID).text("ON");
+	}
+	else if (msg[0] == 128){
+		newVal = 0;
+		$("#sensorVal"+obj.blockID).text("OFF");		
+	}
+	// control change for pitch wheel
+	else if (msg[0] == 227 || msg[0] == 176 ){
+		var sensorPercent = Math.round((100*(msg[2]/127)))/10;
+		newVal = sensorPercent;
+		if(sensorPercent == 0){
+			$("#sensorVal"+obj.blockID).text("OFF");
+		}else{
+			$("#sensorVal"+obj.blockID).text( sensorPercent +" sec");
+		}
+	}
+	$("#sensorVal"+obj.blockID).val(newVal);
+
+	obj.data = newVal;
 };
 
 EmuTimerBlockClone = function () {};
@@ -761,8 +791,9 @@ function RGB_LED(devName){
 
 
 
-function CodeBlock(blockID,x,y,viewObjInput){
+function CodeBlock(blockID,x,y,text){
 	var obj = this;
+	viewObjInput = undefined;
 	this.displayName = "CodeBlock"; 
 	this.type="sw";
 	BlockObject.call(this,viewObjInput,blockID);
@@ -772,11 +803,18 @@ function CodeBlock(blockID,x,y,viewObjInput){
 
 	app.addNewBlock(this);
 
-	if(!viewObjInput){
-		var freeCellELem = drawCodeBlock(this.blockID,x,y);
-		// parent element has unique container id .e.g. block-3 		
-		this.viewObj = freeCellELem.parentElement;
+	var freeCellELem = drawCodeBlock(this.blockID,x,y);
+	// parent element has unique container id .e.g. block-3 		
+	this.viewObj = freeCellELem.parentElement;
+	var codeWindow = $("#codeWindow-"+this.blockID);
+	if(text !== undefined){
+		codeWindow.append( "<div>"+text+"</div>" );
+		codeWindow.append( "<div>"+"&nbsp;"+"</div>" );
+	}else{
+		codeWindow.append( "<div>"+"&nbsp;"+"</div>" );
 	}
+	
+	
 	
 	this.sendCodeToServer = function(text){
 		var NEW_CODE_BLOCK_TEXT_URL = "/newCodeBlockText";
@@ -818,7 +856,7 @@ function CodeBlock(blockID,x,y,viewObjInput){
 			if ($(this).hasClass("codeArgLine")){
 				//Do nothing. This is now done on the server
 			}else{
-				code = code + " " + $(this).text() + " ";
+				code = code + " " + $(this).text() + ' \n';
 			}
 		});
 		
@@ -832,6 +870,7 @@ function CodeBlock(blockID,x,y,viewObjInput){
 	});
 
 	this.updateOutputValue = function(outputValue,fromBlockID,msg) {
+		var obj = this;
 		var codeBlockID = obj.blockID;
 		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
 		var outputValueElem = clobjectDiv.find(".returnValInput");
@@ -852,8 +891,11 @@ function CodeBlock(blockID,x,y,viewObjInput){
 		if(stateVarElem){
 			stateVarElem.val(outputValue);
 		}
-		$("#block-"+this.blockID).animate({backgroundColor: 'green'}, {duration:10})
-		$("#block-"+this.blockID).animate({backgroundColor: 'white'}, {duration:1});
+		$("#block-"+this.blockID).finish();
+		$("#block-"+this.blockID).animate({backgroundColor: 'green',opacity: 0.5}, 400,function(){
+			$("#block-"+obj.blockID).animate({backgroundColor: 'white',opacity: 1}, 400);
+		});
+		
 	};
 
 	this.onReceiveMessage = function(fromBlockID,msg){
@@ -961,9 +1003,12 @@ CodeBlock.prototype.addInputConnection = function (outputConnectionObj){
 
 // When some object connects to a code block
 CodeBlock.prototype.displayError = function (error){
+	var obj = this;
 	//$("#block-"+this.blockID).css("background-color","red");
-	$("#block-"+this.blockID).animate({backgroundColor: 'red'}, {duration:10})
-	$("#block-"+this.blockID).animate({backgroundColor: 'white'}, {duration:1});
+		$("#block-"+this.blockID).finish();
+		$("#block-"+this.blockID).animate({backgroundColor: 'red',opacity: 0.5}, 400,function(){
+			$("#block-"+obj.blockID).animate({backgroundColor: 'white',opacity: 1}, 400);
+		});
 };
 
 
