@@ -17,3 +17,7 @@ var emuButtonAddControlElem = function (block) {
 var emuLEDAddControlElem = function (block) {
 	hardwareBlockAddLED(block);
 };
+
+var emuFanAddControlElem = function (block) {
+	hardwareBlockAddFanIcon(block);
+}; 

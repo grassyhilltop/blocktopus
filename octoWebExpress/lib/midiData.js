@@ -1,3 +1,5 @@
+//On the Server
+
 //the midi wrapper that we wrote on top of the node library
 var myMidi = require('./midi');
 var mySocketIO = require('./mySocketIO');
@@ -6,16 +8,18 @@ var app = new App();
 
 deviceTypes = {
 	"Knob": {"direction":"Output"},
-	"Button": {"direction":"Output"},
 	"Timer": {"direction":"Output"},
+	"Button": {"direction":"Output"},
 	"Slider": {"direction":"Output"},
  	"Light": {"direction":"Input"},
+ 	"Fan": {"direction":"Input"},
 // 	"Temp": {"direction":"Output"},
 // 	"Tilt": {"direction":"Output"},
 	"LED": {"direction":"Input"},
 	"RGB_LED": {"direction":"Input"},
 	"Buzzer": {"direction":"Input"}
 };
+
 
 function App() {
 	var obj = this;

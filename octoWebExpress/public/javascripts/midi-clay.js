@@ -1,13 +1,18 @@
+//on the client
+
 window.addEventListener("load",function () {
 	app = new ClientApp();
 });
 
+
+//TODO: want to keep this only on the server and get it on request
 deviceTypes = {
 	"Knob": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
 	"Timer": {"direction":"Output", "addControlElem": emuTimerAddControlElem},
 	"Button": {"direction":"Output", "addControlElem": emuButtonAddControlElem},
 	"Slider": {"direction":"Output","addControlElem": emuSliderAddControlElem},
- 	"Light": {"direction":"Input",},
+ 	"Light": {"direction":"Input"},
+ 	"Fan": {"direction":"Input","addControlElem": emuFanAddControlElem},
 // 	"Temp": {"direction":"Output"},
 // 	"Tilt": {"direction":"Output"},
 	"LED": {"direction":"Input","addControlElem": emuLEDAddControlElem},
@@ -145,7 +150,10 @@ function ClientApp() {
 							if(blockList[block]["devIDNum"]=="E"){
 								if(blockList[block]["devName"] == "Timer-E"){
 									var newEmuTimerBlock = new EmuTimerBlock(blockList[block]["devName"],block);
-								}else{
+								}else if((blockList[block]["devName"] == "Fan-E")){
+									var newEmuFanBlock = new EmuFanBlock(blockList[block]["devName"],block);
+								}
+								else{
 									var newHwBlock = new EmuHwBlock(blockList[block]["devName"],block);
 								}
 							//Real Hw Devices
@@ -569,6 +577,8 @@ HwBlock.prototype.update = function(fromBlockID,msg){
 	$("#sensorVal"+obj.blockID).val(newVal);
 
 	obj.data = newVal;
+	
+	return newVal;
 };
 
 HwBlockClone = function () {};
@@ -592,7 +602,9 @@ function EmuHwBlock(devName,blockID){
 	app.addNewEmuHwBlock(this);
 	
 	var devType = this.deviceType;
-	var controlID = deviceTypes[devType]["addControlElem"](this);
+	if(deviceTypes[devType]["addControlElem"]){
+		var controlID = deviceTypes[devType]["addControlElem"](this);
+	}
 	
 };
 
@@ -643,8 +655,6 @@ function EmuTimerBlock(devName,blockID){
 EmuTimerBlock.prototype = new EmuHwBlockClone();
 EmuTimerBlock.prototype.constructor = EmuTimerBlock;
 
-
-
 // Called when the block state has changed - update data and view
 EmuTimerBlock.prototype.update = function(fromBlockID,msg){
 	obj = this;
@@ -679,6 +689,36 @@ EmuTimerBlock.prototype.update = function(fromBlockID,msg){
 
 EmuTimerBlockClone = function () {};
 EmuTimerBlockClone.prototype = EmuHwBlock.prototype;
+
+function EmuFanBlock(devName,blockID){
+	//super constructer call
+	var obj = this;
+	this.rotationRate = 0;
+	this.degrees = 0;
+	EmuHwBlock.call(this,devName,blockID);
+	
+	setInterval(function(){ 
+		console.log("obj.degrees: " + obj.degrees);
+		obj.degrees = obj.degrees + obj.rotationRate; 
+		$("#fanIcon-"+obj.blockID).css({'-webkit-transform' : 'rotate('+ obj.degrees +'deg)',
+					 '-moz-transform' : 'rotate('+ obj.degrees +'deg)',
+					 '-ms-transform' : 'rotate('+ obj.degrees +'deg)',
+					 'transform' : 'rotate('+ obj.degrees +'deg)'});
+	},100);
+	
+};
+
+EmuFanBlock.prototype = new EmuHwBlockClone();
+EmuFanBlock.prototype.constructor = EmuFanBlock;
+
+// Called when the block state has changed - update data and view
+EmuFanBlock.prototype.update = function(fromBlockID,msg){
+	//call parent function to get the new value and then use that for the rotation rate
+	this.rotationRate = EmuHwBlock.prototype.update.call(this, fromBlockID, msg);
+};
+
+EmuFanBlockClone = function () {};
+EmuFanBlockClone.prototype = EmuHwBlock.prototype;
 
 function RGB_LED_R(devName, RGB_LED){
 	console.log("creating RGB_LED_R");
