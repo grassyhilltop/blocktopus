@@ -7,16 +7,17 @@ var mySocketIO = require('./mySocketIO');
 var app = new App();
 
 deviceTypes = {
-	"Knob": {"direction":"Output"},
-	"Timer": {"direction":"Output"},
-	"Button": {"direction":"Output"},
-	"Slider": {"direction":"Output"},
- 	"Light": {"direction":"Input"},
- 	"Fan": {"direction":"Input"},
-// 	"Temp": {"direction":"Output"},
-// 	"Tilt": {"direction":"Output"},
-	"LED": {"direction":"Input"},
-	"RGB_LED": {"direction":"Input"},
+	"Knob": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
+	"Timer": {"direction":"Output", "addControlElem": "emuTimerAddControlElem"},
+	"Button": {"direction":"Output", "addControlElem": "emuButtonAddControlElem"},
+	"Slider": {"direction":"Output","addControlElem": "emuSliderAddControlElem"},
+	"Light_Sensor": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
+	"Temperature": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
+	"Heater": {"direction":"Input", "addControlElem": "emuHeaterAddControlElem"},
+ 	"Fan": {"direction":"Input","addControlElem": "emuFanAddControlElem"},
+	"Light": {"direction":"Input","addControlElem": "emuLEDAddControlElem"},
+	"Motion_Sensor": {"direction":"Output", "addControlElem": "emuMotionAddControlElem"},
+	// "RGB_LED": {"direction":"Input"},
 	"Buzzer": {"direction":"Input"}
 };
 

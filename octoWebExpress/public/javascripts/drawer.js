@@ -129,6 +129,39 @@ function hardwareBlockAddLED(block){
 	};
 };
 
+function hardwareBlockAddMotion(block){
+	var elemDiv = document.createElement("DIV");
+	$(elemDiv).addClass("sensorLED");
+	$("#block-"+block.blockID).append(elemDiv);
+	
+	$(elemDiv).hover(
+
+			function( event, ui ) {
+				var msg = midiPitchMsg(100);        	
+        		block.updateValueOnServer(msg);
+    		},
+    		function( event, ui ) {
+				var msg = midiPitchMsg(0);        	
+        		block.updateValueOnServer(msg);
+    		} 
+	);
+
+};
+
+
+function hardwareBlockAddHeater(block){
+	var ledDiv = document.createElement("DIV");
+	$(ledDiv).addClass("heater");
+	$("#block-"+block.blockID).append(ledDiv);
+	
+	block.emuHardwareResponse = function(msg) {
+		var value = convertMidiMsgToNumber(msg);
+		value = (value/100).toString();
+		console.log("new value :" +value);
+		ledDiv.style.opacity = value;
+	};
+};
+
 function drawHardwareBlock(block, blockId, sensorid , sensorName, displayName, initialVal){
 	var section;
 	var menu = document.getElementById("menu");

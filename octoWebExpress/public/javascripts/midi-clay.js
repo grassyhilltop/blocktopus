@@ -11,12 +11,13 @@ deviceTypes = {
 	"Timer": {"direction":"Output", "addControlElem": emuTimerAddControlElem},
 	"Button": {"direction":"Output", "addControlElem": emuButtonAddControlElem},
 	"Slider": {"direction":"Output","addControlElem": emuSliderAddControlElem},
- 	"Light": {"direction":"Input"},
+	"Light_Sensor": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
+	"Temperature": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
+	"Heater": {"direction":"Input", "addControlElem": emuHeaterAddControlElem},
  	"Fan": {"direction":"Input","addControlElem": emuFanAddControlElem},
-// 	"Temp": {"direction":"Output"},
-// 	"Tilt": {"direction":"Output"},
-	"LED": {"direction":"Input","addControlElem": emuLEDAddControlElem},
-	"RGB_LED": {"direction":"Input"},
+	"Light": {"direction":"Input","addControlElem": emuLEDAddControlElem},
+	"Motion_Sensor": {"direction":"Output", "addControlElem": emuMotionAddControlElem},
+// "RGB_LED": {"direction":"Input"},
 	"Buzzer": {"direction":"Input"}
 };
 

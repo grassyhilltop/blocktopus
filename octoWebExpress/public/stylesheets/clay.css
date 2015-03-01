@@ -498,6 +498,18 @@ svg{
 }
 
 
+.heater{
+    height: 50px;
+    width: 50px;
+    border-radius: 50px;
+    border: 1px solid #000;
+    position: absolute;
+	text-align: center;
+	top: 95px;
+	left: 75px;
+	background-color: red;
+}
+
 
 /* -------------------------- JQUERY HELPERS   --------------------------*/
 

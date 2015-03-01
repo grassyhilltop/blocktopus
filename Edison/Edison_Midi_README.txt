@@ -80,10 +80,22 @@ open browser to 10.0.1.9:3000
 7) Run setup script to be a wifi hot spot
 hotspot_startup.sh
 
-CXX(target) Release/obj.target/midi/src/node-midi.o
-SOLINK_MODULE(target) Release/obj.target/midi.node
-/usr/lib/gcc/i586-poky-linux/4.8.2/../../../../i586-poky-linux/bin/ld: cannot find -lasound
-collect2: error: ld returned 1 exit status
-midi.target.mk:112: recipe for target 'Release/obj.target/midi.node' failed
-make: *** [Release/obj.target/midi.node] Error 1
-make: Leaving directory '/usr/lib/node_modules/midi/build'
+
+8) Setup node to run automatically on startup
+Used this: http://stephaniemoyerman.com/?p=41
+Create a file /etc/init.d/onstart.sh
+Contents:
+	#!/bin/sh
+	cd  FILEPATH TO NODE ;npm start&
+(note the ampersand to run in the background)
+
+RUN >  update-rc.d onstart-octoweb.sh defaults
+
+
+9) Copying files 
+scp -r octoWebExpress/ root@bloctopus2.local:~
+
+
+If you get Out of space error 
+https://communities.intel.com/thread/59289
+QUICK FIX : Remove log files :>  rm -rf /var/log/journal/*
