@@ -17,6 +17,7 @@ deviceTypes = {
  	"Fan": {"direction":"Input","addControlElem": "emuFanAddControlElem"},
 	"Light": {"direction":"Input","addControlElem": "emuLEDAddControlElem"},
 	"Motion_Sensor": {"direction":"Output", "addControlElem": "emuMotionAddControlElem"},
+	"Motor": {"direction":"Input", "addControlElem": "emuFanAddControlElem"},
 	// "RGB_LED": {"direction":"Input"},
 	"Buzzer": {"direction":"Input"}
 };

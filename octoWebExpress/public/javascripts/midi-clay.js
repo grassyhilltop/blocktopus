@@ -17,6 +17,7 @@ deviceTypes = {
  	"Fan": {"direction":"Input","addControlElem": emuFanAddControlElem},
 	"Light": {"direction":"Input","addControlElem": emuLEDAddControlElem},
 	"Motion_Sensor": {"direction":"Output", "addControlElem": emuMotionAddControlElem},
+	"Motor": {"direction":"Input", "addControlElem": emuMotorAddControlElem},
 // "RGB_LED": {"direction":"Input"},
 	"Buzzer": {"direction":"Input"}
 };
@@ -148,11 +149,14 @@ function ClientApp() {
 						}else{
 							console.log("Found new block:" + blockList[block]["devName"]);
 							//emulated Hw Devices
+							// js: why is there speacial case code for this?
 							if(blockList[block]["devIDNum"]=="E"){
 								if(blockList[block]["devName"] == "Timer-E"){
 									var newEmuTimerBlock = new EmuTimerBlock(blockList[block]["devName"],block);
 								}else if((blockList[block]["devName"] == "Fan-E")){
-									var newEmuFanBlock = new EmuFanBlock(blockList[block]["devName"],block);
+									var newobj = new EmuFanBlock(blockList[block]["devName"],block);
+								}else if((blockList[block]["devName"] == "Motor-E")){
+									var newEmuMotorBlock = new EmuMotorBlock(blockList[block]["devName"],block);
 								}
 								else{
 									var newHwBlock = new EmuHwBlock(blockList[block]["devName"],block);
@@ -171,7 +175,8 @@ function ClientApp() {
 								}
 							}
 						}
-						//add jsplumb connections
+						// add jsplumb connections
+						// js Todo: fix connecting 
 						console.log(blockList[block]["outConnections"]);
 						for (outConnection in blockList[block]["outConnections"]){
 							//console.log("FROM: " + "block-"+block + "TO: " + "block-"+outConnection);
@@ -699,7 +704,7 @@ function EmuFanBlock(devName,blockID){
 	EmuHwBlock.call(this,devName,blockID);
 	
 	setInterval(function(){ 
-		console.log("obj.degrees: " + obj.degrees);
+		// console.log("obj.degrees: " + obj.degrees);
 		obj.degrees = obj.degrees + obj.rotationRate; 
 		$("#fanIcon-"+obj.blockID).css({'-webkit-transform' : 'rotate('+ obj.degrees +'deg)',
 					 '-moz-transform' : 'rotate('+ obj.degrees +'deg)',
@@ -720,6 +725,36 @@ EmuFanBlock.prototype.update = function(fromBlockID,msg){
 
 EmuFanBlockClone = function () {};
 EmuFanBlockClone.prototype = EmuHwBlock.prototype;
+
+// ---- Motor
+
+function EmuMotorBlock(devName,blockID){
+	//super constructer call
+	var obj = this;
+	this.rotationRate = 0;
+	this.degrees = 0;
+	EmuHwBlock.call(this,devName,blockID);
+	
+	setInterval(function(){ 
+		// console.log(" motor obj.degrees: " + obj.degrees);
+		obj.degrees = obj.degrees + obj.rotationRate; 
+		$("#motorIcon-"+obj.blockID).css({'-webkit-transform' : 'rotate('+ obj.degrees +'deg)',
+					 '-moz-transform' : 'rotate('+ obj.degrees +'deg)',
+					 '-ms-transform' : 'rotate('+ obj.degrees +'deg)',
+					 'transform' : 'rotate('+ obj.degrees +'deg)'});
+	},100);
+	
+};
+
+EmuMotorBlock.prototype = new EmuHwBlockClone();
+EmuMotorBlock.prototype.constructor = EmuMotorBlock;
+
+EmuMotorBlock.prototype.update = function(fromBlockID,msg){
+	//call parent function to get the new value and then use that for the rotation rate
+	this.rotationRate = EmuHwBlock.prototype.update.call(this, fromBlockID, msg);
+};
+
+// ---- Motor end
 
 function RGB_LED_R(devName, RGB_LED){
 	console.log("creating RGB_LED_R");
@@ -934,7 +969,7 @@ function CodeBlock(blockID,x,y,text){
 		}
 		$("#block-"+this.blockID).finish();
 		$("#block-"+this.blockID).animate({backgroundColor: 'green',opacity: 0.5}, 400,function(){
-			$("#block-"+obj.blockID).animate({backgroundColor: 'white',opacity: 1}, 400);
+			$("#block-"+obj.blockID).animate({backgroundColor: 'transparent',opacity: 1}, 400);
 		});
 		
 	};

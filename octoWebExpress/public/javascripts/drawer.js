@@ -91,6 +91,14 @@ function hardwareBlockAddFanIcon(block){
 	$("#block-"+block.blockID).append(img);
 };
 
+function hardwareBlockAddMotorIcon(block){
+	var img = $('<img id="motorIcon-'+block.blockID+'">');
+	img.attr('src', '/images/motorIcon.png');
+	img.addClass("motorIcon");
+	
+	$("#block-"+block.blockID).append(img);
+};
+
 function hardwareBlockAddOutputWindow(block){
 	var outputWindow = templates.renderOutputDisplayWindow({returnVal:0,blockID:block.blockID,ofClass:"outputWindow"});
 	outputWindow.id = "outputWindow-"+block.blockID;
