@@ -306,6 +306,7 @@ function ClientApp() {
 	// Functions to call when the app is first opened
 	this.menu = new Menu();
 	this.menu.addEmuHwBtns(deviceTypes);
+	this.menu.addCodeBtn();
 	this.setupMidi();
 	this.setupSocketIO();
 	this.setupCodeBlocks();
@@ -402,6 +403,25 @@ function Menu() {
  			});
 		};
 		
+ 	};
+
+ 	this.addCodeBtn = function(){
+	
+		key = "Code";
+
+		//add html for button
+		var newEmuHwBtnHTML = templates.renderEmuHwBtn({name:key});
+		$emuHwOptList.append(newEmuHwBtnHTML);
+		
+		//add event handler for click on button
+		var newEmuHwBtnElem = $("#"+"hwEmuBtn"+key);
+		newEmuHwBtnElem.bind("click", function(event) {
+			var target = event.target;
+			var emuHwType = target.id.substr(8) + "-E";
+			console.log("new emulated codebox :" + emuHwType + " clicked");
+
+			app.sendNewCodeBlockToServer(500,500);
+		});
  	};
  	
 };
@@ -1038,7 +1058,7 @@ function CodeBlock(blockID,x,y,text){
 		}
 		// Append a new variable name for state
 		linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+"STATE'>" + 
-		"<span class='codeArgName'>"+ "State" + 
+		"<span class='codeArgName'>"+ "Output" + 
 		"</span> = <input class='codeArgInput' value='" + "0" + "'></input> </div> ";	
 
 		// Append the lines to the elem

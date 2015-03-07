@@ -557,7 +557,7 @@ function CodeBlock(x,y){
 			code += inputBlockArg;
 		};
 		//add the current state of the code block
-		code += " State = " + this.state + ";";
+		code += " Output = " + this.state + ";";
 		
 		//add the code typed in the code block
 		code += this.text;

@@ -98,4 +98,5 @@ scp -r octoWebExpress/ root@bloctopus2.local:~
 
 If you get Out of space error 
 https://communities.intel.com/thread/59289
+
 QUICK FIX : Remove log files :>  rm -rf /var/log/journal/*
