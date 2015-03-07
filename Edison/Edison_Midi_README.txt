@@ -96,7 +96,12 @@ RUN >  update-rc.d onstart-octoweb.sh defaults
 scp -r octoWebExpress/ root@bloctopus2.local:~
 
 
+10 ) Setup file system - 
+// Limit logging space to avoid running out of disk space
+URL Ref: http://www.helios.de/heliosapp/edison/index.html
+# vi /etc/systemd/journald.conf
+SystemMaxUse=20M
+
 If you get Out of space error 
 https://communities.intel.com/thread/59289
-
 QUICK FIX : Remove log files :>  rm -rf /var/log/journal/*
