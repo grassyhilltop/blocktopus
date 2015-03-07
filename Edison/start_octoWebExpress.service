@@ -1,0 +1,12 @@
+[Unit]
+Description=The Octoweb status and configuration service
+After=mdns.service
+ 
+[Service]
+ExecStart=/bin/su root -c 'cd /home/kdurfee/blocktopus/octoWebExpress;npm start'              
+Restart=always
+RestartSec=10s
+Environment=NODE_ENV=production
+ 
+[Install]
+WantedBy=default.target
