@@ -285,10 +285,11 @@ function ClientApp() {
 
 		// Depending on what we clicked launch some other click handlers
 
-		// Click on empty workspace
+		// Click in empty workspace
 		if ($("#"+elem.id).hasClass("section")){
 			//Tell the server to create a code block
-			obj.sendNewCodeBlockToServer(x,y);
+			// This moved to double click handler
+			// obj.sendNewCodeBlockToServer(x,y);
 		}
 
 		// if you clicked on an object set the selected property
@@ -298,9 +299,34 @@ function ClientApp() {
 			$(freeContainer).toggleClass("selected");
 		}
 	};
+
+	this.masterDoubleClickHandler = function () {
+
+		var x = event.pageX;
+		var y = event.pageY;
+
+		// What did we click on ? 
+		var elem = event.target;
+	
+		var id = elem.id;                    
+		var elemType = elem.tagName.toLowerCase();
+		var elemParent =  elem.parentNode;
+		if(elemParent) var elemParentType = elemParent.tagName;
+		//console.log( "You Clicked a " + elemType + " with id: " + elem.id + " parent :" + elemParentType);
+		// console.log("DOUBLE CLICK");
+		
+		// Depending on what we clicked launch some other click handlers
+		
+		// Click on DOUBLE CLICK in empty workspace
+		if ($("#"+elem.id).hasClass("section")){
+			//Tell the server to create a code block
+			obj.sendNewCodeBlockToServer(x,y);
+		}
+	}
 	
 	this.setupCodeBlocks = function () {
 		window.addEventListener("click", this.masterClickHandler); 
+		window.addEventListener("dblclick", this.masterDoubleClickHandler); 
 	};
 	
 	// Functions to call when the app is first opened
@@ -913,14 +939,43 @@ function CodeBlock(blockID,x,y,text){
 	}
 	
 	//Always set the focus to new created codebox
-	g1 = codeWindow;
   	codeWindow.focus();
-
-	// setTimeout(function(){
- //    	codeWindow.focus();
-	// 	console.log("focusing");
- //      }, 10);
 	
+  	// Setup a blur handler on loss of focus
+  	// DELETE Empty text boxes that lose focus 
+  	codeWindow.blur( function() {
+  		var innerText = $(this).text().trim();
+		console.log("Lost focus on code block , with inner text:" + innerText);
+
+		if (innerText ==""){
+			console.log("Removing Empty code block");
+			app.removeCodeBlockFromServer(blockID);
+		}
+  	});
+
+  	
+  	
+		// var parentnode = this.parentNode;
+	 //    console.log("lost focus and text is:"+$(this).text()+" with parent:" +parentnode);
+	 //    // If we lose focus on a cell that is emtpy just delete it from the DOM
+	 //    if( $(this).text().trim() =="" && document.hasFocus()){
+	 //        // console.log("Removing : this is: " + this + " and parentNode:" + parentnode);
+	        
+	 //        // get id of lost node
+	 //        var divId = parentnode.id;
+	 //        var blockID;
+	 //        if (divId) blockID = parentnode.id.split("-")[1];
+
+	 //        //Get the block
+	 //        if (!blockID) return;
+
+	 //        app.removeBlock(blockID);
+	 //    }
+  	
+  	
+    
+    
+
 	this.sendCodeToServer = function(text){
 		var NEW_CODE_BLOCK_TEXT_URL = "/newCodeBlockText";
 		var postArgs = JSON.stringify({blockID: obj.blockID, text: text});
