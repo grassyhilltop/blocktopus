@@ -78,7 +78,7 @@ ssh root@10.0.1.9 <ip address of edison>
 open browser to 10.0.1.9:3000
 
 7) Run setup script to be a wifi hot spot
-hotspot_startup.sh
+sh hotspot_startup.sh
 
 
 8) Setup node to run automatically on startup
@@ -108,6 +108,6 @@ QUICK FIX : Remove log files :>  rm -rf /var/log/journal/*
 
 
 10) Getting node app to run on start up
-put the start_octoWebExpress.service file from this directory in /etc/systemd/system/default.target.wants/
+put the start_octoWebExpress.service file from this directory in /etc/systemd/system/default.target.wants/start_octoWebExpress.service
 you may need to edit the file to include cd'ing into the express app on your system instead of where it was
 when the file was originally created

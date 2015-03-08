@@ -420,7 +420,8 @@ function Menu() {
 			var emuHwType = target.id.substr(8) + "-E";
 			console.log("new emulated codebox :" + emuHwType + " clicked");
 
-			app.sendNewCodeBlockToServer(500,500);
+			// Add a little randomness to where the box is drawn to avoid two boxes exactly overlapping
+			app.sendNewCodeBlockToServer(500+100*Math.random(),500+100*Math.random());
 		});
  	};
  	
@@ -899,10 +900,11 @@ function CodeBlock(blockID,x,y,text){
 
 	app.addNewBlock(this);
 
-	var freeCellELem = drawCodeBlock(this.blockID,x,y);
+	var freeCellELem = drawCodeBlock(this.blockID,x,y);	
 	// parent element has unique container id .e.g. block-3 		
 	this.viewObj = freeCellELem.parentElement;
 	var codeWindow = $("#codeWindow-"+this.blockID);
+	
 	if(text !== undefined){
 		codeWindow.append( "<div>"+text+"</div>" );
 		codeWindow.append( "<div>"+"&nbsp;"+"</div>" );
@@ -910,7 +912,14 @@ function CodeBlock(blockID,x,y,text){
 		codeWindow.append( "<div>"+"&nbsp;"+"</div>" );
 	}
 	
-	
+	//Always set the focus to new created codebox
+	g1 = codeWindow;
+  	codeWindow.focus();
+
+	// setTimeout(function(){
+ //    	codeWindow.focus();
+	// 	console.log("focusing");
+ //      }, 10);
 	
 	this.sendCodeToServer = function(text){
 		var NEW_CODE_BLOCK_TEXT_URL = "/newCodeBlockText";
