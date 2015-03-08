@@ -50,12 +50,12 @@
 	<!-- template to display button for emulated hardware devices -->
 	<script src="javascripts/libraries/handlebars-v2.0.0.js"></script>
 	<script type="text/x-handlebars-template" id="emulated-hardware-button-template">
-		<li class="sibebarbtn"  > <i id="hwEmuBtn{{this.name}}" class="fa fa-plus-circle fa-lg"></i> {{this.name}}</li>
+		<li class="sibebarbtn"  id="hwEmuBtn{{this.name}}" > <i class="fa fa-plus-circle fa-lg"></i> {{this.name}}</li>
 	</script>
 	<script type="text/x-handlebars-template" id="emulated-hardware-created-template">
-		<li class="sibebarbtn"> 
+		<li class="sibebarbtn" id="hwEmuCreated{{this.id}}"> 
 			<i class="fa fa-square fa-lg white shadow"></i> {{this.name}} 
-			<div class="sidebarRemoveBtn" id="hwEmuCreated{{this.id}}">
+			<div class="sidebarRemoveBtn" >
 				<i class="fa fa-times-circle fa-lg"></i>
 			</div>
 		</li>

@@ -952,30 +952,7 @@ function CodeBlock(blockID,x,y,text){
 			app.removeCodeBlockFromServer(blockID);
 		}
   	});
-
-  	
-  	
-		// var parentnode = this.parentNode;
-	 //    console.log("lost focus and text is:"+$(this).text()+" with parent:" +parentnode);
-	 //    // If we lose focus on a cell that is emtpy just delete it from the DOM
-	 //    if( $(this).text().trim() =="" && document.hasFocus()){
-	 //        // console.log("Removing : this is: " + this + " and parentNode:" + parentnode);
-	        
-	 //        // get id of lost node
-	 //        var divId = parentnode.id;
-	 //        var blockID;
-	 //        if (divId) blockID = parentnode.id.split("-")[1];
-
-	 //        //Get the block
-	 //        if (!blockID) return;
-
-	 //        app.removeBlock(blockID);
-	 //    }
-  	
-  	
     
-    
-
 	this.sendCodeToServer = function(text){
 		var NEW_CODE_BLOCK_TEXT_URL = "/newCodeBlockText";
 		var postArgs = JSON.stringify({blockID: obj.blockID, text: text});
