@@ -419,12 +419,15 @@ function Menu() {
  			$emuHwOptList.append(newEmuHwBtnHTML);
  			
  			//add event handler for click on button
+ 			//js
  			var newEmuHwBtnElem = $("#"+"hwEmuBtn"+key);
  			newEmuHwBtnElem.bind("click", function(event) {
- 				var target = event.target;
- 				var emuHwType = target.id.substr(8) + "-E";
+ 				// var target = event.target; //js: there is a bug here if clicking on icon, grabs icon and not parent <li>
+ 				var target = $(this);  // Use the jquery selector to avoid ambiguity. This is <li> 				
+ 				var emuHwType = $(target).attr("id").substr(8) + "-E"; // ?? js: why substr the name?
  				console.log("new emulated hw :" + emuHwType + " clicked");
  				//var newEmuHw = new EmuHwBlock(emuHwType);
+ 				// check that the hardware is valid before sending to server
  				obj.sendNewEmuHwToServer(emuHwType);
  			});
 		};
@@ -442,12 +445,12 @@ function Menu() {
 		//add event handler for click on button
 		var newEmuHwBtnElem = $("#"+"hwEmuBtn"+key);
 		newEmuHwBtnElem.bind("click", function(event) {
-			var target = event.target;
-			var emuHwType = target.id.substr(8) + "-E";
+			var target = $(this);;
+			var emuHwType = $(target).attr("id").substr(8) + "-E";
 			console.log("new emulated codebox :" + emuHwType + " clicked");
 
 			// Add a little randomness to where the box is drawn to avoid two boxes exactly overlapping
-			app.sendNewCodeBlockToServer(500+100*Math.random(),500+100*Math.random());
+			app.sendNewCodeBlockToServer(500+100*Math.random(),300+100*Math.random());
 		});
  	};
  	
@@ -619,9 +622,9 @@ HwBlock.prototype.update = function(fromBlockID,msg){
 		var sensorPercent = Math.round(100*msg[2]/127);
 		newVal = sensorPercent;
 		// special case for temperature
-		if(obj.devName =="Temp") {
+		if(obj.deviceType =="Temperature") {
 			var temperature = 25 + (sensorPercent%50); 
-			$("#sensorVal"+obj.blockID).text( temperature +"°C");
+			$("#sensorVal"+obj.blockID).text( temperature +"°F");
 		}
 		else {				
 			$("#sensorVal"+obj.blockID).text( sensorPercent +"%");
@@ -655,7 +658,8 @@ function EmuHwBlock(devName,blockID){
 	app.addNewEmuHwBlock(this);
 	
 	var devType = this.deviceType;
-	if(deviceTypes[devType]["addControlElem"]){
+	// Null check then grab any custom control elements
+	if(deviceTypes[devType] && deviceTypes[devType]["addControlElem"]){ 
 		var controlID = deviceTypes[devType]["addControlElem"](this);
 	}
 	

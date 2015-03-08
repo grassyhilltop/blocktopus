@@ -186,8 +186,12 @@ function drawHardwareBlock(block, blockId, sensorid , sensorName, displayName, i
 	}
 	var boundingBoxSection = section.getBoundingClientRect();
 	var boundingBoxMenu = section.getBoundingClientRect();
-	y = boundingBoxSection.top;
-	x = 200 + (200 * blockId) % 1000;
+
+	
+	// Placement of hardware block on screen
+	y = boundingBoxSection.top + Math.random()*10;
+	var menuWidth = 200;
+	x = menuWidth + (205 * blockId) % (boundingBoxSection.width - menuWidth - 200);
 
     var radius = 100;
 	var circleContainer = circle(radius,color, undefined, undefined, opacity);	
