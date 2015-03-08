@@ -619,7 +619,7 @@ HwBlock.prototype.update = function(fromBlockID,msg){
 
 	// control change for pitch wheel
 	else if (msg[0] == 227 || msg[0] == 176 ){
-		var sensorPercent = Math.round(100*msg[2]/127);
+		var sensorPercent = Math.round(100*msg[2]/127);		
 		newVal = sensorPercent;
 		// special case for temperature
 		if(obj.deviceType =="Temperature") {
@@ -1052,7 +1052,7 @@ function CodeBlock(blockID,x,y,text){
 
 		// Send a new msg to any connected outputs
 		if(result !=undefined ){
-			var newMsg = convertPercentToMidiMsg(result);
+			var newMsg = convertPercentToMidiMsg(result); //js:
 			obj.sendToAllOutputs(newMsg);
 		}
 
@@ -1111,6 +1111,9 @@ function CodeBlock(blockID,x,y,text){
 		var blankLine = "<div><br></div>";
 		var dividerline = "<div class='dividerline' contenteditable='false'></div>";
 		elem.html(linesToAdd + dividerline + originalHTML + blankLine);
+
+		// Make the codeArgInput not editable
+		$(".codeArgInput").prop('disabled', true);
 
 		// Update the output field
 		// js todo

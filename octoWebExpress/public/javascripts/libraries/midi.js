@@ -9,7 +9,7 @@ function convertMidiMsgToNumber(msg){
 	if( msg[0] == 128 ) return 0;	// note off
 	if (msg[0] == 227) {			// pitch change
 		var midiVal = msg[2]; //0-127
-		return Math.floor(100*midiVal/127)
+		return Math.round(100*midiVal/127)
 	}		
 }
 

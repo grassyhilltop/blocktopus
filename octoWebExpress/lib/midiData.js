@@ -213,7 +213,6 @@ BlockObject.prototype.Remove = function(){
 		this.inConnections[block].removeOutputConnection(this.blockID);
 	};	
 	/*
-		g1 = this;
 		// Clean up jsplumb connectors
 		// Remove the actual node
 		$(this.viewObj).remove();
