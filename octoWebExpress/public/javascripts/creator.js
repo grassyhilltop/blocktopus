@@ -158,7 +158,7 @@ function lostCellFocus(event){
     
     var parentnode = this.parentNode;
     console.log("lost focus and text is:"+$(this).text()+" with parent:" +parentnode);
-    g1 = this;
+    
     // If we lose focus on a cell that is emtpy just delete it from the DOM
     if( $(this).text().trim() =="" && document.hasFocus()){
         // console.log("Removing : this is: " + this + " and parentNode:" + parentnode);

@@ -916,7 +916,34 @@ function RGB_LED(devName){
 	};
 };
 
+// From here URL :http://stackoverflow.com/questions/16601934/js-jquery-contenteditable-insert-text-and-move-cursor-to-end
+function insertTabAtCursor(text) { 
+    var sel, range, html; 
+    sel = window.getSelection();
+    range = sel.getRangeAt(0); 
+    range.deleteContents(); 
+    var textNode = document.createTextNode(text);
+	var tabnode = $("<pre class='Preform'>&#009</pre>")[0];
 
+    range.insertNode(textNode);
+    range.insertNode(tabnode);
+    range.setStartAfter(textNode);
+    sel.removeAllRanges();
+    sel.addRange(range);        
+}
+
+function insertTextAtCursor(text) { 
+    var sel, range, html; 
+    sel = window.getSelection();
+    range = sel.getRangeAt(0); 
+    range.deleteContents(); 
+    var textNode = document.createTextNode(text);
+    
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    sel.removeAllRanges();
+    sel.addRange(range);        
+}
 
 function CodeBlock(blockID,x,y,text){
 	var obj = this;
@@ -981,6 +1008,23 @@ function CodeBlock(blockID,x,y,text){
 	
 	//add event handler for click on button
 	var $codeWindow = $("#"+"codeWindow-"+blockID);
+	$codeWindow.bind("keydown", function(event) {
+		console.log("down:" +event.which);
+		
+		// For the tab key disable switching focus ... i.e. insert a tab
+		if(event.which === 9) { // tab was pressed
+			// $(this).append("&nbsp;&nbsp;what");
+		   	// $(this).append("<pre class='Preform'>&#009</pre>what");
+            // document.execCommand ( 'indent', true, null )
+            insertTabAtCursor(" ");
+		   	event.preventDefault();
+	    } else if(event.keyCode === 8) { // backspace was pressed		
+            // document.execCommand ( 'outdent', true, null )
+		   	// event.preventDefault();
+	    } 
+
+			
+	});
 	$codeWindow.bind("keyup", function(event) {
 		//var htmlString = $codeWindow.text();
 		

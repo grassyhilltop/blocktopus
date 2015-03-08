@@ -298,6 +298,20 @@ textarea{
     white-space: nowrap;  /*text in paragraphs wont wrap*/
 }
 
+/*for tab indent style*/
+
+.Preform {margin:0;padding:0;display:inline;}
+
+pre {
+    -moz-tab-size:    2;
+    -o-tab-size:      2;
+    -webkit-tab-size: 2;
+    -ms-tab-size:     2;
+    tab-size:         2;
+}
+
+
+
 /* -------------------------- END - FOR CODE BOXES   --------------------------*/
 
 
