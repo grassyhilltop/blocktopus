@@ -623,8 +623,8 @@ HwBlock.prototype.update = function(fromBlockID,msg){
 		newVal = sensorPercent;
 		// special case for temperature
 		if(obj.deviceType =="Temperature") {
-			var temperature = 25 + (sensorPercent%50); 
-			$("#sensorVal"+obj.blockID).text( temperature +"°F");
+			// var temperature = 25 + (sensorPercent%50); 
+			$("#sensorVal"+obj.blockID).text( sensorPercent +"°F");
 		}
 		else {				
 			$("#sensorVal"+obj.blockID).text( sensorPercent +"%");
