@@ -8,6 +8,7 @@ var app = new App();
 
 deviceTypes = {
 	"Knob": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
+	"Angle": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
 	"Timer": {"direction":"Output", "addControlElem": "emuTimerAddControlElem"},
 	"Button": {"direction":"Output", "addControlElem": "emuButtonAddControlElem"},
 	"Slider": {"direction":"Output","addControlElem": "emuSliderAddControlElem"},

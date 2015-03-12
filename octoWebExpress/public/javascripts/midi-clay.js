@@ -8,6 +8,7 @@ window.addEventListener("load",function () {
 //TODO: want to keep this only on the server and get it on request
 deviceTypes = {
 	"Knob": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
+	"Angle": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
 	"Timer": {"direction":"Output", "addControlElem": emuTimerAddControlElem},
 	"Button": {"direction":"Output", "addControlElem": emuButtonAddControlElem},
 	"Slider": {"direction":"Output","addControlElem": emuSliderAddControlElem},
@@ -623,8 +624,11 @@ HwBlock.prototype.update = function(fromBlockID,msg){
 		newVal = sensorPercent;
 		// special case for temperature
 		if(obj.deviceType =="Temperature") {
+		
 			// var temperature = 25 + (sensorPercent%50); 
 			$("#sensorVal"+obj.blockID).text( sensorPercent +"°F");
+		} else if (obj.deviceType =="Angle") {
+			$("#sensorVal"+obj.blockID).text( sensorPercent +"°");
 		}
 		else {				
 			$("#sensorVal"+obj.blockID).text( sensorPercent +"%");
