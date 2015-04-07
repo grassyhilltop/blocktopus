@@ -507,6 +507,7 @@ svg{
 	text-align: center;
 	top: 95px;
 	left: 75px;
+	opacity: 0.0;
 	background-color: yellow;
 }
 
