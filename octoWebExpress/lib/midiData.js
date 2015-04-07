@@ -133,7 +133,6 @@ function App() {
 	
 	this.addNewEmuHwBlock = function (hwBlock) {
 		obj.addNewBlock(hwBlock);
-		//this.menu.addToEmuHwList(hwBlock.blockID);
 	};
 	
 	this.addNewSwBlock = function (swBlock) {
@@ -357,6 +356,15 @@ function EmuTimerBlock(devName){
 
 EmuTimerBlock.prototype = new EmuHwBlockClone();
 EmuTimerBlock.prototype.constructor = EmuTimerBlock;
+
+EmuTimerBlock.prototype.Remove = function(){
+	var obj = this;
+	//make sure you're recurring function call is cleared 
+	if(!(this.intervalFunc === undefined)){
+		clearInterval(this.intervalFunc);
+	}
+	BlockObject.prototype.Remove.call(obj);
+};
 
 EmuTimerBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	var obj = this;
