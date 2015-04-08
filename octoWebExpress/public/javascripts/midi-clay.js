@@ -176,13 +176,19 @@ function ClientApp() {
 								}
 							}
 						}
-						// add jsplumb connections
-						// js Todo: fix connecting 
-						console.log(blockList[block]["outConnections"]);
-						for (outConnection in blockList[block]["outConnections"]){
-							//console.log("FROM: " + "block-"+block + "TO: " + "block-"+outConnection);
-							//jsPlumb.connect({source:"block-"+block, target:"block-"+outConnection});
-						}	
+					}
+				}
+				//Once all blocks are redrawn, then add connections
+				//TODO: have this work be done only on refresh
+				for(var block in blockList){
+					//console.log(blockList[block]["outConnections"]);
+					for (var i = 0; i < blockList[block]["outConnections"].length; i++){
+						var outC = blockList[block]["outConnections"][i];
+						//console.log("FROM: " + "block-"+block + "TO: " + "block-"+outC);
+						var sourceUUID = "block-"+block+"BottomCenter";
+						var targetUUID = "block-"+outC+"TopCenter";
+						console.log("Attempting to reconnected uuids: " + sourceUUID + " " + targetUUID);
+						jsPlumb.connect({uuids:[sourceUUID, targetUUID]});
 					}
 				}
 			}else{

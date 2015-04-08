@@ -175,7 +175,8 @@ function App() {
 					{"type": "sw",
 					"x":obj.blockObjects[block].initX,
 					 "y":obj.blockObjects[block].initY,
-					 "text":obj.blockObjects[block].text}
+					 "text":obj.blockObjects[block].text,
+					 "outConnections":Object.keys(obj.blockObjects[block].outConnections)}
 			}
 		}
 		return blockList;
