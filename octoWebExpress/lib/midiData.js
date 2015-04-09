@@ -212,6 +212,9 @@ BlockObject.prototype.Remove = function(){
 	
 	for(block in this.inConnections){
 		this.inConnections[block].removeOutputConnection(this.blockID);
+		if(app.blockObjects[block].type === "sw"){
+		  	//app.blockObjects[block].update(block,undefined,undefined);
+		 }
 	};	
 	/*
 		// Clean up jsplumb connectors

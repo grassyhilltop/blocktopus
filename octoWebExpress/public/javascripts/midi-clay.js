@@ -229,7 +229,7 @@ function ClientApp() {
 			var val = data.val;
 			var fromBlockID = data.fromBlockID;
 			var msg = data.msg;
-			obj.blockObjects[data.blockID].updateOutputValue(val,fromBlockID, msg);
+			obj.blockObjects[data.blockID].update(fromBlockID, msg, val);
 		});
 		
 		this.socket.on('codeBlockErr',function(data){
@@ -266,7 +266,6 @@ function ClientApp() {
 		request.addEventListener('load',function () {
 			if(request.status == 200){
 				//var results = JSON.parse(request.responseText);
-				
 			}else{
 				console.log("error trying to remove emu hw block!");
 			}
@@ -1064,7 +1063,7 @@ function CodeBlock(blockID,x,y,text){
     	}
 	});
 
-	this.updateOutputValue = function(outputValue,fromBlockID,msg) {
+	this.update = function(fromBlockID, msg ,outputValue) {
 		var obj = this;
 		var codeBlockID = obj.blockID;
 		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
@@ -1090,26 +1089,6 @@ function CodeBlock(blockID,x,y,text){
 		$("#block-"+this.blockID).animate({backgroundColor: 'green',opacity: 0.5}, 400,function(){
 			$("#block-"+obj.blockID).animate({backgroundColor: 'transparent',opacity: 1}, 400);
 		});
-		
-	};
-
-	this.onReceiveMessage = function(fromBlockID,msg){
-		console.log("Software block with blockID:" + obj.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
-
-		if(!msg){
-			console.log("Error: tried to send a message to block with empty message");
-			return;
-		} 
-
-		// If the message containes a new value update block
-		var result = obj.update(fromBlockID,msg);			
-
-		// Send a new msg to any connected outputs
-		if(result !=undefined ){
-			var newMsg = convertPercentToMidiMsg(result); //js:
-			obj.sendToAllOutputs(newMsg);
-		}
-
 	};
 
 	// ================================================
@@ -1152,8 +1131,10 @@ function CodeBlock(blockID,x,y,text){
 			currArgumentName = currConnectedObj.displayName;
 
          	// Append a new variable name for each input
-			linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+connectedObjID+"'>" + "<span class='codeArgName'>"+ currArgumentName + 
-			"</span> = <input class='codeArgInput' value='" + currConnectedObjVal + "'></input> </div> ";		
+         	if(currConnectedObj.deviceType != "Timer"){
+				linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+connectedObjID+"'>" + "<span class='codeArgName'>"+ currArgumentName + 
+				"</span> = <input class='codeArgInput' value='" + currConnectedObjVal + "'></input> </div> ";
+			}	
 		}
 		// Append a new variable name for state
 		linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+"STATE'>" + 
@@ -1224,7 +1205,7 @@ CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
 //////////  MIDI Connections - jsplumb callback on change of any connection
 function updateConnections (sourceID, targetID, shouldRemove){
 	console.log("Updating connections");
-
+	
 	//var sourceName = app.blockObjects[sourceID].devName;
 	//var targetName = app.blockObjects[targetID].devName;
 	//console.log("source name: " + sourceName + " sourceID: " + sourceID);
