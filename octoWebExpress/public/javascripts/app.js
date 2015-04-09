@@ -143,13 +143,19 @@ jsPlumb.ready(function() {
 	instance.bind("connection", function(info, originalEvent) {
 		console.log("Connection made info:" +	info);
 		originalEvent.preventDefault();
-		updateConnections(info);
+		var sourceID = info.sourceId.split("-")[1];
+		var targetID = info.targetId.split("-")[1];
+		
+		updateConnections(sourceID, targetID, false);
 		// connect the source (Sensor) to Target (output eg buzzer)
 
 	});
 	instance.bind("connectionDetached", function(info, originalEvent) {
 		console.log("Connection detached info:" +	info);
-		updateConnections(info, true);
+		var sourceID = info.sourceId.split("-")[1];
+		var targetID = info.targetId.split("-")[1];
+		
+		updateConnections(sourceID, targetID, true);
 	});
 	
 	instance.bind("connectionMoved", function(info, originalEvent) {
@@ -157,7 +163,10 @@ jsPlumb.ready(function() {
 		//  only remove here, because a 'connection' event is also fired.
 		// in a future release of jsplumb this extra connection event will not
 		// be fired.
-		updateConnections(info, true);
+		var sourceID = info.originalSourceId.split("-")[1];
+		var targetID = info.originalTargetId.split("-")[1];
+		
+		updateConnections(sourceID, targetID, true);
 	});
 		// _addEndpoints("a", ["BottomCenter"], ["TopCenter"]);
 		// _addEndpoints("b", ["BottomCenter"], ["TopCenter"]);

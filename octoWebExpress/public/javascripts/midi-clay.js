@@ -1222,28 +1222,21 @@ CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
 
 
 //////////  MIDI Connections - jsplumb callback on change of any connection
-function updateConnections (info, shouldRemove){
+function updateConnections (sourceID, targetID, shouldRemove){
 	console.log("Updating connections");
 
-	// First check if we plugged input a code block
-	// Code blocks have divs with ID = clobject-4 etc , hardware div have id:light-1_container
-	var sourceElem = $("#"+info.sourceId);
-	var targetElem = $("#"+info.targetId);
-	var targetInputElem;
-	var targetOutputElem;
-
-	var sourceID = info.sourceId.split("-")[1];
-	var targetID = info.targetId.split("-")[1];
-	var sourceName = app.blockObjects[sourceID].devName; // remove any underscores
-	var targetName = app.blockObjects[targetID].devName;
+	//var sourceName = app.blockObjects[sourceID].devName;
+	//var targetName = app.blockObjects[targetID].devName;
+	//console.log("source name: " + sourceName + " sourceID: " + sourceID);
+	//console.log("target name: " + targetName + " targetID: " + targetID);
 	
-	 console.log("source name: " + sourceName + " sourceID: " + sourceID);
-	 console.log("target name: " + targetName + " targetID: " + targetID);
-	
-	if (shouldRemove){
+	//removing a connetion
+	if(shouldRemove){
 		app.blockObjects[sourceID].removeOutputConnection(app.blockObjects[targetID]);
 		app.blockObjects[targetID].removeInputConnection(app.blockObjects[sourceID]);
-	}else{
+	}
+	//otherwise we assume that we are making a connection
+	else{
 		app.blockObjects[sourceID].addOutputConnection(app.blockObjects[targetID]);
 		app.blockObjects[targetID].addInputConnection(app.blockObjects[sourceID]);
 	}		
