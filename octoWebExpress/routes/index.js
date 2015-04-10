@@ -11,8 +11,7 @@ router.get('/', function(req, res) {
 
 router.get('/devices', function (req, res) {
 	console.log("got request for hw devices");
-	
-	var blockList = midiData.getBlockListForClient();
+	var blockList = midiData.getBlockListForClient(true);
 	res.json(blockList);
 });
 

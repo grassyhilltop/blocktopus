@@ -158,7 +158,7 @@ function App() {
 		}
 	};
 	
-	this.getBlockListForClient = function() {
+	this.getBlockListForClient = function(includeConnections) {
 		var blockList = {};
 
 		for(var block in obj.blockObjects){
@@ -168,15 +168,16 @@ function App() {
 				blockList[block] = 
 					{"type": "hw",
 					"devName":obj.blockObjects[block].devName,
-					"devIDNum":obj.blockObjects[block].deviceIDNum,
-					"outConnections":Object.keys(obj.blockObjects[block].outConnections)}
+					"devIDNum":obj.blockObjects[block].deviceIDNum}
 			}else if(obj.blockObjects[block].type == "sw"){
 				blockList[block] = 
 					{"type": "sw",
 					"x":obj.blockObjects[block].initX,
 					 "y":obj.blockObjects[block].initY,
-					 "text":obj.blockObjects[block].text,
-					 "outConnections":Object.keys(obj.blockObjects[block].outConnections)}
+					 "text":obj.blockObjects[block].text}
+			}
+			if(includeConnections){
+				blockList[block]["outConnections"] = Object.keys(obj.blockObjects[block].outConnections);
 			}
 		}
 		return blockList;
@@ -212,9 +213,9 @@ BlockObject.prototype.Remove = function(){
 	
 	for(block in this.inConnections){
 		this.inConnections[block].removeOutputConnection(this.blockID);
-		if(app.blockObjects[block].type === "sw"){
+		//if(app.blockObjects[block].type === "sw"){
 		  	//app.blockObjects[block].update(block,undefined,undefined);
-		 }
+		 //}
 	};	
 	/*
 		// Clean up jsplumb connectors

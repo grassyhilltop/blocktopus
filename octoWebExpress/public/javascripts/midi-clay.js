@@ -135,7 +135,15 @@ function ClientApp() {
 				//	var currDeviceName = app.blockObjects[blockID].devName;
 					// Is the hardware device still present in the midi list ?
 					if (!(blockID in blockList)){ // Returns -1 if A is not in B
-						app.removeRealHwBlock(blockID);				
+						if(obj.blockObjects[blockID].type == "sw"){
+								app.removeBlock(blockID);		
+						}else{
+							if(obj.blockObjects[blockID].devIDNum =="E"){
+								app.removeEmuHwBlock(blockID);	
+							}else{
+								app.removeRealHwBlock(blockID);	
+							}
+						}
 					}
 				}
 	
@@ -182,14 +190,16 @@ function ClientApp() {
 				//TODO: have this work be done only on refresh
 				for(var block in blockList){
 					//console.log(blockList[block]["outConnections"]);
-					for (var i = 0; i < blockList[block]["outConnections"].length; i++){
-						var outC = blockList[block]["outConnections"][i];
-						//console.log("FROM: " + "block-"+block + "TO: " + "block-"+outC);
-						var sourceUUID = "block-"+block+"BottomCenter";
-						var targetUUID = "block-"+outC+"TopCenter";
-						console.log("Attempting to reconnected uuids: " + sourceUUID + " " + targetUUID);
-						jsPlumb.connect({uuids:[sourceUUID, targetUUID]});
-					}
+					if(blockList[block]["outConnections"]){
+						for (var i = 0; i < blockList[block]["outConnections"].length; i++){
+							var outC = blockList[block]["outConnections"][i];
+							//console.log("FROM: " + "block-"+block + "TO: " + "block-"+outC);
+							var sourceUUID = "block-"+block+"BottomCenter";
+							var targetUUID = "block-"+outC+"TopCenter";
+							console.log("Attempting to reconnected uuids: " + sourceUUID + " " + targetUUID);
+							jsPlumb.connect({uuids:[sourceUUID, targetUUID]});
+						}
+				 	}
 				}
 			}else{
 				console.log("block list is null!");
@@ -394,7 +404,7 @@ function Menu() {
 		var $newEmuHwEntry = $("#"+"hwEmuCreated"+blockID);
 		$newEmuHwEntry.bind("click", function(event) {
 			$newEmuHwEntry.parent().remove();
-			app.removeEmuHwBlock(block.blockID);
+			block.RemoveOnServer();
 		});
  	};
  	
@@ -441,7 +451,6 @@ function Menu() {
  	};
 
  	this.addCodeBtn = function(){
-	
 		key = "Code";
 
 		//add html for button
@@ -483,7 +492,7 @@ BlockObject.prototype.Remove = function(){
 	console.log("deleting view!");	
 	// Clean up jsplumb connectors
 	jsPlumb.detachAllConnections(this.viewObj.id);
-	jsPlumb.removeAllEndpoints(this.viewObj.id); 
+	jsPlumb.removeAllEndpoints(this.viewObj.id);
 
 	// Remove the actual node
 	$(this.viewObj).remove();
@@ -689,7 +698,7 @@ EmuHwBlock.prototype.updateValueOnServer = function(msg){
 	console.log("sent update to emu hw val");
 };
 
-EmuHwBlock.prototype.Remove = function(){
+EmuHwBlock.prototype.RemoveOnServer = function(){
 	var REMOVE_EMU_HW_URL = "/removeEmuHwBlock";
 	var postArgs = JSON.stringify({blockID: this.blockID});
 	var obj = this;
@@ -700,7 +709,7 @@ EmuHwBlock.prototype.Remove = function(){
 			//var results = JSON.parse(request.responseText);
 			
 			//Call the parent function to remove view, etc.
-			BlockObject.prototype.Remove.call(obj);
+			//BlockObject.prototype.Remove.call(obj);
 		}else{
 			console.log("error trying to remove emu hw block!");
 		}
@@ -710,6 +719,7 @@ EmuHwBlock.prototype.Remove = function(){
 	request.setRequestHeader('Content-type', "application/json;charset=UTF-8");
 	request.send(postArgs);
 };
+
 
 EmuHwBlockClone = function () {};
 EmuHwBlockClone.prototype = EmuHwBlock.prototype;
@@ -1063,7 +1073,7 @@ function CodeBlock(blockID,x,y,text){
     	}
 	});
 
-	this.update = function(fromBlockID, msg ,outputValue) {
+	this.update = function(fromBlockID, msg, outputValue) {
 		var obj = this;
 		var codeBlockID = obj.blockID;
 		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
@@ -1173,14 +1183,6 @@ CodeBlock.prototype = new BlockObjectClone();
 CodeBlock.prototype.constructor = CodeBlock;
 
 // When some object connects to a code block
-CodeBlock.prototype.addInputConnection = function (outputConnectionObj){
-
-	BlockObject.prototype.addInputConnection.call(this,outputConnectionObj);
-	// console.log("Adding input to code block");
-	this.updateArgumentsView();			
-};
-
-// When some object connects to a code block
 CodeBlock.prototype.displayError = function (error){
 	var obj = this;
 	//$("#block-"+this.blockID).css("background-color","red");
@@ -1190,14 +1192,17 @@ CodeBlock.prototype.displayError = function (error){
 		});
 };
 
+// When some object connects to a code block
+CodeBlock.prototype.addInputConnection = function (outputConnectionObj){
+	BlockObject.prototype.addInputConnection.call(this,outputConnectionObj);
+	// console.log("Adding input to code block");
+	this.updateArgumentsView();			
+};
 
 // When some object dissconnects from a code block
 CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
-
 	BlockObject.prototype.removeInputConnection.call(this,outputConnectionObj);
-
 	// console.log("Removing input from code block");
-	
 	this.updateArgumentsView();			
 };
 
