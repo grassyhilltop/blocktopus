@@ -1,3 +1,37 @@
+/* -------------------------- General  CSS  --------------------------*/
+html{
+	height: 100%; 
+	width: 100%; 
+	margin: 0;
+}
+
+body{
+	font-family: Helvetica,monofont;
+	/*font-family: pixelated,Helvetica,monofont;*/
+	/*height: 650px; */
+	height: 100%;
+	width: 100%; 
+	margin: 0;
+}
+
+
+div{
+	/*border:	solid 1px black;	*/
+	font-size: 14px; /* default div font size */
+}
+
+textarea{
+	font-family: inconsolata;	
+	font-size: 16px;
+}
+
+svg{
+	position: absolute;
+	/*-webkit-svg-shadow: 0 0 7px red;*/
+}
+/* -------------------------- General CSS -END  --------------------------*/
+/* -------------------------- Page Layout  CSS  --------------------------*/
+
 .boundary {
 	border: solid;
 	border-width: 1px;
@@ -111,6 +145,15 @@
 	color:#3f3f3f;
 }
 
+.draggable{
+	cursor: move;
+	position: absolute;	
+}
+
+.editable{
+	cursor: text;
+}
+
 @font-face {
 	  font-family: 'pixelated';
 	  src: url('../fonts/LCD_Solid.ttf') format('truetype');
@@ -124,90 +167,9 @@
 @font-face {
 	  font-family: 'inconsolata';
 	  src: url('../fonts/Inconsolata.otf') format('truetype');
-}	
-
-/* -------------------------- General Clay CSS  --------------------------*/
-html{
-	height: 100%; 
-	width: 100%; 
-	margin: 0;
 }
 
-body{
-	font-family: Helvetica,monofont;
-	/*font-family: pixelated,Helvetica,monofont;*/
-	/*height: 650px; */
-	height: 100%;
-	width: 100%; 
-	margin: 0;
-}
-
-
-div{
-	/*border:	solid 1px black;	*/
-	font-size: 14px; /* default div font size */
-}
-
-textarea{
-	font-family: inconsolata;	
-	font-size: 16px;
-}
-
-.draggable{
-	cursor: move;
-	position: absolute;	
-}
-
-.editable{
-	cursor: text;
-}
-
-/* -------------------------- General Clay CSS -END  --------------------------*/
-
-.commandCaret{
-	color: #13abea; /*joel blue ##13abea*/
-	font-size: 16px;
-}
-
-.chatBubble{
-	padding: 10px;
-	border: 1px solid black;
-	position: absolute;
-	border-radius: 10px;
-}
-
-/*Speech bubbles*/
-/*http://konigi.com/tools/css-tooltips-and-speech-bubbles*/
-.bubble {
-  position: relative;
-  background-color:#eee;
-  margin: 0;
-  padding:10px;
-  text-align:center;
-  /*width:180px;*/
-  width:250px;
-
-  -moz-border-radius:10px;
-  -webkit-border-radius:10px;
-  -webkit-box-shadow: 0px 0 3px rgba(0,0,0,0.25);
-  -moz-box-shadow: 0px 0 3px rgba(0,0,0,0.25);
-  box-shadow: 0px 0 3px rgba(0,0,0,0.25); 
-}
-.bubble:after {
-  position: absolute;
-  display: block;
-  content: "";  
-  border-color: #eee transparent transparent transparent;
-  border-style: solid;
-  border-width: 10px;
-  height:0;
-  width:0;
-  position:absolute;
-  bottom:-19px;
-  left:1em;
-}
-
-
+/* -------------------------- Page Layout  CSS -END  --------------------------*/
 /* -------------------------- FOR CODE BOXES  --------------------------*/
 
 .deleteButton{
@@ -310,51 +272,6 @@ pre {
     tab-size:         2;
 }
 
-
-
-/* -------------------------- END - FOR CODE BOXES   --------------------------*/
-
-
-
-
-/* For the input of messages */
-.chatInput{
-	font-size: 16px;	
-   	display: inline-block; /* fit to contents */
-    
-    /*Turn off blue highlighting on focus	*/
-    outline: none; 
-    min-width: 20px; /*to avoid cursor disappering*/
-
-}
-
-.chatInput.placeholder{
-	color: grey;
-}
-
-.chatInput:focus{
-	color: black;
-}
-.chatInput:focus.placeholder{
-	color: grey;
-}
-/* -------------------------- CREATURE APPEARANCE   --------------------------*/
-
-.creatureContainer{
-	
-}
-
-.creatureContainer:hover{
-	border: 1px solid blue;
-}
-
-
-/* -------------------------- FOR CREATOR   --------------------------*/
-
-.liveTable{
-	/*background-color: blue;*/
-}
-
 table,th,td{
 	border: 1px solid red;
 }
@@ -415,26 +332,7 @@ div.editable.freeCell:hover{
 	border: 1px solid #13abea; /*joel blue ##13abea*/
 
 }
-
-div.testImage{
-	/*background-image: url(images/test.png);
-	/*background-image: url("http://www.google.com/search?biw=1440&bih=764&tbm=isch&q=image+png&revid=1097454257");*/
-
-	/*background-color: red;*/
-	/*color:red;*/
-}
-
-/* -------------------------- For drawing  --------------------------*/
-
-.shapeContainer{
-    margin: 0 auto;
-}
-
-svg{
-	position: absolute;
-	/*-webkit-svg-shadow: 0 0 7px red;*/
-}
-
+/* -------------------------- END - FOR CODE BOXES   --------------------------*/
 
 /* -------------------------- FOR SENSOR NODES - ARDUINO  --------------------------*/
 
@@ -527,40 +425,6 @@ svg{
 
 /* -------------------------- JQUERY HELPERS   --------------------------*/
 
-
-/*.ui-icon { width: 16px; height: 16px; background-image: url(http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.1/themes/base/images/ui-icons_222222_256x240.png); }
-.ui-resizable { position: relative;}
-.ui-resizable-handle { position: absolute;font-size: 0.1px;z-index: 99999; display: block;}
-.ui-resizable-disabled .ui-resizable-handle, .ui-resizable-autohide .ui-resizable-handle { display: none; }
-.ui-resizable-n { cursor: n-resize; height: 7px; width: 100%; top: -5px; left: 0px; }
-.ui-resizable-s { cursor: s-resize; height: 7px; width: 100%; bottom: -5px; left: 0px; }
-.ui-resizable-e { cursor: e-resize; width: 7px; right: -5px; top: 0px; height: 100%; }
-.ui-resizable-w { cursor: w-resize; width: 7px; left: -5px; top: 0px; height: 100%; }
-.ui-resizable-se { cursor: se-resize; width: 12px; height: 12px; right: 1px; bottom: 1px; }
-.ui-resizable-sw { cursor: sw-resize; width: 9px; height: 9px; left: -5px; bottom: -5px; }
-.ui-resizable-nw { cursor: nw-resize; width: 9px; height: 9px; left: -5px; top: -5px; }
-.ui-resizable-ne { cursor: ne-resize; width: 9px; height: 9px; right: -5px; top: -5px;}
-.ui-icon-gripsmall-diagonal-se { background-position: -64px -224px; }*/
-
-
-/*Resize with box handles from : http://stackoverflow.com/questions/11429034/resize-element-with-box-handles-in-corners */
-#elementResizable {
-    border: 1px solid #000000;
-    width: 300px;
-    height: 40px;
-    overflow: hidden;
-}
-#nwgrip, #negrip, #swgrip, #segrip, #ngrip, #egrip, #sgrip, #wgrip {
-    width: 10px;
-    height: 10px;
-    background-color: #ffffff;
-    border: 1px solid #000000;
-}
-#segrip {
-    right: -5px;
-    bottom: -5px;
-}
-
 /* -------------------------- CSS HELPERS   --------------------------*/
 
 .pull-left{
@@ -581,16 +445,8 @@ svg{
 /*.hidden{ visibility: hidden;}*/
 .hidden{ display: none;} /* hides completly without taking up space */
 
-
-
 /* -----  For jsplumb ----  */
-
 ._jsPlumb_connector { 
 	/*Put connectors behind endpoints (makes plugging out easier*/
 	z-index:-1; 	
 } 
-
-
-
-/*._jsPlumb_endpoint { z-index:9999; }*/
-/*._jsPlumb_endpoint_full { z-index:9999; }*/
