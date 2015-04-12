@@ -13,7 +13,7 @@ var users = require('./routes/users');
 var app = express();
 
 // Load in the midi serverside code
-var midiData = require('./lib/midiData');
+var serverApp = require('./lib/serverApp');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 
-var midiData = require('../lib/midiData');
+var serverApp = require('../lib/serverApp');
 var myMidi = require('../lib/midi');
 
 /* GET home page. */
@@ -11,7 +11,7 @@ router.get('/', function(req, res) {
 
 router.get('/devices', function (req, res) {
 	console.log("got request for hw devices");
-	var blockList = midiData.getBlockListForClient(true);
+	var blockList = serverApp.getBlockListForClient(true);
 	res.json(blockList);
 });
 
@@ -22,8 +22,8 @@ router.post('/connections', function(req, res){
 	var fromNumber = Number(req.body["connectFrom"]);
 	var toNumber = Number(req.body["connectTo"]);
 	
-	var fromBlock = midiData.blockObjects[fromNumber];
-	var toBlock = midiData.blockObjects[toNumber];
+	var fromBlock = serverApp.blockObjects[fromNumber];
+	var toBlock = serverApp.blockObjects[toNumber];
 	
 	fromBlock.addOutputConnection(toBlock);
 	toBlock.addInputConnection(fromBlock);
@@ -36,7 +36,7 @@ router.post('/newCodeBlock', function(req, res){
 	var x = Number(req.body["x"]);
 	var y = Number(req.body["y"]);
 	
-	midiData.createNewCodeBlock(x,y);
+	serverApp.createNewCodeBlock(x,y);
 	
 	res.json(1);
 });
@@ -45,7 +45,7 @@ router.post('/newCodeBlockText', function(req, res){
 	console.log("NEW CODE BLOCK TEXT!");
 	var text = req.body["text"];
 	var blockID = Number(req.body["blockID"]);
-	var block = midiData.blockObjects[blockID];
+	var block = serverApp.blockObjects[blockID];
 	
 	block.updateCodeText(text);
 	
@@ -55,7 +55,7 @@ router.post('/newCodeBlockText', function(req, res){
 router.post('/execCodeBlock', function(req, res){
 	console.log("EXEC CODE BLOCK");
 	var blockID = Number(req.body["blockID"]);
-	var block = midiData.blockObjects[blockID];
+	var block = serverApp.blockObjects[blockID];
 	
 	var results = block.execCodeBlock();
 	
@@ -66,8 +66,8 @@ router.post('/removeCodeBlock', function(req, res){
 	console.log("REMOVE CODE BLOCK: " + req.body["blockID"]);
 	var blockID = Number(req.body["blockID"]);
 	
-	if(blockID in midiData.blockObjects)
-		midiData.removeSwBlock(blockID);
+	if(blockID in serverApp.blockObjects)
+		serverApp.removeSwBlock(blockID);
 		
 	res.json(1);
 });
@@ -76,7 +76,7 @@ router.post('/removeCodeBlock', function(req, res){
 router.post('/newEmuHw', function(req, res){
 	console.log("NEW EMU HW UPDATE: " + req.body["emuHwType"]);
 	var emuHwType = req.body["emuHwType"];
-	midiData.createNewEmuHwBlock(emuHwType);
+	serverApp.createNewEmuHwBlock(emuHwType);
 	res.json(1);
 });
 
@@ -85,7 +85,7 @@ router.post('/updateEmuHwVal', function(req, res){
 	var blockID = Number(req.body["blockID"]);
 	var msg = req.body["msg"];
 	
-	midiData.blockObjects[blockID].onReceiveMessage(blockID,msg);
+	serverApp.blockObjects[blockID].onReceiveMessage(blockID,msg);
 	res.json(1);
 });
 
@@ -93,8 +93,8 @@ router.post('/removeEmuHwBlock', function(req, res){
 	console.log("REMOVE EMU HW: " + req.body["blockID"]);
 	var blockID = Number(req.body["blockID"]);
 	
-	if(blockID in midiData.blockObjects)
-		midiData.removeEmuHwBlock(blockID);
+	if(blockID in serverApp.blockObjects)
+		serverApp.removeEmuHwBlock(blockID);
 		
 	res.json(1);
 });
@@ -109,16 +109,16 @@ router.post('/delConnection', function(req, res){
 	
 	//We need to do these checks because when a hardware block is removed
 	//it automatically removes all of its connections
-	if(fromNumber in midiData.blockObjects){
-		var fromBlock = midiData.blockObjects[fromNumber];
+	if(fromNumber in serverApp.blockObjects){
+		var fromBlock = serverApp.blockObjects[fromNumber];
 		//The block may have been removed and that is why the connection is being deleted
 		if(toNumber in fromBlock.outConnections){
 			fromBlock.removeOutputConnection(toNumber);
 		}
 	}
 	
-	if(toNumber in midiData.blockObjects){
-		var toBlock = midiData.blockObjects[toNumber];
+	if(toNumber in serverApp.blockObjects){
+		var toBlock = serverApp.blockObjects[toNumber];
 		if(fromNumber in toBlock.inConnections){
 			toBlock.removeInputConnection(fromNumber);
 		}
@@ -128,7 +128,7 @@ router.post('/delConnection', function(req, res){
 
 router.post('/value', function(req, res){
 	console.log("REQUEST FOR VALUE: " + req.body["blockID"]);
-	var block = midiData.blockObjects[req.body["blockID"]];
+	var block = serverApp.blockObjects[req.body["blockID"]];
 	var msg = block.msg;
 	//res.json(msg);
 	res.json(1);
