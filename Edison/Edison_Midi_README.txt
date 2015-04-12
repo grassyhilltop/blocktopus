@@ -79,7 +79,7 @@ open browser to 10.0.1.9:3000
 
 7) Run setup script to be a wifi hot spot
 sh hotspot_startup.sh
-
+	
 
 8) Setup node to run automatically on startup
 Used this: http://stephaniemoyerman.com/?p=41

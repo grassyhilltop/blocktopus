@@ -1,3 +1,6 @@
+// Todo: do all midi conversion on the server
+// This is client side midi utils intended to mirror utils /lib/midi.js 
+
 // Returns a number between 0-100 from a standard midi message
 function convertMidiMsgToNumber(msg){
 	if(!msg || msg.length !=3) {

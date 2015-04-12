@@ -1,3 +1,5 @@
+// This is the serverside app.js file that gets called after www
+
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -10,6 +12,7 @@ var users = require('./routes/users');
 
 var app = express();
 
+// Load in the midi serverside code
 var midiData = require('./lib/midiData');
 
 // view engine setup

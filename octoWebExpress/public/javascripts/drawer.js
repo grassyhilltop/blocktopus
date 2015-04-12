@@ -1,5 +1,101 @@
-// drawer.js
+// drawer.js on the client
 // Functions for drawing to browser window
+
+
+function drawCodeBlock(id, x , y ,w ,h){
+
+    var yOff = 30; // Offset from cursor - so we dont occlude with mouse
+    var xOff = 10;
+    if(!w)  w = 100;
+    if(!h) h = 20;
+
+    // Just use a pain div ( not wrapped in a draggable Container)
+    // var x = x + 0;  //offsets for div
+    // var y = y - 20; //offsets for div        
+    // var divElem = createDiv(x,y,w,h,true);// Creating a contentEditable div
+    // append(divElem);
+
+    var x = x - 10;  //offsets for draggablediv
+    var y = y - 30; //offsets for draggablediv
+
+    // Wrapp div in draggable div
+    var container = createDraggableContainer(x,y,id);
+    var divElem = createCodeWindow(id,0,0,w,h,true,"relative");// Creating a contentEditable div
+
+    container.appendChild(divElem)
+    document.body.appendChild(container);    
+
+    container.classList.add("freeCellContainer");
+
+    divElem.classList.add("freeCell");
+    // divElem.focus();  
+    //divElem.addEventListener("blur",lostCellFocus);
+
+    // jsplumb add anchors for wire connections
+    _addEndpoints( container.id, ["BottomCenter"], ["TopCenter"]); 
+    
+    //jsPlumb.draggable($(".draggable") );
+    jsPlumb.draggable($(".draggable") ,  { cancel: ".editable" } );
+
+    // add a delete button       
+    var divId = container.id;
+    var blockID;
+    if (divId) blockID = divId.split("-")[1]; // get id of parent container
+    var html = "<div class='deleteButton'></div>";
+    $(container).append(html);
+    // cblockID= function(){ app.removeBlock(blockID); }
+    $("#"+divId+">div.deleteButton").click( function(){ app.removeCodeBlockFromServer(blockID); } );
+
+    return divElem;
+}
+
+
+// Creating a content editable div for the text area within codeboxes
+function createCodeWindow(id,x,y,w,h,editable, position){
+
+    divElem = document.createElement("div");
+    
+     var idString = "codeWindow-" + id;
+     divElem.id = idString;
+
+    if(editable == true){
+       divElem.setAttribute("contentEditable", true); 
+       divElem.setAttribute("spellcheck", false); 
+       divElem.classList.add("editable");
+    }  
+
+    if(position =="absolute"){
+        divElem.style.position ="absolute";
+        divElem.style.top = y +"px";
+        divElem.style.left = x + "px";    
+    }
+    
+    return divElem;
+}
+
+function createDraggableContainer(x,y,id,color){
+
+    divElem = document.createElement("div");
+    
+    divElem.style.position ="absolute";
+    divElem.style.top = y +"px";
+    divElem.style.left = x + "px";
+    divElem.style.backgroundColor = color;
+
+    // Add unique id to each canvas cell
+    
+    // var idString = "" + getUniqueId();
+     var idString = "block-" + id;
+     divElem.id = idString;
+
+    divElem.classList.add("draggable");
+    // $( divElem ).draggable({ cancel: ".editable" });
+    
+    return divElem;
+
+}
+
+
 
 drawer = {};
 drawer.defaultStrokeW = 2;
@@ -219,7 +315,7 @@ function drawHardwareBlock(block, blockId, sensorid , sensorName, displayName, i
 		  	  .append(labelDiv);
 
 	//append to body
-	append(nodeDiv);
+	document.body.appendChild(nodeDiv)
 
     //JSplumb add connectors
     // If is input just add one connector on top

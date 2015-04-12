@@ -1,19 +1,26 @@
 #!/usr/bin/env node
+
+// -------- This is the first point of entry to the node app -------
+
 var debug = require('debug')('octoWebExpress');
 var app = require('../app');
 var mySocketIO = require('../lib/mySocketIO');
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
-//app.set('port', process.env.PORT || 3000);
-
-//var server = app.listen(app.get('port'), function() {
-//  debug('Express server listening on port ' + server.address().port);
-//});
-
+// Starts the server 
 http.listen(3000, function(){
   console.log('listening on *:3000');
 });
 
+// Setup socket io
 mySocketIO.setup(io);
 
+// Note for reference: This is the default Express way of starting server 
+// Does not play nicely with socket io
+/*
+app.set('port', process.env.PORT || 3000);
+var server = app.listen(app.get('port'), function() {
+ debug('Express server listening on port ' + server.address().port);
+});
+*/

@@ -1,4 +1,7 @@
-//node midi library
+// Utility midi functions for using midi with Node on the server
+// Generic midi setup,Sending and receiving midi notes, converting notes and other utils
+// Import this before using midi functions
+
 var midi = require('midi');
 var mySocketIO = require('./mySocketIO');
 
