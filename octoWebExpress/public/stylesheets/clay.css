@@ -408,7 +408,9 @@ div.editable.freeCell:hover{
 	opacity: 0.1;
 	background-color: yellow;
 }
-
+.motion:hover{
+	opacity: 1.0;
+}
 
 .heater{
     height: 50px;
