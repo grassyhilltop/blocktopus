@@ -131,7 +131,7 @@ function hardwareBlockAddLED(block){
 	
 	block.emuHardwareResponse = function(msg) {
 		var value = convertMidiMsgToNumber(msg);
-		value = (value/100).toString();
+		value = (value/100 + .1).toString();
 		console.log("new value :" +value);
 		ledDiv.style.opacity = value;
 	};

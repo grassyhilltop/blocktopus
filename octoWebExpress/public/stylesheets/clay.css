@@ -405,7 +405,7 @@ div.editable.freeCell:hover{
 	text-align: center;
 	top: 95px;
 	left: 75px;
-	opacity: 0.0;
+	opacity: 0.1;
 	background-color: yellow;
 }
 
