@@ -227,7 +227,10 @@ function hardwareBlockAddLED(block){
 	
 	block.emuHardwareResponse = function(msg) {
 		var value = convertMidiMsgToNumber(msg);
-		value = (value/100 + .1).toString();
+		value = (value/100 + .2);
+		if(value > 1.0)
+			value = 1.0;
+		value = value.toString();
 		console.log("new value :" +value);
 		ledDiv.style.opacity = value;
 	};
@@ -236,10 +239,10 @@ function hardwareBlockAddLED(block){
 function hardwareBlockAddMotion(block){
 	var elemDiv = document.createElement("DIV");
 	$(elemDiv).addClass("sensorLED");
+	$(elemDiv).addClass("motion");
 	$("#block-"+block.blockID).append(elemDiv);
 	
 	$(elemDiv).hover(
-
 			function( event, ui ) {
 				var msg = midiPitchMsg(100);        	
         		block.updateValueOnServer(msg);
