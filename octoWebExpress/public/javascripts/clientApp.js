@@ -776,7 +776,7 @@ function EmuFanBlock(devName,blockID){
 	
 	setInterval(function(){ 
 		// console.log("obj.degrees: " + obj.degrees);
-		obj.degrees = obj.degrees + obj.rotationRate; 
+		obj.degrees = obj.degrees + obj.rotationRate*.4; 
 		$("#fanIcon-"+obj.blockID).css({'-webkit-transform' : 'rotate('+ obj.degrees +'deg)',
 					 '-moz-transform' : 'rotate('+ obj.degrees +'deg)',
 					 '-ms-transform' : 'rotate('+ obj.degrees +'deg)',
@@ -808,7 +808,7 @@ function EmuMotorBlock(devName,blockID){
 	
 	setInterval(function(){ 
 		// console.log(" motor obj.degrees: " + obj.degrees);
-		obj.degrees = obj.degrees + obj.rotationRate; 
+		obj.degrees = obj.degrees + obj.rotationRate*.15; 
 		$("#motorIcon-"+obj.blockID).css({'-webkit-transform' : 'rotate('+ obj.degrees +'deg)',
 					 '-moz-transform' : 'rotate('+ obj.degrees +'deg)',
 					 '-ms-transform' : 'rotate('+ obj.degrees +'deg)',
