@@ -1177,7 +1177,8 @@ function CodeBlock(blockID,x,y,text){
 
 		jsPlumb.repaint(elem.parent());	// repaint anchors in case shifted	
 	}	
-
+	
+	this.updateArgumentsView();
 };
 
 CodeBlock.prototype = new BlockObjectClone();
@@ -1206,7 +1207,6 @@ CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
 	// console.log("Removing input from code block");
 	this.updateArgumentsView();			
 };
-
 
 //////////  MIDI Connections - jsplumb callback on change of any connection
 function updateConnections (sourceID, targetID, shouldRemove){
