@@ -20,7 +20,7 @@ deviceTypes = {
 	"Motion_Sensor": {"direction":"Output", "addControlElem": emuMotionAddControlElem},
 	"Motor": {"direction":"Input", "addControlElem": emuMotorAddControlElem},
 // "RGB_LED": {"direction":"Input"},
-	"Buzzer": {"direction":"Input"}
+	"Buzzer": {"direction":"Input","addControlElem":emuBuzzerAddControlElem}
 };
 
 function ClientApp() {
@@ -154,7 +154,9 @@ function ClientApp() {
 					if (!foundBlockId) { // if no device yet created
 						//Software blocks
 						if(blockList[block]["type"] == "sw"){
-							var newSwBlock = new CodeBlock(block,blockList[block]["x"],blockList[block]["y"],blockList[block]["text"]);
+							var newSwBlock = new CodeBlock(block,blockList[block]["x"],
+																blockList[block]["y"],
+																blockList[block]["html"]);
 						//Hardware Blocks
 						}else{
 							console.log("Found new block:" + blockList[block]["devName"]);
@@ -965,7 +967,7 @@ function insertTextAtCursor(text) {
     sel.addRange(range);        
 }
 
-function CodeBlock(blockID,x,y,text){
+function CodeBlock(blockID,x,y,html){
 	var obj = this;
 	viewObjInput = undefined;
 	this.displayName = "CodeBlock"; 
@@ -982,11 +984,8 @@ function CodeBlock(blockID,x,y,text){
 	this.viewObj = freeCellELem.parentElement;
 	var codeWindow = $("#codeWindow-"+this.blockID);
 	
-	if(text !== undefined){
-		codeWindow.append( "<div>"+text+"</div>" );
-		codeWindow.append( "<div>"+"&nbsp;"+"</div>" );
-	}else{
-		codeWindow.append( "<div>"+"&nbsp;"+"</div>" );
+	if(html !== undefined){
+		codeWindow.html(html);
 	}
 	
 	//Always set the focus to new created codebox
@@ -1004,9 +1003,9 @@ function CodeBlock(blockID,x,y,text){
 		}
   	});
     
-	this.sendCodeToServer = function(text){
+	this.sendCodeToServer = function(text,html){
 		var NEW_CODE_BLOCK_TEXT_URL = "/newCodeBlockText";
-		var postArgs = JSON.stringify({blockID: obj.blockID, text: text});
+		var postArgs = JSON.stringify({blockID: obj.blockID, text: text, html: html});
 		request = new XMLHttpRequest();
 		console.log("Post args: " + postArgs);
 	
@@ -1054,6 +1053,7 @@ function CodeBlock(blockID,x,y,text){
 		
 		//var elem = clobjectDiv.find(".freeCell");
 		var elem = clobjectDiv.find("#codeWindow-"+obj.blockID);
+		var html = elem.html();
 		var divs = elem.children('div');
 		var code = "";
 		
@@ -1067,7 +1067,7 @@ function CodeBlock(blockID,x,y,text){
 		
         //we want to make sure the window resizes correctly
         jsPlumb.repaint($codeWindow.parent());
-		obj.sendCodeToServer(code);
+		obj.sendCodeToServer(code,html);
 		//Special Key to Execute Code on Server?
 		if (event.keyCode == 13) {
         	//obj.executeCodeOnServer();

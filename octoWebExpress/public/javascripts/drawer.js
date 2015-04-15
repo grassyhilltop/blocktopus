@@ -187,6 +187,20 @@ function hardwareBlockAddFanIcon(block){
 	$("#block-"+block.blockID).append(img);
 };
 
+function hardwareBlockAddSoundWaves(block){
+	var soundWavesDiv = $('<div class="preloader_1"><span></span><span></span><span></span><span></span><span></span></div>');
+	var id = "soundWaves-"+block.blockID;
+	$(soundWavesDiv).attr('id', id);
+	block.emuHardwareResponse = function(msg) {
+		var value = convertMidiMsgToNumber(msg);
+		$('#'+id).css('height', (value)*.75+'px');
+		$('#'+id).css('top', (140-(value)*.75)+'px');
+	};
+	
+	$("#block-"+block.blockID).append(soundWavesDiv);
+	$(soundWavesDiv).addClass("preloader_1");
+};
+
 function hardwareBlockAddMotorIcon(block){
 	var img = $('<img id="motorIcon-'+block.blockID+'">');
 	img.attr('src', '/images/motorIcon.png');

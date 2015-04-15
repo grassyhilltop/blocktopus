@@ -44,10 +44,11 @@ router.post('/newCodeBlock', function(req, res){
 router.post('/newCodeBlockText', function(req, res){
 	console.log("NEW CODE BLOCK TEXT!");
 	var text = req.body["text"];
+	var html = req.body["html"];
 	var blockID = Number(req.body["blockID"]);
 	var block = serverApp.blockObjects[blockID];
 	
-	block.updateCodeText(text);
+	block.updateCodeText(text,html);
 	
 	res.json(1);
 });

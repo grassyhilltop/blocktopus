@@ -174,7 +174,7 @@ function App() {
 					{"type": "sw",
 					"x":obj.blockObjects[block].initX,
 					 "y":obj.blockObjects[block].initY,
-					 "text":obj.blockObjects[block].text}
+					 "html":obj.blockObjects[block].html}
 			}
 			if(includeConnections){
 				blockList[block]["outConnections"] = Object.keys(obj.blockObjects[block].outConnections);
@@ -545,6 +545,7 @@ function CodeBlock(x,y){
 	this.displayName = "CodeBlock";
 	this.result = 0;
 	this.text = "";
+	this.html = undefined;
 	this.inputArgs = "";
 	this.state = 0;
 	BlockObject.call(this,undefined);
@@ -552,8 +553,9 @@ function CodeBlock(x,y){
 
 	app.addNewSwBlock(this);
 	
-	this.updateCodeText = function (text) {
+	this.updateCodeText = function (text,html) {
 		this.text = text;
+		this.html = html;
 	};
 	
 	this.execCodeBlock = function () {

@@ -34,3 +34,7 @@ var emuMotorAddControlElem = function (block) {
 var emuHeaterAddControlElem = function (block) {
 	hardwareBlockAddHeater(block);
 }; 
+
+var emuBuzzerAddControlElem = function (block) {
+	hardwareBlockAddSoundWaves(block);
+};
