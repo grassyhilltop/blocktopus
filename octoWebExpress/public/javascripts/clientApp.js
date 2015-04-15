@@ -1147,11 +1147,18 @@ function CodeBlock(blockID,x,y,text){
 				"</span> = <input class='codeArgInput' value='" + currConnectedObjVal + "'></input> </div> ";
 			}	
 		}
-		// Append a new variable name for state
-		linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+"STATE'>" + 
-		"<span class='codeArgName'>"+ "Output" + 
-		"</span> = <input class='codeArgInput' value='" + "0" + "'></input> </div> ";	
-
+		if(Object.keys(this.outConnections).length == 1){
+			// Append a new variable name for single connected output
+			linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+"STATE'>" + 
+			"<span class='codeArgName'>"+ 
+			 app.blockObjects[Object.keys(this.outConnections)[0]].displayName + 
+			"</span> = <input class='codeArgInput' value='" + "0" + "'></input> </div> ";
+		}else{
+			// Append a new variable name for state
+			linesToAdd += "<div contenteditable ='false' class='codeArgLine' id='inputArg"+this.blockID+"STATE'>" + 
+			"<span class='codeArgName'>"+ "Output" + 
+			"</span> = <input class='codeArgInput' value='" + "0" + "'></input> </div> ";	
+		}
 		// Append the lines to the elem
 		var originalHTML = elem.html();
 		var blankLine = "<div><br></div>";
@@ -1205,6 +1212,20 @@ CodeBlock.prototype.addInputConnection = function (outputConnectionObj){
 CodeBlock.prototype.removeInputConnection = function (outputConnectionObj){
 	BlockObject.prototype.removeInputConnection.call(this,outputConnectionObj);
 	// console.log("Removing input from code block");
+	this.updateArgumentsView();			
+};
+
+// When some object connects to a code block
+CodeBlock.prototype.addOutputConnection = function (inputConnectionObj){
+	BlockObject.prototype.addOutputConnection.call(this,inputConnectionObj);
+	// console.log("Adding output to code block");
+	this.updateArgumentsView();			
+};
+
+// When some object dissconnects from a code block
+CodeBlock.prototype.removeOutputConnection = function (inputConnectionObj){
+	BlockObject.prototype.removeOutputConnection.call(this,inputConnectionObj);
+	// console.log("Removing output from code block");
 	this.updateArgumentsView();			
 };
 
