@@ -116,7 +116,10 @@ var onNewMidiMsg = function(app, deviceName, msg){
 	var blockID = app.findBlockID(deviceName);
 	console.log("Block ID: " + blockID);
 	var block = app.blockObjects[blockID];
-	block.onReceiveMessage(blockID,msg);
+	var msgDict = {};
+	msgDict['msg'] = msg;
+	msgDict['dist'] = 0;
+	block.onReceiveMessage(blockID,msgDict);
 }
 
 var getDeviceList = function() {

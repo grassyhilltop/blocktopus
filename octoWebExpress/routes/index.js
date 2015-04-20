@@ -85,8 +85,10 @@ router.post('/updateEmuHwVal', function(req, res){
 	console.log("EMU HW VALUE UPDATE: " + req.body["blockID"]);
 	var blockID = Number(req.body["blockID"]);
 	var msg = req.body["msg"];
-	
-	serverApp.blockObjects[blockID].onReceiveMessage(blockID,msg);
+	var msgDict = {};
+	msgDict['msg'] = msg;
+	msgDict['dist']=0;
+	serverApp.blockObjects[blockID].onReceiveMessage(blockID,msgDict);
 	res.json(1);
 });
 

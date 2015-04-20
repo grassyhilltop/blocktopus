@@ -230,12 +230,7 @@ function ClientApp() {
 		
 		this.socket.on('midiMsg',function(data) {
 			console.log("data.blockID: " + data.blockID);
-			obj.blockObjects[data.blockID].onReceiveMessage(data.blockID,data.msg);
-		});
-		
-		this.socket.on('midiMsg',function(data) {
-			console.log("data.blockID: " + data.blockID);
-			obj.blockObjects[data.blockID].onReceiveMessage(data.blockID,data.msg);
+			obj.blockObjects[data.blockID].onReceiveMessage(data.blockID,data.msgDict);
 		});
 		
 		this.socket.on('codeBlockVal',function(data) {
@@ -243,7 +238,8 @@ function ClientApp() {
 			var val = data.val;
 			var fromBlockID = data.fromBlockID;
 			var msg = data.msg;
-			obj.blockObjects[data.blockID].update(fromBlockID, msg, val);
+			var msgDict = data.msgDict;
+			obj.blockObjects[data.blockID].update(fromBlockID, msgDict, val);
 		});
 		
 		this.socket.on('codeBlockErr',function(data){
@@ -484,6 +480,7 @@ function BlockObject(viewObj,blockID){
 	this.blockID = blockID;
 	this.type = typeof this.type !== 'undefined' ? this.type : "block";
 	this.displayName = typeof this.displayName !== 'undefined' ? this.displayName : "block";
+	this.flashDelay = 400;
 	
 	this.data = typeof this.data !== 'undefined' ? this.data : 0;
 	app.updateDisplayName(this);
@@ -552,16 +549,16 @@ BlockObject.prototype.addInputConnection = function (inputConnectionObj){
 	this.updateConnectionsOnServer(inputConnectionObj.blockID,this.blockID);
 };
 
-BlockObject.prototype.sendToAllOutputs = function(msg){
+BlockObject.prototype.sendToAllOutputs = function(msgDict){
 	// console.log("sending to all outputs");
 	for (targetBlockID in this.outConnections){
-		this.sendMsg(targetBlockID, msg);
+		this.sendMsg(targetBlockID, msgDict);
 	}
 };
 
-BlockObject.prototype.sendMsg = function(targetBlockID, msg){
+BlockObject.prototype.sendMsg = function(targetBlockID, msgDict){
 	console.log("Sending message to " + targetBlockID + " from " + this.blockID);
-	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
+	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msgDict);
 };
 
 function HwBlock(devName,blockID){
@@ -593,7 +590,8 @@ function HwBlock(devName,blockID){
 HwBlock.prototype = new BlockObjectClone();
 HwBlock.prototype.constructor = HwBlock;
 
-HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
+HwBlock.prototype.onReceiveMessage = function(fromBlockID,msgDict){
+	var msg = msgDict['msg'];
 	console.log("Hardware: " + this.devName +" blockID:" + this.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
 
 	// If we were the hardware the generated the message
@@ -603,7 +601,7 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	}
 	
 	// If the message containes a new value update hardware block
-	if (msg) this.update(fromBlockID,msg);
+	if (msg) this.update(fromBlockID,msgDict);
 	
 	if(this.emuHardwareResponse) this.emuHardwareResponse(msg);
 	
@@ -619,8 +617,10 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 };
 
 // Called when the block state has changed - update data and view
-HwBlock.prototype.update = function(fromBlockID,msg){
+HwBlock.prototype.update = function(fromBlockID,msgDict){
 	obj = this;
+	var msg = msgDict['msg'];
+	var dist = msgDict['dist'];
 	// console.log("Updating hardware block:" + obj.devName);
 
 	// Update data - hardware state
@@ -653,6 +653,12 @@ HwBlock.prototype.update = function(fromBlockID,msg){
 		}
 	}
 	$("#sensorVal"+obj.blockID).val(newVal);
+	
+	//console.log("dist: " + dist);
+	$("#sensorVal"+obj.blockID).finish();
+	$("#sensorVal"+obj.blockID).animate({color: 'green',opacity: 0.5}, obj.flashDelay*dist,function(){
+			$("#sensorVal"+obj.blockID).animate({color: 'black',opacity: 1}, obj.flashDelay);
+	});
 
 	obj.data = newVal;
 	
@@ -736,8 +742,9 @@ EmuTimerBlock.prototype = new EmuHwBlockClone();
 EmuTimerBlock.prototype.constructor = EmuTimerBlock;
 
 // Called when the block state has changed - update data and view
-EmuTimerBlock.prototype.update = function(fromBlockID,msg){
+EmuTimerBlock.prototype.update = function(fromBlockID,msgDict){
 	obj = this;
+	var msg = msgDict['msg'];
 	// console.log("Updating hardware block:" + obj.devName);
 
 	// Update data - hardware state
@@ -846,8 +853,9 @@ RGB_LED_R.prototype.setColor = function(colorByte){
 		this.RGB_LED.r = colorByte;
 };
 
-RGB_LED_R.prototype.onReceiveMessage = function(fromBlockID,msg){
+RGB_LED_R.prototype.onReceiveMessage = function(fromBlockID,msgDict){
 	console.log("RGB_LED_R on receive message");
+	var msg = msgDict['msg'];
 	this.setColor(msg[2]);
 	HwBlock.prototype.update.call(this, fromBlockID, msg);
 	this.RGB_LED.sendOutColors(msg);
@@ -869,8 +877,9 @@ RGB_LED_G.prototype.setColor = function(colorByte){
 		this.RGB_LED.g = colorByte;
 };
 
-RGB_LED_G.prototype.onReceiveMessage = function(fromBlockID,msg){
+RGB_LED_G.prototype.onReceiveMessage = function(fromBlockID,msgDict){
 	console.log("RGB_LED_R on receive message");
+	var msg = msgDict['msg'];
 	this.setColor(msg[2]);
 	HwBlock.prototype.update.call(this, fromBlockID, msg);
 	this.RGB_LED.sendOutColors(msg);
@@ -892,8 +901,9 @@ RGB_LED_B.prototype.setColor = function(colorByte){
 		this.RGB_LED.b = colorByte;
 };
 
-RGB_LED_B.prototype.onReceiveMessage = function(fromBlockID,msg){
+RGB_LED_B.prototype.onReceiveMessage = function(fromBlockID,msgDict){
 	console.log("RGB_LED_R on receive message");
+	var msg = msgDict['msg'];
 	this.setColor(msg[2]);
 	HwBlock.prototype.update.call(this, fromBlockID, msg);
 	this.RGB_LED.sendOutColors(msg);
@@ -1075,9 +1085,12 @@ function CodeBlock(blockID,x,y,html){
     	}
 	});
 
-	this.update = function(fromBlockID, msg, outputValue) {
+	this.update = function(fromBlockID, msgDict, outputValue) {
 		var obj = this;
 		var codeBlockID = obj.blockID;
+		var msg = msgDict['msg'];
+		var dist = msgDict['dist'];
+		
 		var clobjectDiv = $("#block-"+codeBlockID); // jquery view object
 		var outputValueElem = clobjectDiv.find(".returnValInput");
 		
@@ -1097,10 +1110,13 @@ function CodeBlock(blockID,x,y,html){
 		if(stateVarElem){
 			stateVarElem.val(outputValue);
 		}
-		$("#block-"+this.blockID).finish();
-		$("#block-"+this.blockID).animate({backgroundColor: 'green',opacity: 0.5}, 400,function(){
-			$("#block-"+obj.blockID).animate({backgroundColor: 'transparent',opacity: 1}, 400);
-		});
+		//console.log("dist: " + dist);
+			$("#block-"+obj.blockID).finish();
+			$("#block-"+obj.blockID).animate({backgroundColor: 'green',opacity: 0.5}, obj.flashDelay*dist,function(){
+			$("#block-"+obj.blockID).animate({backgroundColor: 'transparent',opacity: 1}, obj.flashDelay);
+		
+	});
+	
 	};
 
 	// ================================================

@@ -247,28 +247,29 @@ BlockObject.prototype.addInputConnection = function (inputConnectionObj){
 	this.inConnections[inputConnectionObj.blockID] = inputConnectionObj;
 };
 
-BlockObject.prototype.sendToAllOutputs = function(msg){
+BlockObject.prototype.sendToAllOutputs = function(msgDict){
 	// console.log("sending to all outputs");
 	for (targetBlockID in this.outConnections){
-		this.sendMsg(targetBlockID, msg);
+		this.sendMsg(targetBlockID, msgDict);
 	}
 	
 	//Test
 	//this.sendMsg(2,msg);
 };
 
-BlockObject.prototype.onReceiveMessage = function(blockID, msg) {
+BlockObject.prototype.onReceiveMessage = function(blockID, msgDict) {
+	var msg = msgDict['msg'];
 	//Should be done by objects further down the inheritance chain
 }
 
-BlockObject.prototype.update = function(fromBlockID, msg) {
+BlockObject.prototype.update = function(fromBlockID, msgDict) {
 	//Should be done by objects further down the inheritance chain
-	this.data = myMidi.convertMidiMsgToNumber(msg);
+	this.data = myMidi.convertMidiMsgToNumber(msgDict['msg']);
 }
 
-BlockObject.prototype.sendMsg = function(targetBlockID, msg){
+BlockObject.prototype.sendMsg = function(targetBlockID, msgDict){
 	console.log("Sending message to " + targetBlockID + " from " + this.blockID);
-	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msg);
+	app.blockObjects[targetBlockID].onReceiveMessage(this.blockID, msgDict);
 };
 
 function HwBlock(devName){
@@ -290,7 +291,12 @@ function HwBlock(devName){
 HwBlock.prototype = new BlockObjectClone();
 HwBlock.prototype.constructor = HwBlock;
 
-HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
+HwBlock.prototype.onReceiveMessage = function(fromBlockID,msgDict){
+	var msg = msgDict['msg'];
+	var newMsgDict = {};
+	newMsgDict['msg'] =msg;
+	newMsgDict['dist'] =msgDict['dist']+1;
+	
 	console.log("Hardware: " + this.devName +" blockID:" + this.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
 	
 	// If we were the hardware the generated the message
@@ -301,7 +307,7 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	
 	// If the message containes a new value update hardware block view on server
 	// and update this block's current value
-	if (msg) this.update(fromBlockID,msg);
+	if (msg) this.update(fromBlockID,msgDict);
 	
 	if(this.emuHardwareResponse) this.emuHardwareResponse(msg);
 	
@@ -309,7 +315,7 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 		myMidi.out(this.devName,[msg[0],msg[1],msg[2]]);
 	}
 	else if (this.deviceDirection == "Output"){ // Sensor
-		this.sendToAllOutputs(msg);	// Send to any connected output blocks
+		this.sendToAllOutputs(newMsgDict);	// Send to any connected output blocks
 	}
 	else{
 		console.log("Error: HwBlock should be an output or input device!");
@@ -317,11 +323,11 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 };
 
 // Called when the block state has changed - update data and view
-HwBlock.prototype.update = function(fromBlockID,msg){
+HwBlock.prototype.update = function(fromBlockID,msgDict){
 	//Call parent function. This updates the blocks current value
-	BlockObject.prototype.update.call(this,fromBlockID, msg);
+	BlockObject.prototype.update.call(this,fromBlockID, msgDict);
 	
-	mySocketIO.sendMidiToClient(this.blockID, msg);
+	mySocketIO.sendMidiToClient(this.blockID, msgDict);
 };
 
 HwBlockClone = function () {};
@@ -372,8 +378,13 @@ EmuTimerBlock.prototype.Remove = function(){
 	BlockObject.prototype.Remove.call(obj);
 };
 
-EmuTimerBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
+EmuTimerBlock.prototype.onReceiveMessage = function(fromBlockID,msgDict){
 	var obj = this;
+	var msg = msgDict['msg'];
+	var newMsgDict = {};
+	newMsgDict['dist'] = msgDict['dist'] + 1;
+	newMsgDict['msg'] = msg;
+	
 	console.log("Timer on receive message");
 	
 	//We actually don't want to send this value out
@@ -381,7 +392,7 @@ EmuTimerBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	//EmuHwBlock.prototype.onReceiveMessage.call(this, fromBlockID, msg);
 	
 	//update value and sent it out to client to update view
-	EmuHwBlock.prototype.update.call(this,fromBlockID,msg);
+	EmuHwBlock.prototype.update.call(this,fromBlockID,msgDict);
 	var numSeconds = Math.round(myMidi.convertMidiMsgToNumber(msg))/10;
 	var numSecondsMidi = myMidi.convertPercentToMidiMsg(numSeconds);
 	obj.sendToAllOutputs(numSecondsMidi);
@@ -394,7 +405,8 @@ EmuTimerBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 		var newIntervalFunc = function () {
 			var numSeconds = Math.round(myMidi.convertMidiMsgToNumber(msg))/10;
 			var numSecondsMidi = myMidi.convertPercentToMidiMsg(numSeconds);
-			obj.sendToAllOutputs(numSecondsMidi);
+			newMsgDict['msg']=numSecondsMidi;
+			obj.sendToAllOutputs(newMsgDict);
 			
 			if(obj.logicLevel === 100){
 				obj.logicLevel = 0;
@@ -439,10 +451,11 @@ RGB_LED_R.prototype.setColor = function(colorByte){
 		this.RGB_LED.r = colorByte;
 };
 
-RGB_LED_R.prototype.onReceiveMessage = function(fromBlockID,msg){
+RGB_LED_R.prototype.onReceiveMessage = function(fromBlockID,msgDict){
+	var msg = msgDict['msg']
 	console.log("RGB_LED_R on receive message");
 	this.setColor(msg[2]);
-	HwBlock.prototype.update.call(this, fromBlockID, msg);
+	HwBlock.prototype.update.call(this, fromBlockID, msgDict);
 	this.RGB_LED.sendOutColors(msg);
 };
 
@@ -462,10 +475,11 @@ RGB_LED_G.prototype.setColor = function(colorByte){
 		this.RGB_LED.g = colorByte;
 };
 
-RGB_LED_G.prototype.onReceiveMessage = function(fromBlockID,msg){
+RGB_LED_G.prototype.onReceiveMessage = function(fromBlockID,msgDict){
 	console.log("RGB_LED_R on receive message");
+	var msg = msgDict['msg']
 	this.setColor(msg[2]);
-	HwBlock.prototype.update.call(this, fromBlockID, msg);
+	HwBlock.prototype.update.call(this, fromBlockID, msgDict);
 	this.RGB_LED.sendOutColors(msg);
 };
 
@@ -485,10 +499,11 @@ RGB_LED_B.prototype.setColor = function(colorByte){
 		this.RGB_LED.b = colorByte;
 };
 
-RGB_LED_B.prototype.onReceiveMessage = function(fromBlockID,msg){
+RGB_LED_B.prototype.onReceiveMessage = function(fromBlockID,msgDict){
 	console.log("RGB_LED_R on receive message");
+	var msg = msgDict['msg']
 	this.setColor(msg[2]);
-	HwBlock.prototype.update.call(this, fromBlockID, msg);
+	HwBlock.prototype.update.call(this, fromBlockID, msgDict);
 	this.RGB_LED.sendOutColors(msg);
 };
 
@@ -599,19 +614,22 @@ CodeBlock.prototype = new BlockObjectClone();
 CodeBlock.prototype.constructor = CodeBlock;
 
 // Called when the block state has changed - update data and view
-CodeBlock.prototype.update = function(fromBlockID,msg,result){
+CodeBlock.prototype.update = function(fromBlockID,msgDict,result){
 	//Call parent function. This updates the blocks current value
 	//BlockObject.prototype.update.call(this,fromBlockID, msg);
 	
 	//Send the block ID of the block the message came from
 	//send the message 
 	//send the result of the code execution
-	mySocketIO.sendOutputValToClient(this.blockID,result,fromBlockID,msg);	
+	mySocketIO.sendOutputValToClient(this.blockID,result,fromBlockID,msgDict);	
 };
 
 
 // Called when the block state has changed - update data and view
-CodeBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
+CodeBlock.prototype.onReceiveMessage = function(fromBlockID, msgDict){
+	var msg = msgDict['msg'];
+	var newMsgDict = {};
+	
 	console.log("Software block with blockID:" + this.blockID + " recevied msg: " + msg +" from id:" + fromBlockID);
 
 	if(!msg){
@@ -625,12 +643,14 @@ CodeBlock.prototype.onReceiveMessage = function(fromBlockID,msg){
 	if(typeof(result) !== "string"){
 		this.state = this.data = result;
 		
-		this.update(fromBlockID,msg,result);	
+		this.update(fromBlockID,msgDict,result);	
 		// If the message containes a new value update hardware block view on server
 		// and update this block's current value
 		var newMsg = myMidi.convertPercentToMidiMsg(result);
 		// Send a new msg to any connected outputs
-		this.sendToAllOutputs(newMsg);
+		newMsgDict['msg'] = newMsg;
+		newMsgDict['dist'] = msgDict['dist'] + 1;
+		this.sendToAllOutputs(newMsgDict);
 	}else{
 		mySocketIO.sendCodeBlockErrorToClient(this.blockID,result);
 	}
