@@ -16,6 +16,11 @@ var emuTimerAddControlElem = function (block) {
 var emuButtonAddControlElem = function (block) {
 	hardwareBlockAddButton(block);
 };
+
+var emuSwitchAddControlElem = function (block) {
+	hardwareBlockAddSwitch(block);
+};
+
 var emuLEDAddControlElem = function (block) {
 	hardwareBlockAddLED(block);
 };

@@ -11,6 +11,7 @@ deviceTypes = {
 	"Angle": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
 	"Timer": {"direction":"Output", "addControlElem": "emuTimerAddControlElem"},
 	"Button": {"direction":"Output", "addControlElem": "emuButtonAddControlElem"},
+	"Switch": {"direction":"Output", "addControlElem": "emuSwitchAddControlElem"},
 	"Slider": {"direction":"Output","addControlElem": "emuSliderAddControlElem"},
 	"Light_Sensor": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
 	"Temperature": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},

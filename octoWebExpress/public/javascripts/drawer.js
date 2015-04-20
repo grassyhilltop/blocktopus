@@ -222,6 +222,26 @@ function hardwareBlockAddButton(block){
 	$(button).addClass("sensorButton");
 	$("#block-"+block.blockID).append(button);
 
+	$(button).bind("mousedown", function(event) {
+		var msg;
+			msg = midiPitchMsg(100); 
+		//block.onReceiveMessage(block.blockID, msg);
+		block.updateValueOnServer(msg);
+	});
+	$(button).bind("mouseup", function(event) {
+		var msg;
+		msg = midiPitchMsg(0); 
+		//block.onReceiveMessage(block.blockID, msg);
+		block.updateValueOnServer(msg);
+	});
+};
+
+function hardwareBlockAddSwitch(block){
+	var button = document.createElement("BUTTON");
+
+	$(button).addClass("sensorButton");
+	$("#block-"+block.blockID).append(button);
+
 	$(button).bind("click", function(event) {
 		var msg;
 		if(block.data === 100){
