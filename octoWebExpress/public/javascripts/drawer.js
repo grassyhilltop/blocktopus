@@ -224,13 +224,13 @@ function hardwareBlockAddButton(block){
 
 	$(button).bind("mousedown", function(event) {
 		var msg;
-			msg = midiPitchMsg(100); 
+			msg = midiOnMsg(100); 
 		//block.onReceiveMessage(block.blockID, msg);
 		block.updateValueOnServer(msg);
 	});
 	$(button).bind("mouseup", function(event) {
 		var msg;
-		msg = midiPitchMsg(0); 
+		msg = midiOffMsg(0); 
 		//block.onReceiveMessage(block.blockID, msg);
 		block.updateValueOnServer(msg);
 	});
