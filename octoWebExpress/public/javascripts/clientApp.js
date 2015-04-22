@@ -1207,7 +1207,11 @@ function CodeBlock(blockID,x,y,html){
 		}
 		// Append the lines to the elem
 		var originalHTML = elem.html();
-		var blankLine = "<div><br></div>";
+		if(originalHTML){
+			var blankLine = "";
+		}else{
+			var blankLine = "<div><br></div>";
+		}
 		var dividerline = "<div class='dividerline' contenteditable='false'></div>";
 		elem.html(linesToAdd + dividerline + originalHTML + blankLine);
 
