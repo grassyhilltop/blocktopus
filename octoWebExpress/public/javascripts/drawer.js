@@ -1,6 +1,14 @@
 // drawer.js on the client
 // Functions for drawing to browser window
 
+function addDeleteButton(divID, callback){
+	var blockID;
+    if (divID) blockID = divID.split("-")[1]; // get id of parent container
+    var html = "<div class='deleteButton'></div>";
+    $("#"+divID).append(html);
+    $("#"+divID+">div.deleteButton").click( callback);
+}
+
 
 function drawCodeBlock(id, x , y ,w ,h){
 
@@ -37,14 +45,13 @@ function drawCodeBlock(id, x , y ,w ,h){
     //jsPlumb.draggable($(".draggable") );
     jsPlumb.draggable($(".draggable") ,  { cancel: ".editable" } );
 
-    // add a delete button       
-    var divId = container.id;
+	
+    // add a delete button
     var blockID;
-    if (divId) blockID = divId.split("-")[1]; // get id of parent container
-    var html = "<div class='deleteButton'></div>";
-    $(container).append(html);
-    // cblockID= function(){ app.removeBlock(blockID); }
-    $("#"+divId+">div.deleteButton").click( function(){ app.removeCodeBlockFromServer(blockID); } );
+    blockID = container.id.split("-")[1];
+    addDeleteButton(container.id,function(){ 
+    	app.removeCodeBlockFromServer(blockID); 
+    });
 
     return divElem;
 }
@@ -372,6 +379,11 @@ function drawHardwareBlock(block, blockId, sensorid , sensorName, displayName, i
 
     // $( nodeDiv ).draggable({ cancel: ".editable" });
     jsPlumb.draggable($(".draggable") , { cancel: ".editable" } );
+    
+    //add delete button
+    addDeleteButton("block-"+ blockId,function(){ 
+    	block.RemoveOnServer(); 
+    });
 
 	return nodeDiv;
 }

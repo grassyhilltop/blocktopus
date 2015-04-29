@@ -194,6 +194,10 @@ svg{
 	display:block;	
 }
 
+.sensorNodeContainer:hover .deleteButton{
+	display:block;	
+}
+
 .codeContainer{
 	/*background-color: red;*/
 	/*border:	solid 1px #e2e2e2;*/	

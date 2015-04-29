@@ -417,9 +417,15 @@ function Menu() {
  	};
  	
   	this.removeFromHwList = function (blockID) {
- 		$hwEntry = $("#hw_entry"+blockID);
+ 		var $hwEntry = $("#hw_entry"+blockID);
 		$hwEntry.remove();
  	};
+ 	
+ 	this.removeFromEmuHwList = function(blockID){
+ 		var $emuHwEntry = $("#"+"hwEmuCreated"+blockID);
+ 		console.log("attempting to remove");
+ 		$emuHwEntry.parent().remove();
+ 	}
  	
   	this.addToEmuHwList = function (blockID) {
  		$emuHwList = $("#emulatedList");
@@ -432,14 +438,8 @@ function Menu() {
 		//add event handler for click on button
 		var $newEmuHwEntry = $("#"+"hwEmuCreated"+blockID);
 		$newEmuHwEntry.bind("click", function(event) {
-			$newEmuHwEntry.parent().remove();
 			block.RemoveOnServer();
 		});
- 	};
- 	
-   	this.removeFromEmuHwList = function (blockID) {
- 		$emuHwEntry = $("#emu_entry"+blockID);
-		$emuHwEntry.remove();
  	};
  	
  	this.sendNewEmuHwToServer = function (emuHwType) {
@@ -713,6 +713,7 @@ function EmuHwBlock(devName,blockID){
 	console.log("creating Emulated Hardware");
 	HwBlock.call(this,devName,blockID);
 	app.addNewEmuHwBlock(this);
+	this.devIDNum = "E";
 	
 	var devType = this.deviceType;
 	// Null check then grab any custom control elements
