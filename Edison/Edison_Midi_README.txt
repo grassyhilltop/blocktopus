@@ -111,3 +111,7 @@ QUICK FIX : Remove log files :>  rm -rf /var/log/journal/*
 put the start_octoWebExpress.service file from this directory in /etc/systemd/system/default.target.wants/start_octoWebExpress.service
 you may need to edit the file to include cd'ing into the express app on your system instead of where it was
 when the file was originally created
+
+11) Setting up BLE for the EDISON
+Follow the instructions here:
+http://rexstjohn.com/configure-intel-edison-for-bluetooth-le-smart-development/
