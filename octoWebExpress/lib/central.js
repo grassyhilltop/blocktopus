@@ -85,8 +85,21 @@ noble.on('discover', function(peripheral) {
             //
             // We did, so bake a pizza!
             //
-            bakePizza();
-          }
+            //bakePizza();
+            pizzaBakeCharacteristic.on('read', function(data, isNotification) {
+              // console.log('Our pizza is ready!');
+              if (data.length === 1) {
+               var result = data.readUInt8(0);
+               console.log("The result is: " + result);
+              }
+              else {
+               console.log('result length incorrect')
+              }
+           });
+           pizzaBakeCharacteristic.notify(true, function(err) {
+            console.log("subscribed to notify");
+           });
+         }
           else {
             console.log('missing characteristics');
           }
@@ -96,79 +109,15 @@ noble.on('discover', function(peripheral) {
   })
 })
 
-function bakePizza() {
-  //
-  // Pick the crust.
-  //
-  var crust = new Buffer(1);
-  crust.writeUInt8(pizza.PizzaCrust.THIN, 0);
-  pizzaCrustCharacteristic.write(crust, false, function(err) {
-    if (!err) {
-      //
-      // Pick the toppings.
-      //
-      var toppings = new Buffer(2);
-      toppings.writeUInt16BE(
-        pizza.PizzaToppings.EXTRA_CHEESE |
-        pizza.PizzaToppings.CANADIAN_BACON |
-        pizza.PizzaToppings.PINEAPPLE,
-        0
-      );
-      pizzaToppingsCharacteristic.write(toppings, false, function(err) {
-        if (!err) {
-          //
-          // Subscribe to the bake notification, so we know when
-          // our pizza will be ready.
-          //
-          pizzaBakeCharacteristic.on('read', function(data, isNotification) {
-            console.log('Our pizza is ready!');
-            if (data.length === 1) {
-              var result = data.readUInt8(0);
-              console.log('The result is',
-                result == pizza.PizzaBakeResult.HALF_BAKED ? 'half baked.' :
-                result == pizza.PizzaBakeResult.BAKED ? 'baked.' :
-                result == pizza.PizzaBakeResult.CRISPY ? 'crispy.' :
-                result == pizza.PizzaBakeResult.BURNT ? 'burnt.' :
-                result == pizza.PizzaBakeResult.ON_FIRE ? 'on fire!' :
-                  'unknown?');
-            }
-            else {
-              console.log('result length incorrect')
-            }
-          });
-          pizzaBakeCharacteristic.notify(true, function(err) {
-            //
-            // Bake at 450 degrees!
-            //
-            var temperature = new Buffer(2);
-            temperature.writeUInt16BE(450, 0);
-            pizzaBakeCharacteristic.write(temperature, false, function(err) {
-              if (err) {
-                console.log('bake error');
-              }
-            });
-          });
-
-        }
-        else {
-          console.log('toppings error');
-        }
-      });
-    }
-    else {
-      console.log('crust error');
-    }
-  })
-}
-
 exports.sendByte = function(){
   var crust = new Buffer(1);
   crust.writeUInt8(pizza.PizzaCrust.THIN, 0);
-  if(null != pizzaCrustCharacteristic){
-    pizzaCrustCharacteristic.write(crust, false, function(err) {
+  if(null != pizzaBakeCharacteristic){
+    pizzaBakeCharacteristic.write(crust, false, function(err) {
       if (!err) {
         console.log("eidston sent");
       }
     });
   }
 }
+
