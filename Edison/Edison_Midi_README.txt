@@ -128,3 +128,11 @@ WantedBy=default.target
 11) Setting up BLE for the EDISON
 Follow the instructions here:
 http://rexstjohn.com/configure-intel-edison-for-bluetooth-le-smart-development/
+
+Run:
+rfkill unblock bluetooth
+hciconfig hci0 up
+
+Node Apps:
+1) Use noble on the edison side
+2) Use bleno on the laptop

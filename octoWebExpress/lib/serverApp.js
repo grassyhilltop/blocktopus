@@ -1,6 +1,7 @@
 //On the Server
 
 //the midi wrapper that we wrote on top of the node library
+var central = require('./central');
 var myMidi = require('./midi');
 var mySocketIO = require('./mySocketIO');
 
