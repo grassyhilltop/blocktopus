@@ -111,3 +111,28 @@ QUICK FIX : Remove log files :>  rm -rf /var/log/journal/*
 put the start_octoWebExpress.service file from this directory in /etc/systemd/system/default.target.wants/start_octoWebExpress.service
 you may need to edit the file to include cd'ing into the express app on your system instead of where it was
 when the file was originally created
+
+[Unit]
+Description=The Octoweb status and configuration service
+After=mdns.service
+
+[Service]
+ExecStart=/bin/su root -c 'cd /home/kdurfee/blocktopus/octoWebExpress;npm start'
+Restart=always
+RestartSec=10s
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=default.target
+
+11) Setting up BLE for the EDISON
+Follow the instructions here:
+http://rexstjohn.com/configure-intel-edison-for-bluetooth-le-smart-development/
+
+Run:
+rfkill unblock bluetooth
+hciconfig hci0 up
+
+Node Apps:
+1) Use noble on the edison side
+2) Use bleno on the laptop
