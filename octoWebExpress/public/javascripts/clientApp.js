@@ -7,21 +7,24 @@ window.addEventListener("load",function () {
 
 //TODO: want to keep this only on the server and get it on request
 deviceTypes = {
-	"Knob": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
 	"Angle": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
-	"Timer": {"direction":"Output", "addControlElem": emuTimerAddControlElem},
 	"Button": {"direction":"Output", "addControlElem": emuButtonAddControlElem},
-	"Switch": {"direction":"Output", "addControlElem": emuSwitchAddControlElem},
-	"Slider": {"direction":"Output","addControlElem": emuSliderAddControlElem},
-	"Light_Sensor": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
-	"Temperature": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
+	"Buzzer": {"direction":"Input","addControlElem":emuBuzzerAddControlElem},
+	"Fan": {"direction":"Input","addControlElem": emuFanAddControlElem},
+	"Force_Sensor": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
 	"Heater": {"direction":"Input", "addControlElem": emuHeaterAddControlElem},
- 	"Fan": {"direction":"Input","addControlElem": emuFanAddControlElem},
+	"Knob": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
 	"Light": {"direction":"Input","addControlElem": emuLEDAddControlElem},
+	"Light_Sensor": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
 	"Motion_Sensor": {"direction":"Output", "addControlElem": emuMotionAddControlElem},
 	"Motor": {"direction":"Input", "addControlElem": emuMotorAddControlElem},
-// "RGB_LED": {"direction":"Input"},
-	"Buzzer": {"direction":"Input","addControlElem":emuBuzzerAddControlElem}
+	"Slider": {"direction":"Output","addControlElem": emuSliderAddControlElem},
+	"Switch": {"direction":"Output", "addControlElem": emuSwitchAddControlElem},
+	"Temperature": {"direction":"Output", "addControlElem": emuKnobAddControlElem},
+	"Tilt": {"direction":"Output", "addControlElem": emuButtonAddControlElem},
+	"Timer": {"direction":"Output", "addControlElem": emuTimerAddControlElem},
+	"Vibration": {"direction":"Input", "addControlElem": emuMotorAddControlElem},
+	// "RGB_LED": {"direction":"Input"},	
 };
 
 function ClientApp() {
@@ -483,7 +486,8 @@ function Menu() {
 		key = "Code";
 
 		//add html for button
-		var newEmuHwBtnHTML = templates.renderEmuHwBtn({name:key});
+		// var newEmuHwBtnHTML = templates.renderEmuHwBtn({name:key});
+		var newEmuHwBtnHTML = templates.renderCodeBtn({name:key});
 		$emuHwOptList.append(newEmuHwBtnHTML);
 		
 		//add event handler for click on button

@@ -8,21 +8,24 @@ var mySocketIO = require('./mySocketIO');
 var app = new App();
 
 deviceTypes = {
-	"Knob": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
 	"Angle": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
-	"Timer": {"direction":"Output", "addControlElem": "emuTimerAddControlElem"},
 	"Button": {"direction":"Output", "addControlElem": "emuButtonAddControlElem"},
-	"Switch": {"direction":"Output", "addControlElem": "emuSwitchAddControlElem"},
-	"Slider": {"direction":"Output","addControlElem": "emuSliderAddControlElem"},
-	"Light_Sensor": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
-	"Temperature": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
+	"Buzzer": {"direction":"Input"},
+	"Fan": {"direction":"Input","addControlElem": "emuFanAddControlElem"},
+	"Force_Sensor": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
 	"Heater": {"direction":"Input", "addControlElem": "emuHeaterAddControlElem"},
- 	"Fan": {"direction":"Input","addControlElem": "emuFanAddControlElem"},
+	"Knob": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
 	"Light": {"direction":"Input","addControlElem": "emuLEDAddControlElem"},
+	"Light_Sensor": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
 	"Motion_Sensor": {"direction":"Output", "addControlElem": "emuMotionAddControlElem"},
 	"Motor": {"direction":"Input", "addControlElem": "emuFanAddControlElem"},
-	// "RGB_LED": {"direction":"Input"},
-	"Buzzer": {"direction":"Input"}
+	"Slider": {"direction":"Output","addControlElem": "emuSliderAddControlElem"},
+	"Switch": {"direction":"Output", "addControlElem": "emuSwitchAddControlElem"},
+	"Temperature": {"direction":"Output", "addControlElem": "emuKnobAddControlElem"},
+	"Tilt": {"direction":"Output", "addControlElem": "emuButtonAddControlElem"},
+	"Timer": {"direction":"Output", "addControlElem": "emuTimerAddControlElem"},
+	"Vibration": {"direction":"Input", "addControlElem": "emuFanAddControlElem"},
+	// "RGB_LED": {"direction":"Input"},	
 };
 
 

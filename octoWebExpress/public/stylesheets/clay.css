@@ -108,6 +108,13 @@ svg{
 	margin-bottom: 0px;
 }
 
+#hwEmuBtnCode {
+	padding-top: 10px;
+	padding-bottom: 10px;
+	border:	1px dashed lightGrey; 
+
+}
+
 #emulatedList,#emulationOptionsList{
 	font-size: 13px;
 	font-weight: bold; 

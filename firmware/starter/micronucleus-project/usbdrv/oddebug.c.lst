@@ -1,4 +1,4 @@
-GAS LISTING /var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s 			page 1
+GAS LISTING /var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBUMXel.s 			page 1
 
 
    1               		.file	"oddebug.c"
@@ -58,7 +58,7 @@ GAS LISTING /var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s 			page
   55 0055 00        		.byte	0
   56               		.section	.debug_abbrev,"",@progbits
   57               	.Ldebug_abbrev0:
-GAS LISTING /var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s 			page 2
+GAS LISTING /var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBUMXel.s 			page 2
 
 
   58 0000 01        		.uleb128 0x1
@@ -118,7 +118,7 @@ GAS LISTING /var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s 			page
  108      0101 0101 
  109               	.LASF2:
  110 0000 756E 7369 		.string	"unsigned int"
-GAS LISTING /var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s 			page 3
+GAS LISTING /var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBUMXel.s 			page 3
 
 
  110      676E 6564 
@@ -173,15 +173,15 @@ GAS LISTING /var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s 			page
  128      6720 696E 
  128      7400 
  129               		.ident	"GCC: (GNU) 4.8.1"
-GAS LISTING /var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s 			page 4
+GAS LISTING /var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBUMXel.s 			page 4
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 oddebug.c
-/var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s:2      *ABS*:0000003e __SP_H__
-/var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s:3      *ABS*:0000003d __SP_L__
-/var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s:4      *ABS*:0000003f __SREG__
-/var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s:5      *ABS*:00000000 __tmp_reg__
-/var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBA2cuD.s:6      *ABS*:00000001 __zero_reg__
+/var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBUMXel.s:2      *ABS*:0000003e __SP_H__
+/var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBUMXel.s:3      *ABS*:0000003d __SP_L__
+/var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBUMXel.s:4      *ABS*:0000003f __SREG__
+/var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBUMXel.s:5      *ABS*:00000000 __tmp_reg__
+/var/folders/v0/0lvxzljj229dzpd9wrgl9g780000gn/T//ccBUMXel.s:6      *ABS*:00000001 __zero_reg__
 
 NO UNDEFINED SYMBOLS

@@ -240,11 +240,11 @@ extern void hadUsbReset(void);
 // #define  USB_CFG_DEVICE_ID       0xe4, 0x05 /* = 0x05dc = 1500 */
  // 5 is cached as joel's midi controller , 6 is cached as knob-9  !!
 #if MODULE_TYPE==BUTTON
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x04 /* = 0x05dc = 1500 */
+	#define  USB_CFG_DEVICE_ID       0xe4, 0x11 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==KNOB
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x17 /* = 0x05dc = 1500 */
+	#define  USB_CFG_DEVICE_ID       0xe4, 0x29 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==OUTPUT
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x08 /* = 0x05dc = 1500 */
+	#define  USB_CFG_DEVICE_ID       0xe4, 0x28 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==RGB_LED
 	#define  USB_CFG_DEVICE_ID       0xe4, 0x05 /* = 0x05dc = 1500 */
 #elif MODULE_TYPE==COMPASS
@@ -282,30 +282,52 @@ extern void hadUsbReset(void);
 // #	define USB_CFG_DEVICE_NAME     'K','n','o','b','-','2'
 // #	define USB_CFG_DEVICE_NAME_LEN 6
 
+// ----------------------------------------
+// Current module count is 29   <- used for assigning unique ID's
+// ----------------------------------------
+
 // Knob
 #if MODULE_TYPE==KNOB
     // #	define USB_CFG_DEVICE_NAME     'K','n','o','b','-','2','1'
     // #	define USB_CFG_DEVICE_NAME_LEN 7
 // #	define USB_CFG_DEVICE_NAME     'S','l','i','d','e','r','-','1'
 // #	define USB_CFG_DEVICE_NAME_LEN 8
-#	define USB_CFG_DEVICE_NAME     'A','n','g','l','e','-','1','7'
-#	define USB_CFG_DEVICE_NAME_LEN 8
+// #	define USB_CFG_DEVICE_NAME     'A','n','g','l','e','-','1','7'
+// #	define USB_CFG_DEVICE_NAME_LEN 8
+// #	define USB_CFG_DEVICE_NAME     'L','i','g','h','t','_','S','e','n','s','o','r','-','2','4'
+// #	define USB_CFG_DEVICE_NAME_LEN 15
+// #	define USB_CFG_DEVICE_NAME     'M','o','t','i','o','n', '_' ,'S','e','n','s','o','r','-','2','5'
+// #	define USB_CFG_DEVICE_NAME_LEN 16
+// #	define USB_CFG_DEVICE_NAME     'T','e','m','p','e','r','a','t','u','r','e','-','2','7'
+// #	define USB_CFG_DEVICE_NAME_LEN 14
+#	define USB_CFG_DEVICE_NAME     'F','o','r','c','e', '_' ,'S','e','n','s','o','r','-','2','9'
+#	define USB_CFG_DEVICE_NAME_LEN 14
 
 // Button  2 of them
 #elif MODULE_TYPE==BUTTON
-	#	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','4'
-	#	define USB_CFG_DEVICE_NAME_LEN 8
+	// #	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','4'
+	// #	define USB_CFG_DEVICE_NAME_LEN 8
 // #	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','9'
 // #	define USB_CFG_DEVICE_NAME_LEN 8
+#	define USB_CFG_DEVICE_NAME     'T','i','l','t','-','1','1'
+#	define USB_CFG_DEVICE_NAME_LEN 7// Tilt
 
 // Buzzer
 #elif MODULE_TYPE==OUTPUT
  // #	define USB_CFG_DEVICE_NAME     'B','u','z','z','e','r','-','7'
  // #	define USB_CFG_DEVICE_NAME_LEN 8
  
-#	define USB_CFG_DEVICE_NAME     'L','i','g','h','t','-','8'
-#	define USB_CFG_DEVICE_NAME_LEN 7
- 
+// #	define USB_CFG_DEVICE_NAME     'L','i','g','h','t','-','8'
+// #	define USB_CFG_DEVICE_NAME_LEN 7 
+// #	define USB_CFG_DEVICE_NAME     'M','o','t','o','r','-','1','8'
+// #	define USB_CFG_DEVICE_NAME_LEN 8
+// #	define USB_CFG_DEVICE_NAME     'H','e','a','t', 'e' ,'r','-','1','9'
+// #	define USB_CFG_DEVICE_NAME_LEN 9
+// #	define USB_CFG_DEVICE_NAME     'F','a','n','-','2','0'
+// #	define USB_CFG_DEVICE_NAME_LEN 6
+#	define USB_CFG_DEVICE_NAME     'V','i','b','r','a','t','i','o','n','-','2','8'
+#	define USB_CFG_DEVICE_NAME_LEN 12
+
  #elif MODULE_TYPE==RGB_LED
  #	define USB_CFG_DEVICE_NAME     'R','G','B','_','L','E','D','-','5'
  #	define USB_CFG_DEVICE_NAME_LEN 9
