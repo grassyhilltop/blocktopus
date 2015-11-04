@@ -1,5 +1,9 @@
 //on the client
 
+// To hide the side bar
+SHOW_EMULATED_HARDWARE = false
+// SHOW_EMULATED_HARDWARE = true
+
 window.addEventListener("load",function () {
 	app = new ClientApp();
 });
@@ -87,9 +91,19 @@ function ClientApp() {
 
 	this.addNewRealHwBlock = function (hwBlock) {
 		console.log("adding new Hw Block!");
+		
 		obj.addNewBlock(hwBlock);
 		obj.realHwObjects[hwBlock.blockID] = hwBlock;
 		this.menu.addToHwList(hwBlock.blockID);
+
+		// Uncomment below to add controllers to HW blocks. 
+		// TODO update controllers to sycnronize e.g. move virtual slider to be same as physical etc
+		// // Add any custom GUI controllers to the block
+		// var devType = hwBlock.deviceType;
+		// // Null check then grab any custom control elements
+		// if(deviceTypes[devType] && deviceTypes[devType]["addControlElem"]){ 
+		// 	var controlID = deviceTypes[devType]["addControlElem"](hwBlock);
+		// }
 	};
 	
 	this.removeRealHwBlock = function (blockID) {
@@ -378,7 +392,7 @@ function ClientApp() {
 	};
 	
 	// Functions to call when the app is first opened
-	this.menu = new Menu();
+	this.menu = new Menu();	
 	this.menu.addEmuHwBtns(deviceTypes);
 	this.menu.addCodeBtn();
 	this.setupMidi();
@@ -460,9 +474,12 @@ function Menu() {
  	this.addEmuHwBtns = function(devices){
  		console.log("adding emulated hardware buttons");
  		$emuHwOptList = $("#emulationOptionsList");
- 		
+	
+	//JS: Comment these out to hide emulated hardware list
+	if (!SHOW_EMULATED_HARDWARE) return
+
  		for (var key in devices){
- 			//add html for button
+ 			//add html for button 			
  			var newEmuHwBtnHTML = templates.renderEmuHwBtn({name:key});
  			$emuHwOptList.append(newEmuHwBtnHTML);
  			
@@ -632,7 +649,6 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msgDict){
 		// console.log("Hardware: " + obj.devName + " message to self");
 		// process the message if needed here e.g. check valid message cleaning...
 	}
-	
 	// If the message containes a new value update hardware block
 	if (msg) this.update(fromBlockID,msgDict);
 	
@@ -675,8 +691,12 @@ HwBlock.prototype.update = function(fromBlockID,msgDict){
 		newVal = sensorPercent;
 		// special case for temperature
 		if(obj.deviceType =="Temperature") {
-		
-			// var temperature = 25 + (sensorPercent%50); 
+			
+			// //js: speacial case code for temperature??
+			// // Room temperature seems to be 50% ~ 70F			
+			// var temperature = 70 + (sensorPercent - 50); 
+			// newVal = temperature
+			// $("#sensorVal"+obj.blockID).text( temperature +"°F");
 			$("#sensorVal"+obj.blockID).text( sensorPercent +"°F");
 		} else if (obj.deviceType =="Angle") {
 			$("#sensorVal"+obj.blockID).text( sensorPercent +"°");
@@ -1187,7 +1207,6 @@ function CodeBlock(blockID,x,y,html){
 			var currArgumentName ="input";                    // default name of the argument
 			var currConnectedObjVal = currConnectedObj.data;  // value of the argument x = 0
 			if (currConnectedObjVal ==undefined) currConnectedObjVal = "0";	
-
 
 			//currArgumentName = currConnectedObj.displayName.toLowerCase();
 			currArgumentName = currConnectedObj.displayName;

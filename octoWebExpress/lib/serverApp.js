@@ -315,6 +315,7 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msgDict){
 	
 	if(this.emuHardwareResponse) this.emuHardwareResponse(msg);
 	
+	// Sending out midi messages
 	if(this.deviceDirection == "Input"){ // If we have input e.g. buzzer
 		myMidi.out(this.devName,[msg[0],msg[1],msg[2]]);
 	}
@@ -328,9 +329,45 @@ HwBlock.prototype.onReceiveMessage = function(fromBlockID,msgDict){
 
 // Called when the block state has changed - update data and view
 HwBlock.prototype.update = function(fromBlockID,msgDict){
+	
+	var msg = msgDict["msg"]			 
+	
+	// ---------------------------------------------------------
+	// PUT SPECIAL CASE MODIFICATIONS TO MIDI MESSAGES HERE
+	// ---------------------------------------------------------
+
+	//js: Todo place special case code for some hardware eg. changing message values
+	// Speacial case code for temperature sensor 50% is about 70F (so need to add 20% on value)
+	if (this.deviceType == "Temperature"){		
+		
+		midiPercent = myMidi.convertMidiMsgToNumber(msg) // Convert to a percent for easier math 50%	
+		modifiedMidiPercent = midiPercent + 20 			// add 20%
+		modifiedMidiMsg = myMidi.convertPercentToMidiMsg(modifiedMidiPercent) // Convert back to a message										
+		msgDict["msg"][2] =modifiedMidiMsg[2] // Set the new value 
+	}
+
+	// Speacial case code for Motion sensor 0-33% range , just make any non zero value 100%
+	if (this.deviceType == "Motion_Sensor"){				
+		midiPercent = myMidi.convertMidiMsgToNumber(msg) 
+		if (midiPercent > 0 ){
+			msgDict["msg"][2] =127 // set all the way to 100%			
+		}else{
+			msgDict["msg"][2] = 0 // Set to 0%			
+		}		
+	}
+
+	// Speacial case code for FSR - is inverted and in range 0 - 36% or 0 - 46 midi message
+	if (this.deviceType == "Force_Sensor"){		
+		midiPercent = myMidi.convertMidiMsgToNumber(msg) 
+		console.log("Midi percent:"+midiPercent);		
+		modifiedMidiPercent = 100 -(100 * (midiPercent/37)) // Convert to 0 - 100 range , and invert			 
+		modifiedMidiMsg = myMidi.convertPercentToMidiMsg(modifiedMidiPercent) // Convert back to a message										
+		msgDict["msg"][2] =modifiedMidiMsg[2] // Set the new value 
+	}
+
 	//Call parent function. This updates the blocks current value
 	BlockObject.prototype.update.call(this,fromBlockID, msgDict);
-	
+
 	mySocketIO.sendMidiToClient(this.blockID, msgDict);
 };
 
