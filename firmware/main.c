@@ -525,7 +525,7 @@ int main()
 
 ISR(TIMER1_OVF_vect)
 {
-	// Todo: using blick function like this causes module to not show up sometimes over USB?
+	// Todo: using blink function like this causes module to not show up sometimes over USB?
 	//  doesn't happen if no function call ...
 
 	// For timing calibration
