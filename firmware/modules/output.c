@@ -2,6 +2,7 @@
 #include "usbdrv/usbdrv.h"
 #include "main.h"
 #include "hardware.h"
+#include <stdbool.h>
 
 static unsigned int duty_cycle = 0;
 static const unsigned int iterations_p_cycle = 100;
@@ -11,20 +12,20 @@ void init_output(void){
 }
 
 void output_main_loop(void){
-	static int status = 0;
+	static bool is_status_led_on = false;
 	unsigned int counter = 0;
 	
 	for (counter = 0; counter < iterations_p_cycle ; counter ++){
 		if ((counter++ % iterations_p_cycle) < duty_cycle){
-			if (!status){
+			if (!is_status_led_on){
 				turn_on();
-				status = 1;
+				is_status_led_on = true;
 			}
 		}
 		else{
-			if(status){
+			if(is_status_led_on){
 				turn_off();
-				status = 0;
+				is_status_led_on = false;
 			}
 		}
 	}
