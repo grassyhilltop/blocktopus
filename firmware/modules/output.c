@@ -4,7 +4,7 @@
 #include "hardware.h"
 
 static unsigned int duty_cycle = 0;
-static unsigned int iterations_p_cycle = 100;
+static const unsigned int iterations_p_cycle = 100;
 
 void init_output(void){
 	initPB3AsOutput();
