@@ -1,12 +1,14 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define KNOB   1
-#define BUTTON 2
-#define OUTPUT 3
-#define RGB_LED 4
-#define COMPASS 5
-#define ACCELEROMETER 6
+enum {
+  KNOB = 1,
+  BUTTON,
+  OUTPUT,
+  RGB_LED,
+  COMPASS,
+  ACCELEROMETER,
+};
 
 //TODO: require MODULE_TYPE to be passed via Makefile flag
 #ifndef MODULE_TYPE
