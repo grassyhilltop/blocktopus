@@ -4,7 +4,6 @@
  *  Created on: June , 2014
  *      Author: Joel  ( modified from Baum's original code )
  */
-#include "main.h"
 #include "hardware.h"
 #include "midi.h"
 #include "i2c_bb.h"
@@ -36,7 +35,9 @@
 	#include "accelerometer.h"
 #endif
 
-#define BLINK_TIME 			8056  
+enum {
+	CYCLES_PER_SECOND = 8056,
+};
 
 //  Timing description: 1 Second is 8056 cycles
 //  With a 1:8 prescaler - the timer ticks with frequency = 16.5Mhz/8 = 2 Mhz 
@@ -368,7 +369,7 @@ void hadUsbReset(void)
 void blink()
 {
 	static int on=1;
-	nBlink = BLINK_TIME;			// Set blink timer counter
+	nBlink = CYCLES_PER_SECOND;			// Set blink timer counter
 	
 	if(on){
 		PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on
@@ -481,35 +482,40 @@ int main()
 		#endif
 			
 		if (usbInterruptIsReady()) {
-			#ifdef INCLUDE_KNOB_FW
-			if (module_type == KNOB) {
-				knob_main_loop(uADC);
-			}
-			#endif
-	
-			#ifdef INCLUDE_OUTPUT_FW
-			if (module_type == OUTPUT) {
- 				output_main_loop();
-			}
-			#endif
+			switch (module_type) {
+				#ifdef INCLUDE_KNOB_FW
+				case KNOB:
+					knob_main_loop(uADC);
+					break;
+				#endif
+		
+				#ifdef INCLUDE_OUTPUT_FW
+				case OUTPUT:
+					output_main_loop();
+					break;
+				#endif
 
-			#ifdef INCLUDE_BUTTON_FW
-			if (module_type == BUTTON) {
-				button_main_loop(uADC);
-			}
-			#endif
-			
-			#ifdef INCLUDE_ACCELEROMETER_FW
-			if (module_type == ACCELEROMETER) {
+				#ifdef INCLUDE_BUTTON_FW
+				case BUTTON:
+					button_main_loop(uADC);
+					break;
+				#endif
+				
+				#ifdef INCLUDE_ACCELEROMETER_FW
+				case ACCELEROMETER:
 					accelerometer_main_loop();
+					break;
+				#endif
+		
+				#ifdef INCLUDE_COMPASS_FW
+				case COMPASS:
+					rgb_led_main_loop();
+					break;
+				#endif	
+
+				default:
+				  break;
 			}
-			#endif
-	
-			#ifdef INCLUDE_COMPASS_FW
-			if (module_type == COMPASS) {
-				rgb_led_main_loop();
-			}
-			#endif	
 		}
 	}
 
