@@ -8,6 +8,7 @@
 #include "midi.h"
 #include "i2c_bb.h"
 #include "config.h"
+#include <bool.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
@@ -44,8 +45,8 @@ enum {
 //  An 8 bit timer will overflow after 256 ticks  - i.e. 256 (*1/2 Mhz) every 0.124 ms
 //  overflow every  = 256*1/(1650000000/8) s 
 
-unsigned char uADC = 0;		// Analog value
-int nBlink = 0;				// Blink timer
+static unsigned char uADC = 0;		// Analog value
+static int nBlink = 0;				// Blink timer
 
 volatile unsigned int module_type = MODULE_TYPE;
 
@@ -368,16 +369,16 @@ void hadUsbReset(void)
 
 void blink()
 {
-	static int on=1;
-	nBlink = CYCLES_PER_SECOND;			// Set blink timer counter
+	static bool led_is_on=true;
+	nBlink = CYCLES_PER_SECOND;			// Reset blink timer counter
 	
-	if(on){
+	if(led_is_on){
 		PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on
-		on = 0;
+		led_is_on = false;
 	}
 	else{
 		PORTB &= ~_BV(STATUS_LED_PORT);	// Switch status LED off
-		on = 1;
+		led_is_on = true;
 	}
 }
 
