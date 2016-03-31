@@ -463,12 +463,12 @@ void init_modules(void) {
 
 int main()
 {
-    initStatusLED();
-  	initUSB();
-  	
+	initStatusLED();
+	initUSB();
+
 	// Globally enable interrupts
- 	sei();
- 	
+	sei();
+
 	init_modules();
 	// Endless loop
 	for (;;) {
@@ -489,7 +489,7 @@ int main()
 					knob_main_loop(uADC);
 					break;
 				#endif
-		
+
 				#ifdef INCLUDE_OUTPUT_FW
 				case OUTPUT:
 					output_main_loop();
@@ -501,13 +501,13 @@ int main()
 					button_main_loop(uADC);
 					break;
 				#endif
-				
+
 				#ifdef INCLUDE_ACCELEROMETER_FW
 				case ACCELEROMETER:
 					accelerometer_main_loop();
 					break;
 				#endif
-		
+
 				#ifdef INCLUDE_COMPASS_FW
 				case COMPASS:
 					rgb_led_main_loop();
