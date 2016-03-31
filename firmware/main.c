@@ -523,7 +523,9 @@ int main()
 	return 0;
 }
 
+/* Interrupt Service Routines to handle timer and ADC. */
 
+/* Handle continuous timer and blink status LED. */
 ISR(TIMER1_OVF_vect)
 {
 	// Todo: using blink function like this causes module to not show up sometimes over USB?
@@ -543,6 +545,7 @@ ISR(TIMER1_OVF_vect)
 }
 
 
+/* Handle interrupt from ADC, which indicates it has a new value ready. */
 ISR(ADC_vect)
 {
 	uADC = ADCH;	// Get analog input value
