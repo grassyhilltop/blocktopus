@@ -4,7 +4,7 @@
 
 void sendNoteOn() {
 	uchar midiMsg[8];
-	turn_on();
+	turn_on_status_led();
 
 	// Send a note on message if this was a button down
 	//http://forums.obdev.com/viewtopic.php?f=8&t=1352&start=30
@@ -27,7 +27,7 @@ void sendNoteOn() {
 void sendNoteOff() {	
 	uchar midiMsg[8];					
 
-	turn_off();
+	turn_off_status_led();
 
 	// send note msg
 	//uchar midiMsg[8];

@@ -18,13 +18,13 @@ void output_main_loop(void){
 	for (counter = 0; counter < iterations_p_cycle ; counter ++){
 		if ((counter++ % iterations_p_cycle) < duty_cycle){
 			if (!is_status_led_on){
-				turn_on();
+				turn_on_status_led();
 				is_status_led_on = true;
 			}
 		}
 		else{
 			if(is_status_led_on){
-				turn_off();
+				turn_off_status_led();
 				is_status_led_on = false;
 			}
 		}
