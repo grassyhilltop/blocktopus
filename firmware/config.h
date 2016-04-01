@@ -26,7 +26,7 @@ typedef enum ModuleType {
 #define INCLUDE_KNOB_FW
 #define INCLUDE_OUTPUT_FW
 #define INCLUDE_RGB_LED_FW
-#define INCLUDE_COPMASS_FW
+#define INCLUDE_COMPASS_FW
 #define INCLUDE_ACCELEROMETER_FW
 
 #endif
