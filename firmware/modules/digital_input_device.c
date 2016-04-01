@@ -1,15 +1,15 @@
 #include "midi.h"
-#include "digital_input.h"
+#include "digital_input_device.h"
 #include "hardware.h"
 
 #include <stdbool.h>
 #include <stdint.h>
 
-void init_digital_input(void){
+void init_digital_input_device(void){
 	initAnalogInput();
 }
 
-void digital_input_main_loop(uint8_t uADC){
+void digital_input_device_main_loop(uint8_t uADC){
 
 	static int avg_adc_value = 0;
 	static bool is_input_high = false;
