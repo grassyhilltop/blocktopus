@@ -2,7 +2,13 @@
 #define CONFIG_H
 
 typedef enum ModuleType {
-  KNOB = 1,
+	ANALOG_INPUT,
+	ANALOG_OUTPUT,
+	DIGITAL_INPUT,
+	DIGITAL_OUTPUT,
+	I2C_DEVICE,
+/* Left-over old module types. */
+  KNOB,
   BUTTON,
   OUTPUT,
   RGB_LED,
