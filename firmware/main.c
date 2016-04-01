@@ -289,18 +289,22 @@ void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 	// blink();
 
 	// The length of the message should be 4 for a note on 
+	switch (module_type) {
 #ifdef INCLUDE_OUTPUT_FW
-	if (module_type == OUTPUT){
-		output_usb_input_handler(midiMsg,len);
-	}
+		case OUTPUT:
+			output_usb_input_handler(midiMsg,len);
+			break;
 #endif
 
 #ifdef INCLUDE_RGB_LED_FW
-	if (module_type == RGB_LED){
-		rgb_led_usb_input_handler(midiMsg,len);
-	}
+		case RGB_LED:
+			rgb_led_usb_input_handler(midiMsg,len);
+			break;
 #endif
-
+		default:
+			/* Do nothing. */
+			break;
+	}
 }
 
 /* ------------------------------------------------------------------------- */
@@ -422,43 +426,44 @@ void initUSB()
 }
 
 void init_modules(void) {
+	switch (module_type) {
 
 #ifdef INCLUDE_RGB_LED_FW
-	if (module_type == RGB_LED) {
-		setup_rgb_led();
-	}
+		case RGB_LED:
+			setup_rgb_led();
+			break;
 #endif
 
 #ifdef INCLUDE_OUTPUT_FW
-	if (module_type == OUTPUT) {
-		init_output();
-	}
+		case OUTPUT:
+			init_output();
+			break;
 #endif
 
 #ifdef INCLUDE_KNOB_FW
-	if (module_type == KNOB) {
-		init_knob();
-	}
+		case KNOB:
+			init_knob();
+			break;
 #endif
 
 #ifdef INCLUDE_BUTTON_FW
-	if (module_type == BUTTON) {
-		init_button();
-	}
+		case BUTTON:
+			init_button();
+			break;
 #endif
-			
 
 #ifdef INCLUDE_COMPASS_FW
-	if (module_type == COMPASS) {
-  		setup_compass();
-  	}
+		case COMPASS:
+			setup_compass();
+			break;
 #endif
 
-	#ifdef INCLUDE_ACCELEROMETER_FW
-	if (module_type == ACCELEROMETER) {
-  		init_accelerometer();
-  	}
-	#endif
+#ifdef INCLUDE_ACCELEROMETER_FW
+		case ACCELEROMETER:
+			init_accelerometer();
+			break;
+#endif
+	}
 }
 
 int main()
