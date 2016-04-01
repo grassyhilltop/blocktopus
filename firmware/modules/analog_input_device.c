@@ -1,20 +1,23 @@
 #include "midi.h"
-#include "knob.h"
+#include "analog_input_device.h"
 #include "hardware.h"
 
-void init_knob(void){
+void init_analog_input_device(void){
 	initAnalogInput();
 }
 
-void knob_main_loop(unsigned char uADC){
-	static unsigned char pitch = 0;
-	static unsigned char oldPitch = 0;
-	int newPitch = uADC >> 1;
+void analog_input_device_main_loop(uint8_t uADC){
+	static uint8_t analog_value = 0;
+	static uint8_t old_analog_value = 0;
+	uint8_t adc_value = uADC >> 1;
 	
-	pitch = (3*pitch + newPitch)/4;
+	/* Smooth out values read from ADC. */
+	analog_value = (3*analog_value + adc_value)/4;
 	
-	if (pitch != oldPitch)
-		sendPitchBend(pitch);
+	if (analog_value != old_analog_value) {
+		/* Use PitchBend from MIDI protocol to emulate a value send. */
+		sendPitchBend(analog_value);
+	}
 	
-	oldPitch = pitch;
+	old_analog_value = analog_value;
 }
