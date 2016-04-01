@@ -1,28 +1,31 @@
 #include "midi.h"
-#include "button.h"
+#include "digital_input.h"
 #include "hardware.h"
 
-void init_button(void){
+#include <stdbool.h>
+#include <stdint.h>
+
+void init_digital_input(void){
 	initAnalogInput();
 }
 
-void button_main_loop(unsigned char uADC){
+void digital_input_main_loop(uint8_t uADC){
 
-	static int avgButtonValue = 0;
-	static char buttonState = 0;
-	int newButtonValue = uADC >> 1;
+	static int avg_adc_value = 0;
+	static bool is_input_high = false;
+	uint8_t new_adc_value = uADC >> 1;
 	
-	avgButtonValue = (4*avgButtonValue + newButtonValue)/ 5;
+	avg_adc_value = (4*avg_adc_value + new_adc_value)/ 5;
 	
-	if (avgButtonValue > 80){
-		if (!buttonState){
+	if (avg_adc_value > 80){
+		if (!is_input_high){
 			sendNoteOn();
-			buttonState = 1;
+			is_input_high = true;
 		}
 	}
-	else if (avgButtonValue < 50){
-		if (buttonState){
-			buttonState = 0;
+	else if (avg_adc_value < 50){
+		if (is_input_high){
+			is_input_high = false;
 			sendNoteOff();	
 		}
 	}
