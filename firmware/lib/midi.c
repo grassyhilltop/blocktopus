@@ -1,5 +1,4 @@
 #include "usbdrv/usbdrv.h"
-#include "main.h"
 #include "hardware.h"
 
 void sendNoteOn() {
