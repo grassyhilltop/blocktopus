@@ -3,7 +3,6 @@
 #include "hardware.h"
 
 #include <stdbool.h>
-#include <stdint.h>
 
 /* Implements the digital input device as an analog input device (using ADC)
  * with thresholding and debouncing. */
