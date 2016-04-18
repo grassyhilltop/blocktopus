@@ -1,38 +1,45 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-typedef enum ModuleType {
-	ANALOG_INPUT,
-	ANALOG_OUTPUT,
-	DIGITAL_INPUT,
-	DIGITAL_OUTPUT,
-	I2C_DEVICE,
-/* Left-over old module types. */
-  KNOB,
-  BUTTON,
-  OUTPUT,
-  RGB_LED,
-  COMPASS,
-  ACCELEROMETER,
-} ModuleType;
+/* TODO: for some reason using enums results in code auto-generation or parsing errors. */
+/* typedef enum ModuleType { */
+/* 	ANALOG_INPUT, */
+/* 	ANALOG_OUTPUT, */
+/* 	DIGITAL_INPUT, */
+/* 	DIGITAL_OUTPUT, */
+/* 	I2C_DEVICE, */
+/* /1* Left-over old module types. *1/ */
+/*   KNOB, */
+/*   BUTTON, */
+/*   OUTPUT, */
+/*   RGB_LED, */
+/*   COMPASS, */
+/*   ACCELEROMETER, */
+/* } ModuleType; */
+
+#define KNOB   1
+#define BUTTON 2
+#define OUTPUT 3
+#define RGB_LED 4
+#define COMPASS 5
+#define ACCELEROMETER 6
+#define ANALOG_INPUT 7
+#define ANALOG_OUTPUT 8
+#define DIGITAL_INPUT 9
+#define DIGITAL_OUTPUT 10
+#define I2C_DEVICE 11
 
 //TODO: require MODULE_TYPE to be passed via Makefile flag
+// Currently need to make sure that MODULE_TYPE gets set in Makefile and the
+// hardcoded values are changed with different define values
 #ifndef MODULE_TYPE
 	//Define the initial type of the module
-	// #define MODULE_TYPE BUTTON
-	#define MODULE_TYPE KNOB
+	//#define MODULE_TYPE BUTTON
+	//#define MODULE_TYPE KNOB
 	 // #define MODULE_TYPE RGB_LED
 	// #define MODULE_TYPE OUTPUT
 	//#define MODULE_TYPE COMPASS
 	//#define MODULE_TYPE ACCELEROMETER
 #endif
-
-// Define firmware you want to include in the binary
-#define INCLUDE_BUTTON_FW
-#define INCLUDE_KNOB_FW
-#define INCLUDE_OUTPUT_FW
-#define INCLUDE_RGB_LED_FW
-#define INCLUDE_COMPASS_FW
-#define INCLUDE_ACCELEROMETER_FW
 
 #endif

@@ -15,11 +15,14 @@ FUSE_L  = 0xE1
 #0x5D to disable reset
 FUSE_H  = 0x5D
 AVRDUDE = avrdude -c avrispmkII -p $(DEVICE)
+MODULE_TYPE = 1 # Default MODULE_TYPE to Knob
 
-CFLAGS  = -Imodules -Ilib -Iusbdrv -I. -Ilibs-device -DDEBUG_LEVEL=0
+CFLAGS  = -Imodules -Ilib -Iusbdrv -I. -Ilibs-device -DDEBUG_LEVEL=0 -DMODULE_TYPE=$(MODULE_TYPE)
 OBJECTS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o 
 OBJECTS += lib/hardware.o lib/midi.o lib/i2c_bb.o 
-OBJECTS += modules/rgb_led.o modules/button.o modules/knob.o modules/output.o modules/compass.o modules/accelerometer.o
+OBJECTS += modules/analog_input_device.o modules/analog_output_device.o modules/digital_input_device.o modules/digital_output_device.o modules/i2c_device.o
+# Uncomment below line for original naming of objects
+#OBJECTS += modules/rgb_led.o modules/button.o modules/knob.o modules/output.o modules/compass.o modules/accelerometer.o
 #libs-device/osccal.o
 
 COMPILE = avr-gcc -Wall -Os -DF_CPU=$(F_CPU) $(CFLAGS) -mmcu=$(DEVICE)
