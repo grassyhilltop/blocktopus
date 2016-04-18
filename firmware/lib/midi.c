@@ -3,7 +3,7 @@
 
 void sendNoteOn() {
 	uchar midiMsg[8];
-	turn_on();
+	set_output_high();
 
 	// Send a note on message if this was a button down
 	//http://forums.obdev.com/viewtopic.php?f=8&t=1352&start=30
@@ -26,7 +26,7 @@ void sendNoteOn() {
 void sendNoteOff() {	
 	uchar midiMsg[8];					
 
-	turn_off();
+	set_output_low();
 
 	// send note msg
 	//uchar midiMsg[8];

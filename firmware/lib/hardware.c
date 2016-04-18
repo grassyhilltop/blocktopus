@@ -1,13 +1,11 @@
-#include "main.h"
 #include "hardware.h"
 #include "usbdrv/usbdrv.h"
 
-//this assumes only one pin
-void turn_on(void){
-	PORTB |= _BV(OUTPUT_PORT);	// Switch status LED on
+void set_output_high(void){
+	PORTB |= _BV(OUTPUT_PORT);
 }
-void turn_off(void){
-	PORTB &= ~_BV(OUTPUT_PORT); // LED off
+void set_output_low(void){
+	PORTB &= ~_BV(OUTPUT_PORT);
 }
 
 void initPB3AsOutput(){
@@ -38,3 +36,22 @@ void initAnalogInput()
 	// set prescaler to 128
 	ADCSRA = _BV(ADEN) | _BV(ADSC) | _BV(ADATE) | _BV(ADIE) | _BV(ADPS0)| _BV(ADPS1) | _BV(ADPS2);
 }
+
+void initStatusLED()
+{
+	DDRB |= _BV(STATUS_LED_PORT); 	// Set LED pin PB1 to be an output
+
+	// Timer 1 prescaler (blink counter speed):
+	TCCR1 = _BV(CS12);								// 1:8
+	// TCCR1 = _BV(CS11) | _BV(CS12);				// 1:32
+	// TCCR1 = _BV(CS10) | _BV(CS11) | _BV(CS12);	// 1:64
+	// TCCR1 = _BV(CS10) | _BV(CS13);				// 1:256
+	// TCCR1 = _BV(CS10) | _BV(CS11) | _BV(CS13);	// 1:1024
+
+	TIMSK = _BV(TOIE1); // Enable timer 1 overflow interrupt
+	// TIMSK = _BV(OCIE1A);	// Enable timer 1 compare match A interrupt
+
+	// Set timer 1 output compare register A.
+	// OCR1A = 127;
+}
+

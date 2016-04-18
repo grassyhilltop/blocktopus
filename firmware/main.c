@@ -8,7 +8,8 @@
 #include "midi.h"
 #include "i2c_bb.h"
 #include "config.h"
-#include <bool.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
@@ -367,52 +368,19 @@ void hadUsbReset(void)
 	cli();
 	calibrateOscillator();
 	sei();
-    eeprom_write_byte(0, OSCCAL);   /* store the calibrated value in EEPROM byte 0*/
-}
-
-
-void blink()
-{
-	static bool led_is_on=true;
-	nBlink = CYCLES_PER_SECOND;			// Reset blink timer counter
-	
-	if(led_is_on){
-		PORTB |= _BV(STATUS_LED_PORT);	// Switch status LED on
-		led_is_on = false;
-	}
-	else{
-		PORTB &= ~_BV(STATUS_LED_PORT);	// Switch status LED off
-		led_is_on = true;
-	}
-}
-
-//Status LED is PB1
-void initStatusLED()
-{
-	DDRB = _BV(STATUS_LED_PORT); 	// LED pin = output
-
-	// Timer 1 prescaler (blink counter speed):
-	TCCR1 = _BV(CS12);								// 1:8
-	// TCCR1 = _BV(CS11) | _BV(CS12);				// 1:32
-	// TCCR1 = _BV(CS10) | _BV(CS11) | _BV(CS12);	// 1:64
-	// TCCR1 = _BV(CS10) | _BV(CS13);				// 1:256
-	// TCCR1 = _BV(CS10) | _BV(CS11) | _BV(CS13);	// 1:1024
-
-	TIMSK = _BV(TOIE1); // Enable timer 1 overflow interrupt
-	// TIMSK = _BV(OCIE1A);	// Enable timer 1 compare match A interrupt
-
-	// Set timer 1 output compare register A.
-	// OCR1A = 127;
+    eeprom_write_byte(OSCCAL_EEPROM_ADDR, OSCCAL);   /* store the calibrated value in EEPROM byte 0*/
 }
 
 void initUSB()
 {
-	uchar uCalVal, i;
+	uint8_t uCalVal;
 
 	do {} while (!eeprom_is_ready());
-    uCalVal = eeprom_read_byte(0); // calibration value from last time
+    uCalVal = eeprom_read_byte(OSCCAL_EEPROM_ADDR); // calibration value from last time
+	/* Check that returned calibration value is valid before setting OSCCAL. */
     if (uCalVal != 0xff) OSCCAL = uCalVal;
 
+	/* Enable watchdog timer */
     wdt_enable(WDTO_2S);
 
     usbInit();
