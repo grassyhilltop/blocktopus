@@ -623,3 +623,66 @@ USB_PUBLIC void usbInit(void)
 }
 
 /* ------------------------------------------------------------------------- */
+
+#if USB_CFG_IMPLEMENT_FN_WRITE
+/* Implementation taken from V-USB-MIDI Project
+ * http://cryptomys.de/horo/V-USB-MIDI/index.html */
+USB_PUBLIC uchar usbFunctionWrite(uchar *data, uchar len)
+{
+	// DEBUG LED
+	// PORTC ^= 0x04;
+	return 1;
+}
+#endif /* USB_CFG_IMPLEMENT_FN_WRITE */
+
+#if USB_CFG_IMPLEMENT_FN_READ
+/* Implementation taken from V-USB-MIDI Project
+ * http://cryptomys.de/horo/V-USB-MIDI/index.html */
+USB_PUBLIC uchar usbFunctionRead(uchar *data, uchar len)
+{
+	// DEBUG LED
+	// PORTC ^= 0x02;
+
+	data[0] = 0;
+	data[1] = 0;
+	data[2] = 0;
+	data[3] = 0;
+	data[4] = 0;
+	data[5] = 0;
+	data[6] = 0;
+
+	return 7;
+}
+#endif /* USB_CFG_IMPLEMENT_FN_READ */
+
+/* This function is called when the driver receives a SETUP transaction from
+ * the host which is not answered by the driver itself (in practice: class and
+ * vendor requests). All control transfers start with a SETUP transaction where
+ * the host communicates the parameters of the following (optional) data
+ * transfer. The SETUP data is available in the 'data' parameter which can
+ * (and should) be casted to 'usbRequest_t *' for a more user-friendly access
+ * to parameters.
+ *
+ * If the SETUP indicates a control-in transfer, you should provide the
+ * requested data to the driver. There are two ways to transfer this data:
+ * (1) Set the global pointer 'usbMsgPtr' to the base of the static RAM data
+ * block and return the length of the data in 'usbFunctionSetup()'. The driver
+ * will handle the rest. Or (2) return USB_NO_MSG in 'usbFunctionSetup()'. The
+ * driver will then call 'usbFunctionRead()' when data is needed. See the
+ * documentation for usbFunctionRead() for details.
+ *
+ * If the SETUP indicates a control-out transfer, the only way to receive the
+ * data from the host is through the 'usbFunctionWrite()' call. If you
+ * implement this function, you must return USB_NO_MSG in 'usbFunctionSetup()'
+ * to indicate that 'usbFunctionWrite()' should be used. See the documentation
+ * of this function for more information. If you just want to ignore the data
+ * sent by the host, return 0 in 'usbFunctionSetup()'.
+ *
+ * Note that calls to the functions usbFunctionRead() and usbFunctionWrite()
+ * are only done if enabled by the configuration in usbconfig.h.
+ */
+USB_PUBLIC usbMsgLen_t usbFunctionSetup(uchar data[8])
+{
+	/* Return 0xff to get usbFunctionWrite and usbFunctionRead called. */
+	return 0xff;
+}
