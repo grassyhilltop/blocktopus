@@ -4,8 +4,20 @@
 #include "analog_output_device.h"
 #include "usbdrv/usbdrv.h"
 #include "hardware.h"
+#include "midi.h"
 
 #include <stdbool.h>
+#include <util/delay.h>
+
+enum {
+	ITERATIONS_PER_PWM_PERIOD = 100,
+	PWM_PERIOD_MS = 10,
+	/* Time in microseconds for each tick, 1/100 of the overall
+	 * PWM period. TODO: might not be able to HW PWM, so these
+	 * enums don't have purpose then. */
+	PWM_TICK_US = 100,
+	MAX_DUTY_CYCLE = 100,
+};
 
 static uint8_t duty_cycle = 0;
 
@@ -54,8 +66,10 @@ void analog_output_device_main_loop(void){
 	}
 }
 
-void analog_output_device_usb_input_handler(unsigned char * midiMsg, unsigned char len){
-	// TODO if len is not used, don't pass it in
+void analog_output_device_usb_input_handler(uint8_t * midiMsg, uint8_t len){
+  if (len < 2) {
+    return;
+  }
 	if(midiMsg[1] == 0x90){
 		// blink();
 		// Turn on analog_output_device
@@ -68,4 +82,7 @@ void analog_output_device_usb_input_handler(unsigned char * midiMsg, unsigned ch
 	else if(midiMsg[1] == 0x80 ){
 		duty_cycle = 0;
 	}
+  else {
+    handleSysExMsg(midiMsg, len);
+  }
 }

@@ -21,3 +21,8 @@ void analog_input_device_main_loop(uint8_t uADC){
 	
 	old_analog_value = analog_value;
 }
+
+void analog_input_device_usb_input_handler(uint8_t *midiMsg, uint8_t len)
+{
+  handleSysExMsg(midiMsg, len);
+}
