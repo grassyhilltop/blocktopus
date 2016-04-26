@@ -1,8 +1,14 @@
 #include "usbdrv/usbdrv.h"
 #include "hardware.h"
+#include "main.h"
+#include "config.h"
 
+enum {
+  NOTE_MIDI_MSG_LEN = 4,
+  MIN_MIDI_MSG_LEN = 2,
+};
 void sendNoteOn() {
-	uchar midiMsg[8];
+	uint8_t midiMsg[NOTE_MIDI_MSG_LEN];
 	set_output_high();
 
 	// Send a note on message if this was a button down
@@ -14,35 +20,24 @@ void sendNoteOn() {
 	midiMsg[2] =  0x3c ; // Note: 60 middle C
 	// midiMsg[2] =  67 ; // Note: G3 above middle C
 	midiMsg[3] =  0x45 ; // velocity 
-	midiMsg[4] = 0x00;
-	midiMsg[5] = 0x00;
-	midiMsg[6] = 0x00;
-	midiMsg[7] = 0x00;				
 
 	// Send a note on
-	usbSetInterrupt(midiMsg, 4);
+	usbSetInterrupt(midiMsg, NOTE_MIDI_MSG_LEN);
 }
 
 void sendNoteOff() {	
-	uchar midiMsg[8];					
+	uint8_t midiMsg[NOTE_MIDI_MSG_LEN];					
 
 	set_output_low();
 
 	// send note msg
-	//uchar midiMsg[8];
 	midiMsg[0] =  0x09 ; // /** 0x09 High nybble is the cable number (we only have one) the second is the event code -> 9 = NOTE-ON */
 	midiMsg[1] =  0x80;  // NOTE OFF
-	// midiMsg[1] =  0x90;  //1001b (noteon=9) 0000 ch0
 	midiMsg[2] =  0x3c ; // Note: 60 middle C
 	midiMsg[3] =  0x45 ; // velocity 
-	midiMsg[4] = 0x00;
-	midiMsg[5] = 0x00;
-	midiMsg[6] = 0x00;
-	midiMsg[7] = 0x00;
-
 
 	// Send note off
-	usbSetInterrupt(midiMsg, 4);
+	usbSetInterrupt(midiMsg, NOTE_MIDI_MSG_LEN);
 }
 
 void sendPitchBend(uchar pitch) {
@@ -62,4 +57,32 @@ void sendPitchBend(uchar pitch) {
 	// midiMsg[2] = 70;			// cc
 	// midiMsg[3] = uADC >> 1;		// 7 bit
 	// usbSetInterrupt(midiMsg, 4);				
+}
+
+void handleSysExMsg(uint8_t *midiMsg, uint8_t len){
+  if (len < MIN_MIDI_MSG_LEN) {
+    return;
+  }
+  if (midiMsg[1] == 0xF0) { // Sysex message, should this be midiMsg[1]?
+    switch (midiMsg[2]) {
+      case ANALOG_INPUT:
+        update_module_type(ANALOG_INPUT);
+        break;
+      case ANALOG_OUTPUT:
+        update_module_type(ANALOG_OUTPUT);
+        break;
+      case DIGITAL_INPUT:
+        update_module_type(DIGITAL_INPUT);
+        break;
+      case DIGITAL_OUTPUT:
+        update_module_type(DIGITAL_OUTPUT);
+        break;
+      case I2C_DEVICE:
+        update_module_type(I2C_DEVICE);
+        break;
+      default:
+        /* Do nothing. */
+        break;
+    }
+  }
 }
