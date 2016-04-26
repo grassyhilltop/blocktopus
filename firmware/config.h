@@ -17,6 +17,7 @@
 /*   ACCELEROMETER, */
 /* } ModuleType; */
 
+// MODULE_TYPE is passed in via Makefile flag
 #define KNOB   1
 #define BUTTON 2
 #define OUTPUT 3
@@ -28,18 +29,5 @@
 #define DIGITAL_INPUT 9
 #define DIGITAL_OUTPUT 10
 #define I2C_DEVICE 11
-
-//TODO: require MODULE_TYPE to be passed via Makefile flag
-// Currently need to make sure that MODULE_TYPE gets set in Makefile and the
-// hardcoded values are changed with different define values
-#ifndef MODULE_TYPE
-	//Define the initial type of the module
-	//#define MODULE_TYPE BUTTON
-	//#define MODULE_TYPE KNOB
-	 // #define MODULE_TYPE RGB_LED
-	// #define MODULE_TYPE OUTPUT
-	//#define MODULE_TYPE COMPASS
-	//#define MODULE_TYPE ACCELEROMETER
-#endif
 
 #endif
