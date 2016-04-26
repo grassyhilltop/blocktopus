@@ -4,6 +4,7 @@
  *  Created on: June , 2014
  *      Author: Joel  ( modified from Baum's original code )
  */
+#include "main.h" // TODO delete main.h
 #include "hardware.h"
 #include "midi.h"
 #include "i2c_bb.h"
@@ -18,27 +19,20 @@
 #include <avr/eeprom.h>
 #include <util/delay.h>
 #include "usbdrv/usbdrv.h"
-#ifdef INCLUDE_BUTTON_FW
-	#include "button.h"
-#endif
-#ifdef INCLUDE_KNOB_FW
-	#include "knob.h"
-#endif
-#ifdef INCLUDE_OUTPUT_FW
-	#include "output.h"
-#endif
-#ifdef INCLUDE_RGB_LED_FW
-	#include "rgb_led.h"
-#endif
-#ifdef INCLUDE_COMPASS_FW
-	#include "compass.h"
-#endif
-#ifdef INCLUDE_ACCELEROMETER_FW
-	#include "accelerometer.h"
-#endif
+
+#include "analog_output_device.h"
+#include "analog_input_device.h"
+#include "digital_input_device.h"
+#include "digital_output_device.h"
+#include "i2c_device.h"
 
 enum {
 	CYCLES_PER_SECOND = 8056,
+	USB_DISCONNECT_DELAY_MS = 251,
+	OSCCAL_EEPROM_ADDR = 0,
+	MODULE_TYPE_EEPROM_ADDR = 4,
+  SECONDS_PER_BLINK = 3,
+    /* TODO: Store current module type in eeprom byte 1. */
 };
 
 //  Timing description: 1 Second is 8056 cycles
@@ -47,9 +41,8 @@ enum {
 //  overflow every  = 256*1/(1650000000/8) s 
 
 static unsigned char uADC = 0;		// Analog value
-static int nBlink = 0;				// Blink timer
 
-volatile unsigned int module_type = MODULE_TYPE;
+volatile int module_type = MODULE_TYPE;
 
 // This descriptor is based on http://www.usb.org/developers/devclass_docs/midi10.pdf
 //
@@ -222,7 +215,6 @@ static PROGMEM const char configDescrMIDI[] = {	/* USB configuration descriptor 
 	3,			/* baAssocJackID (0) */
 };
 
-
 uchar usbFunctionDescriptor(usbRequest_t * rq)
 {
 	if (rq->wValue.bytes[1] == USBDESCR_DEVICE) {
@@ -235,23 +227,13 @@ uchar usbFunctionDescriptor(usbRequest_t * rq)
 	}
 }
 
-
-/* ------------------------------------------------------------------------- */
-/* ----------------------------- USB interface ----------------------------- */
-/* ------------------------------------------------------------------------- */
-
-uchar usbFunctionSetup(uchar data[8])
+/* Implementation taken from V-USB-MIDI Project
+ * http://cryptomys.de/horo/V-USB-MIDI/index.html */
+uchar usbFunctionRead(uchar *data, uchar len)
 {
-	return 0xff;
-}
+	// DEBUG LED
+	// PORTC ^= 0x02;
 
-
-/*---------------------------------------------------------------------------*/
-/* usbFunctionRead                                                           */
-/*---------------------------------------------------------------------------*/
-
-uchar usbFunctionRead(uchar * data, uchar len)
-{
 	data[0] = 0;
 	data[1] = 0;
 	data[2] = 0;
@@ -263,19 +245,42 @@ uchar usbFunctionRead(uchar * data, uchar len)
 	return 7;
 }
 
-
-/*---------------------------------------------------------------------------*/
-/* usbFunctionWrite                                                          */
-/*---------------------------------------------------------------------------*/
-
-uchar usbFunctionWrite(uchar * data, uchar len)
+/* This function is called when the driver receives a SETUP transaction from
+ * the host which is not answered by the driver itself (in practice: class and
+ * vendor requests). All control transfers start with a SETUP transaction where
+ * the host communicates the parameters of the following (optional) data
+ * transfer. The SETUP data is available in the 'data' parameter which can
+ * (and should) be casted to 'usbRequest_t *' for a more user-friendly access
+ * to parameters.
+ *
+ * If the SETUP indicates a control-in transfer, you should provide the
+ * requested data to the driver. There are two ways to transfer this data:
+ * (1) Set the global pointer 'usbMsgPtr' to the base of the static RAM data
+ * block and return the length of the data in 'usbFunctionSetup()'. The driver
+ * will handle the rest. Or (2) return USB_NO_MSG in 'usbFunctionSetup()'. The
+ * driver will then call 'usbFunctionRead()' when data is needed. See the
+ * documentation for usbFunctionRead() for details.
+ *
+ * If the SETUP indicates a control-out transfer, the only way to receive the
+ * data from the host is through the 'usbFunctionWrite()' call. If you
+ * implement this function, you must return USB_NO_MSG in 'usbFunctionSetup()'
+ * to indicate that 'usbFunctionWrite()' should be used. See the documentation
+ * of this function for more information. If you just want to ignore the data
+ * sent by the host, return 0 in 'usbFunctionSetup()'.
+ *
+ * Note that calls to the functions usbFunctionRead() and usbFunctionWrite()
+ * are only done if enabled by the configuration in usbconfig.h.
+ */
+usbMsgLen_t usbFunctionSetup(uchar data[8])
 {
-	return 1;
+	/* Return 0xff to get usbFunctionWrite and usbFunctionRead called. */
+	return 0xff;
 }
 
-
-void blink();
-
+uchar usbFunctionWrite(uchar *data, uchar len)
+{
+  return 1;
+}
 
 /*---------------------------------------------------------------------------*/
 /* usbFunctionWriteOut                                                       */
@@ -287,21 +292,24 @@ void blink();
 // joel: On received of message
 void usbFunctionWriteOut(uchar * midiMsg, uchar len)
 {
-	// blink();
-
 	// The length of the message should be 4 for a note on 
 	switch (module_type) {
-#ifdef INCLUDE_OUTPUT_FW
-		case OUTPUT:
-			output_usb_input_handler(midiMsg,len);
+		case ANALOG_OUTPUT:
+			analog_output_device_usb_input_handler(midiMsg,len);
 			break;
-#endif
 
-#ifdef INCLUDE_RGB_LED_FW
-		case RGB_LED:
-			rgb_led_usb_input_handler(midiMsg,len);
+		case ANALOG_INPUT:
+			analog_input_device_usb_input_handler(midiMsg,len);
 			break;
-#endif
+
+		case DIGITAL_OUTPUT:
+			digital_output_device_usb_input_handler(midiMsg,len);
+			break;
+
+		case DIGITAL_INPUT:
+			digital_input_device_usb_input_handler(midiMsg,len);
+			break;
+
 		default:
 			/* Do nothing. */
 			break;
@@ -385,52 +393,43 @@ void initUSB()
 
     usbInit();
     usbDeviceDisconnect();  // enforce re-enumeration, do this while interrupts are disabled!
-    i = 0;
-    while (--i) {             // fake USB disconnect for > 250 ms
-        wdt_reset();
-        _delay_ms(1);
-    }
+
+	// fake USB disconnect for > 250 ms
+	// If delay is longer than watchdog timeout, split this into smaller delays
+	// with wdt_reset called in between.
+	wdt_reset();
+	_delay_ms(USB_DISCONNECT_DELAY_MS);
+	wdt_reset();
+
     usbDeviceConnect();
 }
 
+/* TODO: put this in an interface header file. */
 void init_modules(void) {
 	switch (module_type) {
-
-#ifdef INCLUDE_RGB_LED_FW
-		case RGB_LED:
-			setup_rgb_led();
+		case ANALOG_INPUT:
+			init_analog_input_device();
 			break;
-#endif
 
-#ifdef INCLUDE_OUTPUT_FW
-		case OUTPUT:
-			init_output();
+		case ANALOG_OUTPUT:
+			init_analog_output_device();
 			break;
-#endif
 
-#ifdef INCLUDE_KNOB_FW
-		case KNOB:
-			init_knob();
+		case DIGITAL_INPUT:
+			init_digital_input_device();
 			break;
-#endif
 
-#ifdef INCLUDE_BUTTON_FW
-		case BUTTON:
-			init_button();
+		case DIGITAL_OUTPUT:
+			init_digital_output_device();
 			break;
-#endif
 
-#ifdef INCLUDE_COMPASS_FW
-		case COMPASS:
-			setup_compass();
+		case I2C_DEVICE:
+			/* Not implemented yet. */
 			break;
-#endif
 
-#ifdef INCLUDE_ACCELEROMETER_FW
-		case ACCELEROMETER:
-			init_accelerometer();
+		default:
+			/* Do nothing. */
 			break;
-#endif
 	}
 }
 
@@ -446,70 +445,62 @@ int main()
 	// Endless loop
 	for (;;) {
 
+		/* Regularly restart watchdog timer to prevent it from elapsing. */
 		wdt_reset();
 		usbPoll();
 		
-		#ifdef INCLUDE_RGB_LED_FW
-		if (module_type == RGB_LED) {
-			rgb_led_main_loop();
-		}
-		#endif
-			
 		if (usbInterruptIsReady()) {
 			switch (module_type) {
-				#ifdef INCLUDE_KNOB_FW
-				case KNOB:
-					knob_main_loop(uADC);
+				case ANALOG_INPUT:
+					analog_input_device_main_loop(uADC);
 					break;
-				#endif
 
-				#ifdef INCLUDE_OUTPUT_FW
-				case OUTPUT:
-					output_main_loop();
+				case ANALOG_OUTPUT:
+					analog_output_device_main_loop();
 					break;
-				#endif
 
-				#ifdef INCLUDE_BUTTON_FW
-				case BUTTON:
-					button_main_loop(uADC);
+				case DIGITAL_INPUT:
+					digital_input_device_main_loop(uADC);
 					break;
-				#endif
 
-				#ifdef INCLUDE_ACCELEROMETER_FW
-				case ACCELEROMETER:
-					accelerometer_main_loop();
+				case DIGITAL_OUTPUT:
+					digital_output_device_main_loop();
 					break;
-				#endif
 
-				#ifdef INCLUDE_COMPASS_FW
-				case COMPASS:
-					rgb_led_main_loop();
+				case I2C_DEVICE:
+					/* Not implemented yet. */
 					break;
-				#endif	
 
 				default:
 				  break;
 			}
 		}
 	}
-
 	return 0;
 }
 
-/* Interrupt Service Routines to handle timer and ADC. */
+/* Service Routines to handle timer, ADC, and changing Module Type. */
+
+/* Modify module type. */
+void update_module_type(int new_type)
+{
+    module_type = new_type;
+    init_modules();
+}
 
 /* Handle continuous timer and blink status LED. */
 ISR(TIMER1_OVF_vect)
 {
-	// Todo: using blink function like this causes module to not show up sometimes over USB?
-	//  doesn't happen if no function call ...
+	// Note: using old blink function like this causes module to not show up sometimes over USB?
+	// doesn't happen if no function call ...
+	static uint16_t nBlink = 0;				// Blink timer
 
 	// For timing calibration
-	if (nBlink) {
+	if (nBlink > 0) {
 		--nBlink;	// Decrease led timer counter value
-	}else{
-		// blink();							// This causes module to not be identified sometimes??
-		// PORTB ^= _BV(STATUS_LED_PORT);	// Toggle LED - this works
+	} else {
+		nBlink = SECONDS_PER_BLINK * CYCLES_PER_SECOND;	// Reset blink timer counter
+		PORTB ^= _BV(STATUS_LED_PORT);	// Toggle LED - this works
 	}
 
 	// Reset timer 1 counter (Only necessary if timer 1 compare match interrupt instead of
