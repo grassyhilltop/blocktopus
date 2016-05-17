@@ -30,4 +30,6 @@
 #define DIGITAL_OUTPUT 10
 #define I2C_DEVICE 11
 
+#define REQUEST_DEVICE_TYPE 99
+
 #endif

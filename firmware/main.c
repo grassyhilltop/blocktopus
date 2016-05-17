@@ -30,10 +30,10 @@ enum {
 	CYCLES_PER_SECOND = 8056,
 	USB_DISCONNECT_DELAY_MS = 251,
 	OSCCAL_EEPROM_ADDR = 0,
-	MODULE_TYPE_EEPROM_ADDR = 4,
   SECONDS_PER_BLINK = 3,
-    /* TODO: Store current module type in eeprom byte 1. */
 };
+
+static uint8_t * const MODULE_TYPE_EEPROM_ADDR = (uint8_t *)0x08;
 
 //  Timing description: 1 Second is 8056 cycles
 //  With a 1:8 prescaler - the timer ticks with frequency = 16.5Mhz/8 = 2 Mhz 
@@ -42,7 +42,7 @@ enum {
 
 static unsigned char uADC = 0;		// Analog value
 
-volatile int module_type = MODULE_TYPE;
+volatile uint8_t module_type = MODULE_TYPE;
 
 // This descriptor is based on http://www.usb.org/developers/devclass_docs/midi10.pdf
 //
@@ -215,6 +215,12 @@ static PROGMEM const char configDescrMIDI[] = {	/* USB configuration descriptor 
 	3,			/* baAssocJackID (0) */
 };
 
+/* Used to return a USB Descriptor dynamically at runtime.
+ * Other options are to keep USB Descriptor data in fixed-length static
+ * data in RAM or FLASH, or to use the default descriptors.
+ *
+ * See usbconfig.h "Fine Control over USB Descriptors" for more information.
+ */
 uchar usbFunctionDescriptor(usbRequest_t * rq)
 {
 	if (rq->wValue.bytes[1] == USBDESCR_DEVICE) {
@@ -388,6 +394,19 @@ void initUSB()
 	/* Check that returned calibration value is valid before setting OSCCAL. */
     if (uCalVal != 0xff) OSCCAL = uCalVal;
 
+  /* Note about eeprom_read: As these functions modify IO registers, they are
+   * known to be non-reentrant. If any of these functions are used from both,
+   * standard and interrupt context, the applications must ensure proper
+   * protection (e.g. by disabling interrupts before accessing them).
+   * Note: It's unclear whether hadUsbReset is in an interrupt context. */
+
+    // read module type from last time
+    uint8_t stored_module_type = eeprom_read_byte(MODULE_TYPE_EEPROM_ADDR);
+	/* Check that returned calibration value is valid before setting module_type. */
+    if (stored_module_type != 0xff && stored_module_type != 0) {
+      module_type = stored_module_type;
+    }
+
 	/* Enable watchdog timer */
     wdt_enable(WDTO_2S);
 
@@ -428,7 +447,7 @@ void init_modules(void) {
 			break;
 
 		default:
-			/* Do nothing. */
+			/* Device not recognized. */
 			break;
 	}
 }
@@ -472,6 +491,7 @@ int main()
 					break;
 
 				default:
+          sendPitchBend(module_type);
 				  break;
 			}
 		}
@@ -482,10 +502,21 @@ int main()
 /* Service Routines to handle timer, ADC, and changing Module Type. */
 
 /* Modify module type. */
-void update_module_type(int new_type)
+void update_module_type(uint8_t new_type)
 {
     module_type = new_type;
     init_modules();
+    // Keep module_type state in memory. TODO: Does this stay in EEPROM
+    // even when I re-run micronucleus? We wouldn't want that though.
+    // Unsure whether this is in interrupt context or standard context here
+    cli();
+    eeprom_write_byte(MODULE_TYPE_EEPROM_ADDR, module_type);
+    sei();
+}
+
+uint8_t get_module_type(void)
+{
+  return module_type;
 }
 
 /* Handle continuous timer and blink status LED. */

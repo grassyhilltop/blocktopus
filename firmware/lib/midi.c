@@ -59,6 +59,17 @@ void sendPitchBend(uchar pitch) {
 	// usbSetInterrupt(midiMsg, 4);				
 }
 
+void sendSysExMsg(uint8_t msg)
+{
+  uint8_t midiMsg[10];
+	midiMsg[0] =  0x0f; // 0x09 High nibble = cable number, low-nibble = sysex
+	midiMsg[1] =  0xf0; // message type: SysEx
+	midiMsg[2] =  msg;  // data byte
+	midiMsg[3] =  0xf7; // terminate message
+
+  usbSetInterrupt(midiMsg, 4);
+}
+
 void handleSysExMsg(uint8_t *midiMsg, uint8_t len){
   if (len < MIN_MIDI_MSG_LEN) {
     return;
@@ -79,6 +90,10 @@ void handleSysExMsg(uint8_t *midiMsg, uint8_t len){
         break;
       case I2C_DEVICE:
         update_module_type(I2C_DEVICE);
+        break;
+      case REQUEST_DEVICE_TYPE:
+        /* Send sysex message with device type back. */
+        sendSysExMsg(get_module_type());
         break;
       default:
         /* Do nothing. */
