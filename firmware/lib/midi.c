@@ -2,10 +2,12 @@
 #include "hardware.h"
 #include "main.h"
 #include "config.h"
+#include <util/delay.h>
 
 enum {
   NOTE_MIDI_MSG_LEN = 4,
   MIN_MIDI_MSG_LEN = 2,
+  FIVE_SECONDS_MS = 5000,
 };
 void sendNoteOn() {
 	uint8_t midiMsg[NOTE_MIDI_MSG_LEN];
@@ -74,7 +76,10 @@ void handleSysExMsg(uint8_t *midiMsg, uint8_t len){
   if (len < MIN_MIDI_MSG_LEN) {
     return;
   }
-  if (midiMsg[1] == 0xF0) { // Sysex message, should this be midiMsg[1]?
+  // Note from Charles: MIDI standards would normally put the SysEx code of 0xF0
+  // in byte 0 (midiMsg[0]), but I think some of the MIDI msg handling uses a
+  // header byte
+  if (midiMsg[1] == 0xF0) { // SysEx message code of 0xF0
     switch (midiMsg[2]) {
       case ANALOG_INPUT:
         update_module_type(ANALOG_INPUT);
@@ -94,6 +99,11 @@ void handleSysExMsg(uint8_t *midiMsg, uint8_t len){
       case REQUEST_DEVICE_TYPE:
         /* Send sysex message with device type back. */
         sendSysExMsg(get_module_type());
+        break;
+      case WDT_RESET:
+        /* Delay to make watchdog timer elapse and cause device reset. */
+        _delay_ms(FIVE_SECONDS_MS);
+        /* _delay_ms does not return due to 2-second watchdog timer. */
         break;
       default:
         /* Do nothing. */

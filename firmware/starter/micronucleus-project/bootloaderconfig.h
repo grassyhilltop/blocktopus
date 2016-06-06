@@ -187,7 +187,9 @@ these macros are defined, the boot loader uses them.
  * 
  */
 
-#define ENTRYMODE ENTRY_ALWAYS
+// Charles: This is where we change when the chip can be programmed
+//#define ENTRYMODE ENTRY_ALWAYS
+#define ENTRYMODE ENTRY_WATCHDOG // Enter bootloader only after watchdog reset
 
 #define JUMPER_PIN    PB0
 #define JUMPER_PORT   PORTB 

@@ -3,9 +3,9 @@
 '''
 File: midi_msg.py
 Author: Charles Guan
-Last Edit: 2016-04-25
+Last Edit: 2016-06-01
 ---------------------
-This module sends some MIDI messages to a USB device.
+This module sends MIDI messages to a USB device.
 '''
 
 import mido
@@ -27,8 +27,9 @@ def main():
 
     with mido.open_output(device_name) as output:
         with mido.open_input(device_name) as inp:
-            msg = mido.Message('sysex', data=[7])
-            #msg = mido.Message('note_off')
+            #msg = mido.Message('sysex', data=[10])
+            msg = mido.Message('sysex', data=[101]) # send watchdog timer reset
+            #msg = mido.Message('note_on')
             print "sending msg: ", msg.hex()
             output.send(msg);
             print "sent!"
