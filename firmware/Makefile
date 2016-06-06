@@ -15,7 +15,7 @@ FUSE_L  = 0xE1
 #0x5D to disable reset
 FUSE_H  = 0x5D
 AVRDUDE = avrdude -c avrispmkII -p $(DEVICE)
-MODULE_TYPE = 1 # Default MODULE_TYPE to Knob
+MODULE_TYPE = 7 # Default MODULE_TYPE to ANALOG_INPUT
 
 CFLAGS  = -Imodules -Ilib -Iusbdrv -I. -Ilibs-device -DDEBUG_LEVEL=0 -DMODULE_TYPE=$(MODULE_TYPE)
 OBJECTS = usbdrv/usbdrv.o usbdrv/usbdrvasm.o usbdrv/oddebug.o main.o 
