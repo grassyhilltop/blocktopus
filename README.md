@@ -29,9 +29,11 @@ Install the latest version of the commandline tool micronucleus from here: https
 
 example usage - run the following command and THEN plug into the device:
 
-//invokes micronucleus to put the hex file "main.hex" into a compatible attiny85 over USB
+//invokes micronucleus to put the hex file "main.hex" into a compatible attiny85 over USB (OSX)
 > micronucleus --run main.hex  
 
+// Linux Ubuntu requires
+> sudo micronucleus --run main.hex  
 
 This assumes that you are plugging in an Attiny85 that has already had the bootloader pre-flashed into it.
 If you are starting from scractch with a raw Attiny85 with no bootloader -you will have to follow the instructions below
@@ -52,6 +54,7 @@ example usage:
 
 // involkes avrdude to flash the file "main.hex" into an attiny85 chip ( the -p flag specifies the chip type) 
 // The -c flag tells avrdude what kind of physical programmer you are using e.g. an avrispmkII programmer
+// Use "usbtiny" for the Sparkfun Tiny AVR Programmer
 > avrdude -c avrispmkII -p attiny85 -U flash:w:main.hex
 
 
