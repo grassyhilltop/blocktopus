@@ -26,6 +26,10 @@ section at the end of this file).
 + Then edit it accordingly.
 */
 
+/* ---------------------------- Helper Defines ---------------------------- */
+#define LOWBYTE(v)   ((char) (v))
+#define HIGHBYTE(v)  ((char) (v >> 8))
+
 /* ---------------------------- Hardware Config ---------------------------- */
 
 #define USB_CFG_IOPORTNAME      B
@@ -237,23 +241,9 @@ extern void hadUsbReset(void);
  */
 
  // Joel: the ID need to be unique in order for the device name to refresh, 5 is already taken by controller
-// #define  USB_CFG_DEVICE_ID       0xe4, 0x05 /* = 0x05dc = 1500 */
- // 5 is cached as joel's midi controller , 6 is cached as knob-9  !!
-#if MODULE_TYPE==BUTTON || MODULE_TYPE==DIGITAL_INPUT
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x11 /* = 0x05dc = 1500 */
-#elif MODULE_TYPE==KNOB || MODULE_TYPE==ANALOG_INPUT
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x29 /* = 0x05dc = 1500 */
-#elif MODULE_TYPE==OUTPUT || MODULE_TYPE==DIGITAL_OUTPUT
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x28 /* = 0x05dc = 1500 */
-#elif MODULE_TYPE==ANALOG_OUTPUT
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x28 /* = 0x05dc = 1500 */
-#elif MODULE_TYPE==RGB_LED
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x05 /* = 0x05dc = 1500 */
-#elif MODULE_TYPE==COMPASS
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x02 /* = 0x05dc = 1500 */
-#elif MODULE_TYPE==ACCELEROMETER
-	#define  USB_CFG_DEVICE_ID       0xe4, 0x02 /* = 0x05dc = 1500 */
-#endif
+ // USB_CFG_DEVICE_ID defined in Makefile
+#define  USB_CFG_DEVICE_ID       LOWBYTE(UDID), HIGHBYTE(UDID)
+
 /* This is the ID of the product, low byte first. It is interpreted in the
  * scope of the vendor ID. If you have registered your own VID with usb.org
  * or if you have licensed a PID from somebody else, define it here. Otherwise
@@ -288,79 +278,11 @@ extern void hadUsbReset(void);
 // Current module count is 29   <- used for assigning unique ID's
 // ----------------------------------------
 
-// Knob
-#if MODULE_TYPE==KNOB || MODULE_TYPE==ANALOG_INPUT
-    // #	define USB_CFG_DEVICE_NAME     'K','n','o','b','-','2','1'
-    // #	define USB_CFG_DEVICE_NAME_LEN 7
-// #	define USB_CFG_DEVICE_NAME     'S','l','i','d','e','r','-','1'
-// #	define USB_CFG_DEVICE_NAME_LEN 8
-// #	define USB_CFG_DEVICE_NAME     'A','n','g','l','e','-','1','7'
-// #	define USB_CFG_DEVICE_NAME_LEN 8
-// #	define USB_CFG_DEVICE_NAME     'L','i','g','h','t','_','S','e','n','s','o','r','-','2','4'
-// #	define USB_CFG_DEVICE_NAME_LEN 15
-// #	define USB_CFG_DEVICE_NAME     'M','o','t','i','o','n', '_' ,'S','e','n','s','o','r','-','2','5'
-// #	define USB_CFG_DEVICE_NAME_LEN 16
-// #	define USB_CFG_DEVICE_NAME     'T','e','m','p','e','r','a','t','u','r','e','-','2','7'
-// #	define USB_CFG_DEVICE_NAME_LEN 14
-#	define USB_CFG_DEVICE_NAME     'F','o','r','c','e', '_' ,'S','e','n','s','o','r','-','2','9'
-#	define USB_CFG_DEVICE_NAME_LEN 14
-
-// Button  2 of them
-#elif MODULE_TYPE==BUTTON || MODULE_TYPE==DIGITAL_INPUT
-	// #	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','4'
-	// #	define USB_CFG_DEVICE_NAME_LEN 8
-// #	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','9'
-// #	define USB_CFG_DEVICE_NAME_LEN 8
-#	define USB_CFG_DEVICE_NAME     'T','i','l','t','-','1','1'
-#	define USB_CFG_DEVICE_NAME_LEN 7// Tilt
-
-// Buzzer
-#elif MODULE_TYPE==OUTPUT || MODULE_TYPE==DIGITAL_OUTPUT
- // #	define USB_CFG_DEVICE_NAME     'B','u','z','z','e','r','-','7'
- // #	define USB_CFG_DEVICE_NAME_LEN 8
- 
-// #	define USB_CFG_DEVICE_NAME     'L','i','g','h','t','-','8'
-// #	define USB_CFG_DEVICE_NAME_LEN 7 
-// #	define USB_CFG_DEVICE_NAME     'M','o','t','o','r','-','1','8'
-// #	define USB_CFG_DEVICE_NAME_LEN 8
-// #	define USB_CFG_DEVICE_NAME     'H','e','a','t', 'e' ,'r','-','1','9'
-// #	define USB_CFG_DEVICE_NAME_LEN 9
-// #	define USB_CFG_DEVICE_NAME     'F','a','n','-','2','0'
-// #	define USB_CFG_DEVICE_NAME_LEN 6
-#	define USB_CFG_DEVICE_NAME     'V','i','b','r','a','t','i','o','n','-','2','8'
-#	define USB_CFG_DEVICE_NAME_LEN 12
-
-#elif MODULE_TYPE==ANALOG_OUTPUT
- #	define USB_CFG_DEVICE_NAME     'F','a','n','-','2','0'
- #	define USB_CFG_DEVICE_NAME_LEN 6
-
- #elif MODULE_TYPE==RGB_LED
- #	define USB_CFG_DEVICE_NAME     'R','G','B','_','L','E','D','-','5'
- #	define USB_CFG_DEVICE_NAME_LEN 9
- 
-#elif MODULE_TYPE==COMPASS
- #	define USB_CFG_DEVICE_NAME     'C','o','m','p','a','s','s','-','2'
- #	define USB_CFG_DEVICE_NAME_LEN 9
-
-#elif MODULE_TYPE==ACCELEROMETER
- #	define USB_CFG_DEVICE_NAME     'A','c','c','e','l','e','r','o','m','e','t','e','r','-','2'
- #	define USB_CFG_DEVICE_NAME_LEN 15
-
-
-// Tilt
-// #	define USB_CFG_DEVICE_NAME     'T','i','l','t','-','1','1'
-// #	define USB_CFG_DEVICE_NAME_LEN 7// Tilt
-
-// Temperature
-//#	define USB_CFG_DEVICE_NAME     'T','e','m','p','-','1','2'
-//#	define USB_CFG_DEVICE_NAME_LEN 7
-
-// #	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','1','3'
-// #	define USB_CFG_DEVICE_NAME_LEN 9
-// #	define USB_CFG_DEVICE_NAME     'B','u','t','t','o','n','-','1','4'
-// #	define USB_CFG_DEVICE_NAME_LEN 9
-
-#endif
+// Display name is always generic - e.g. Block-1234
+#	define USB_CFG_DEVICE_NAME_PREFIX 'B','l','o','c','k','-'
+#	define USB_CFG_DEVICE_NAME_SUFFIX '0' + (UDID / 1000) % 10,'0' + (UDID / 100) % 10,'0' + (UDID / 10) % 10,'0' + UDID % 10
+#	define USB_CFG_DEVICE_NAME        USB_CFG_DEVICE_NAME_PREFIX, USB_CFG_DEVICE_NAME_SUFFIX
+#	define USB_CFG_DEVICE_NAME_LEN 10
 
 /* Same as above for the device name. If you don't want a device name, undefine
  * the macros. See the file USB-IDs-for-free.txt before you assign a name if
