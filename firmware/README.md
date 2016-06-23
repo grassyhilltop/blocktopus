@@ -34,3 +34,5 @@ The original bootloader has a 2 second delay on every power up where it launches
 The original version uses the ENTRY_ALWAYS option for ENTRYMODE in bootloaderconfig.h, while the updated version uses ENTRY_WATCHDOG. Thus, the bootloader is only entered after a reset due to a watchdog timer timeout. On normal resets in the new version, the main.hex program is entered directly.
 
 Chips with the new bootloader can be reprogrammed using micronucleus by sending it a SysEx message with WDT_RESET as the data byte (defined in config.h). This forces the chip to delay until the watchdog timer resets the chip. The chip will then reset into the bootloader, and you can run micronucleus --run main.hex as usual.
+
+If the module is stuck in a state where it does not respond to SysEx messages, but only can be programmed during a watchdog reset, simply re-flash manually using the programmer. On the first bootup, you can flash a hex file using micronucleus.
