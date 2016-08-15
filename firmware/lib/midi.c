@@ -64,10 +64,14 @@ void sendPitchBend(uchar pitch) {
 void sendSysExMsg(uint8_t msg)
 {
   uint8_t midiMsg[10];
-	midiMsg[0] =  0x0f; // 0x09 High nibble = cable number, low-nibble = sysex
+	midiMsg[0] =  0x0e; // 0x09 High nibble = cable number, low-nibble = ?
 	midiMsg[1] =  0xf0; // message type: SysEx
 	midiMsg[2] =  msg;  // data byte
 	midiMsg[3] =  0xf7; // terminate message
+
+  /* midiMsg[0] =  0xf0; // message type: SysEx, channel 0 */
+  /* midiMsg[1] =  msg;  // data byte */
+  /* midiMsg[2] =  0xf7; // terminate message */
 
   usbSetInterrupt(midiMsg, 4);
 }
