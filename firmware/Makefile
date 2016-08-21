@@ -15,7 +15,6 @@ FUSE_L  = 0xE1
 #0x5D to disable reset
 FUSE_H  = 0x5D
 AVRDUDE = avrdude -c avrispmkII -p $(DEVICE)
-<<<<<<< HEAD
 MODULE_TYPE = ANALOG_INPUT # Default MODULE_TYPE to ANALOG_INPUT
 UDID = 0xFFFF # Default DEVICE_ID (USB_CFG_DEVICE_ID)
 
