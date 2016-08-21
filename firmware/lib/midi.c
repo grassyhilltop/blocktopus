@@ -2,13 +2,17 @@
 #include "hardware.h"
 #include "main.h"
 #include "config.h"
+#include <stdint.h>
 #include <util/delay.h>
 
 enum {
   NOTE_MIDI_MSG_LEN = 4,
-  MIN_MIDI_MSG_LEN = 2,
+  MIN_MIDI_MSG_LEN = 3, // 1 byte header + 1 byte terminating byte + 1 byte for all MIDI messages
   FIVE_SECONDS_MS = 5000,
+	NAME_SYSEX_MSG_LEN = 20,
+  MIN_DELAY_BETWEEN_MIDI_MSGS_MS = 400,
 };
+
 void sendNoteOn() {
 	uint8_t midiMsg[NOTE_MIDI_MSG_LEN];
 	set_output_high();
@@ -61,13 +65,21 @@ void sendPitchBend(uchar pitch) {
 	// usbSetInterrupt(midiMsg, 4);				
 }
 
-void sendSysExMsg(uint8_t msg)
+void sendSysExByte(uint8_t msg)
 {
   uint8_t midiMsg[10];
-	midiMsg[0] =  0x0f; // 0x09 High nibble = cable number, low-nibble = sysex
+  // This 0th byte shouldn't be necessary if writing to a MIDI device,
+  // but it is. Why? The laptop isn't exactly a MIDI device.
+	midiMsg[0] =  0x0e; // 0x09 High nibble = cable number, low-nibble = ?
 	midiMsg[1] =  0xf0; // message type: SysEx
 	midiMsg[2] =  msg;  // data byte
 	midiMsg[3] =  0xf7; // terminate message
+
+  /* There can be any number of data bytes inbetween the initial 0xF0 and the final 0xF7. The most important is the first data byte (after the 0xF0), which should be a Manufacturer's ID. */
+  /* Inbetween these two status bytes, any number of data bytes (all having bit #7 clear, ie, 0 to 127 value) may be sent */
+  /* midiMsg[0] =  0xf0; // message type: SysEx, channel 0 */
+  /* midiMsg[1] =  msg;  // data byte */
+  /* midiMsg[2] =  0xf7; // terminate message */
 
   usbSetInterrupt(midiMsg, 4);
 }
@@ -98,12 +110,20 @@ void handleSysExMsg(uint8_t *midiMsg, uint8_t len){
         break;
       case REQUEST_DEVICE_TYPE:
         /* Send sysex message with device type back. */
-        sendSysExMsg(get_module_type());
+        sendSysExByte(get_module_type());
         break;
       case WDT_RESET:
         /* Delay to make watchdog timer elapse and cause device reset. */
         _delay_ms(FIVE_SECONDS_MS);
         /* _delay_ms does not return due to 2-second watchdog timer. */
+        break;
+      case REQUEST_DEVICE_NAME:
+        /* Since laptop can't seem to receive multi-byte MIDI messages, set flag
+         * to send them one by one. */
+        triggerSysExMsgSend();
+        break;
+      case SET_DEVICE_NAME:
+        update_module_name(midiMsg, 16);
         break;
       default:
         /* Do nothing. */
