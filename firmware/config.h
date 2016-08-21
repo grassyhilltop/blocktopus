@@ -15,8 +15,10 @@
 #define I2C_DEVICE 11 // Not implemented fully
 
 // SysEx message defines. Used in lib/midi.c
-// Define values must be representable by a byte
+// Define values are arbitrary but must be representable by a byte
 #define WDT_RESET 101
 #define REQUEST_DEVICE_TYPE 99
+#define REQUEST_DEVICE_NAME 77
+#define SET_DEVICE_NAME 54
 
 #endif
