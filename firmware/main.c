@@ -31,9 +31,11 @@ enum {
 	USB_DISCONNECT_DELAY_MS = 251,
 	OSCCAL_EEPROM_ADDR = 0,
   SECONDS_PER_BLINK = 3,
+  MODULE_NAME_BYTES = 16,
 };
 
 static uint8_t * const MODULE_TYPE_EEPROM_ADDR = (uint8_t *)0x08;
+static uint8_t * const NAME_EEPROM_ADDR = (uint8_t *)0x16;
 
 //  Timing description: 1 Second is 8056 cycles
 //  With a 1:8 prescaler - the timer ticks with frequency = 16.5Mhz/8 = 2 Mhz 
@@ -42,7 +44,7 @@ static uint8_t * const MODULE_TYPE_EEPROM_ADDR = (uint8_t *)0x08;
 
 static unsigned char uADC = 0;		// Analog value
 
-volatile uint8_t module_type = MODULE_TYPE;
+static volatile uint8_t module_type = MODULE_TYPE;
 
 // This descriptor is based on http://www.usb.org/developers/devclass_docs/midi10.pdf
 //
@@ -452,6 +454,32 @@ void init_modules(void) {
 	}
 }
 
+static bool isSendingSysExMsg = false;
+
+void triggerSysExMsgSend(void) {
+  isSendingSysExMsg = true;
+}
+
+void handleMidiSend(void)
+{
+  static uint8_t readBlock[MODULE_NAME_BYTES];
+  static size_t idx = 0;
+
+  if (idx == 0) {
+    /* Read block into buffer. */
+    get_module_name(readBlock, MODULE_NAME_BYTES);
+  }
+
+  if (idx >= MODULE_NAME_BYTES) {
+    /* Reset SysEx sending. */
+    idx = 0;
+    isSendingSysExMsg = false;
+  } else {
+    sendSysExByte(readBlock[idx]);
+    idx++;
+  }
+}
+
 int main()
 {
 	initStatusLED();
@@ -469,31 +497,34 @@ int main()
 		usbPoll();
 		
 		if (usbInterruptIsReady()) {
-			switch (module_type) {
-				case ANALOG_INPUT:
-					analog_input_device_main_loop(uADC);
-					break;
+      if (isSendingSysExMsg) {
+        handleMidiSend();
+      } else {
+        switch (module_type) {
+          case ANALOG_INPUT:
+            analog_input_device_main_loop(uADC);
+            break;
 
-				case ANALOG_OUTPUT:
-					analog_output_device_main_loop();
-					break;
+          case ANALOG_OUTPUT:
+            analog_output_device_main_loop();
+            break;
 
-				case DIGITAL_INPUT:
-					digital_input_device_main_loop(uADC);
-					break;
+          case DIGITAL_INPUT:
+            digital_input_device_main_loop(uADC);
+            break;
 
-				case DIGITAL_OUTPUT:
-					digital_output_device_main_loop();
-					break;
+          case DIGITAL_OUTPUT:
+            digital_output_device_main_loop();
+            break;
 
-				case I2C_DEVICE:
-					/* Not implemented yet. */
-					break;
+          case I2C_DEVICE:
+            /* Not implemented yet. */
+            break;
 
-				default:
-          sendPitchBend(module_type);
-				  break;
-			}
+          default:
+            break;
+        }
+      }
 		}
 	}
 	return 0;
@@ -517,6 +548,30 @@ void update_module_type(uint8_t new_type)
 uint8_t get_module_type(void)
 {
   return module_type;
+}
+
+/* Update module name. */
+void update_module_name(uint8_t *name, uint8_t name_len)
+{
+    if (!name) {
+      return;
+    }
+    cli();
+    eeprom_write_block(name, NAME_EEPROM_ADDR, name_len);
+    sei();
+}
+
+/* Returns the number of bytes read. */
+uint8_t get_module_name(uint8_t *buf, uint8_t buf_len)
+{
+    if (!buf) {
+      return 0;
+    }
+
+    cli();
+    eeprom_read_block(buf, NAME_EEPROM_ADDR, buf_len);
+    sei();
+    return buf_len;
 }
 
 /* Handle continuous timer and blink status LED. */
